@@ -1,0 +1,17 @@
+{
+  "name": "2dmc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "client": "vite",
+    "server": "node src/server/main.js"
+  },
+  "keywords": [],
+  "author": "OguzhanUmutlu",
+  "license": "MIT",
+  "dependencies": {
+    "vite": "^5.3.3"
+  }
+}
