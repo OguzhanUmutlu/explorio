@@ -1,5 +1,0 @@
-function buildClient() {
-}
-
-function buildServer() {
-}

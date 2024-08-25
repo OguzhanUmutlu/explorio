@@ -1,11 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./css/common.css">
+    <link rel="stylesheet" href="./css/client.css">
     <title>Block Game - Client</title>
 </head>
+
 <body>
-    
+<div class="f3-menu">
+    <div class="fps">FPS: 144</div>
+    <div class="x-coord">X: 0</div>
+    <div class="y-coord">Y: 0</div>
+</div>
+<canvas></canvas>
+<div class="cursor"></div>
+<div class="hotbar-inventory inventory" data-inventory="inventory" data-start="0" data-end="9">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
 </body>
+
+<script type="module">
+    import {initClient} from "./js/Client";
+
+    initClient();
+</script>
+
 </html>

@@ -1,0 +1,46 @@
+body {
+    cursor: none;
+    background-color: #79a4fa;
+    margin: 0;
+    overflow: hidden;
+}
+
+.cursor {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    background-image: url("../assets/textures/gui/cursor.png");
+    background-size: 100% 100%;
+    z-index: 100;
+    translate: -50% -50%;
+}
+
+.f3-menu {
+    position: absolute;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom-right-radius: 10px;
+    font-size: 26px;
+}
+
+.inventory {
+    display: flex;
+}
+
+.hotbar-inventory {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 37.5%;
+    aspect-ratio: 9 / 1;
+    translate: -50%;
+}
+
+.hotbar-inventory > div {
+    background-image: url("../assets/textures/gui/inventory/hotbar.png");
+    background-size: 100% 100%;
+    width: calc(100% / 9);
+    aspect-ratio: 1 / 1;
+}

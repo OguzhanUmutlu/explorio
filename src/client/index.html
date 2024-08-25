@@ -10,12 +10,55 @@
 </head>
 
 <body>
-<div class="title">Block Game</div>
-<div class="buttons">
-    <div class="singleplayer btn">Singleplayer</div>
-    <div class="multiplayer btn">Multiplayer</div>
-    <div class="options btn">Options</div>
+<div class="panorama"></div>
+<div class="main-menu">
+    <div class="title">Block Game</div>
+    <div class="buttons">
+        <div class="singleplayer btn">Singleplayer</div>
+        <div class="multiplayer btn">Multiplayer</div>
+        <div class="options btn">Options</div>
+    </div>
+</div>
+<div class="black-background"></div>
+<div class="singleplayer-container container">
+    <div class="close-btn">x</div>
+    <div class="flex">
+        <div class="search"><input placeholder="Search..."></div>
+        <div class="new-world btn">New world</div>
+    </div>
+    <div class="world-list"></div>
+</div>
+<div class="multiplayer-container container">
+    <div class="close-btn">x</div>
+    <div class="flex">
+        <div class="search"><input placeholder="Search..."></div>
+        <div class="new-server btn">New server</div>
+    </div>
+    <div class="server-list"></div>
+</div>
+<div class="options-container container">
+    <div class="close-btn">x</div>
+</div>
+<div class="new-world-container container">
+    <div class="close-btn">x</div>
+    <div class="mid-title">Create a world</div>
+    <div class="error"></div>
+    <div class="world-name"><input placeholder="World name..."></div>
+    <div class="world-seed"><input type="number" placeholder="World seed..."></div>
+    <div class="create-world btn">Create</div>
+</div>
+<div class="new-server-container container">
+    <div class="close-btn">x</div>
+    <div class="mid-title">Add a server</div>
+    <div class="error"></div>
+    <div class="server-name"><input placeholder="Server name..."></div>
+    <div class="server-ip"><input placeholder="Server IP..."></div>
+    <div class="server-port"><input placeholder="Server port..."></div>
+    <div class="create-server btn">Create</div>
 </div>
 
 </body>
+<script type="module">
+    import "./js/Index";
+</script>
 </html>

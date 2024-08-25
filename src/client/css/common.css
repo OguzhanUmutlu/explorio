@@ -1,4 +1,21 @@
+@font-face {
+    font-family: Minecraft;
+    src: url("../assets/fonts/Minecraft.ttf");
+}
+
 * {
-    font-family: Calibri, serif;
     color: white;
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    /*noinspection CssInvalidPropertyValue*/
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -o-crisp-edges;
+    image-rendering: pixelated;
+    -ms-interpolation-mode: nearest-neighbor;
+    font-family: Minecraft, Calibri, serif;
+    user-select: none;
+}
+
+body {
+    letter-spacing: -1px;
 }
