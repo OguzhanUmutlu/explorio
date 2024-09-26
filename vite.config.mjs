@@ -4,6 +4,7 @@ import {copy} from 'vite-plugin-copy';
 
 export default defineConfig({
     root: path.resolve(__dirname, "src/client"),
+    base: "explorio",
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "src/client"),
