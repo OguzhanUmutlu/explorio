@@ -1,20 +1,14 @@
-import {BlockCanBePhased, BlockIsOpaque, ItemIds} from "../Items";
-import {BoundingBox} from "../BoundingBox";
+import {f2id, im2f, ItemMetadata} from "../meta/Items";
+import {B, BM, I, IM} from "../meta/ItemIds";
+import {BoundingBox} from "../entity/BoundingBox";
 import {Generator} from "./generators/Generator";
 import {Entity} from "../entity/Entity";
 import {FlatGenerator} from "./generators/FlatGenerator";
 import {DefaultGenerator} from "./generators/DefaultGenerator";
 import {FlowerLandGenerator} from "./generators/FlowerLandGenerator";
 import {CustomGenerator} from "./generators/CustomGenerator";
-import {deserializeUint16Array, serializeUint16Array} from "../Utils";
-import {Buffer, BufferType} from "../compound/Tag";
 import {Server} from "../Server";
-
-export const WORLD_HEIGHT = 512;
-export const CHUNK_LENGTH = 16;
-export const SURFACE_HEIGHT = 172;
-export const CAVE_SCALE = 40;
-export const CHUNK_BUFFER_SIZE = CHUNK_LENGTH * WORLD_HEIGHT * 2;
+import {CHUNK_LENGTH, CHUNK_LENGTH_BITS, CHUNK_LENGTH_N, ServerChunkStruct, WORLD_HEIGHT, zstd} from "../utils/Utils";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -49,10 +43,11 @@ export const Generators = {
 
 export abstract class World<EntityType extends Entity = Entity, ServerType extends Server = Server> {
     chunks: Record<number, Chunk> = {};
-    metaChunks: Record<number, Chunk> = {};
-    chunkEntities: Record<number, Set<EntityType>> = {};
+    chunkEntities: Record<number, EntityType[]> = {};
     chunkReferees: Record<number, number> = {};
     server: ServerType;
+    entities: Record<number, EntityType> = {};
+    dirtyChunks: Set<number> = new Set;
 
     constructor(
         public server: ServerType,
@@ -62,131 +57,138 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
         public generator: Generator,
         public chunksGenerated: Set<number>
     ) {
-        this.generator.setWorld(this);
+        if (generator) generator.setWorld(this);
         for (let x = -2; x <= 2; x++) {
             this.ensureChunk(x);
         }
     };
 
+    getPlayers() {
+        return <ServerType["__player_type__"][]>Array.from(this.server.players).filter(i => i.world === this);
+    };
+
     // Finds the first air block from bottom
     getLowHeight(x: number) {
         x = Math.round(x);
-        const chunk = this.getChunkAt(x);
-        const xs = x & 0xf;
+        const chunk = this.getFullChunkAt(x);
+        const xs = x & 0b1111;
         let i = xs;
-        while (chunk[i] !== ItemIds.AIR) i += CHUNK_LENGTH;
+        while (!BM[chunk[i]].canBePhased) i += CHUNK_LENGTH;
         return (i - xs) / CHUNK_LENGTH;
     };
 
-    // Finds the first air block from top
+    // Finds the last air block from top
     getHighHeight(x: number) {
         x = Math.round(x);
-        const chunk = this.getChunkAt(x);
-        const xs = x & 0xf;
-        let i = xs + (WORLD_HEIGHT - 1) * CHUNK_LENGTH;
-        while (chunk[i] === ItemIds.AIR) i -= CHUNK_LENGTH;
-        return (i - xs) / CHUNK_LENGTH;
+        const chunk = this.getFullChunkAt(x);
+        const xs = x & CHUNK_LENGTH_N; // chunk length - 1
+        let i = xs | ((WORLD_HEIGHT - 1) << CHUNK_LENGTH_BITS);
+        while (BM[chunk[i]].canBePhased && i > 0) i -= CHUNK_LENGTH;
+        return (i - xs) / CHUNK_LENGTH + 1;
     };
 
-    getChunkAt(x: number, generate = true) {
-        x = Math.round(x) >> 4;
+    getFullChunkAt(x: number, generate = true) {
+        x = Math.round(x) >> CHUNK_LENGTH_BITS;
         this.ensureChunk(x, generate);
         return this.chunks[x];
     };
 
-    getChunkMetaAt(x: number, generate = true) {
-        x = Math.round(x) >> 4;
-        this.ensureChunk(x, generate);
-        return this.metaChunks[x];
+    getChunkEntitiesAt(x: number): EntityType[] {
+        x = Math.round(x) >> CHUNK_LENGTH_BITS;
+        return this.chunkEntities[x] ??= [];
     };
 
-    getChunkEntitiesAt(x: number): Set<EntityType> {
-        x = Math.round(x) >> 4;
-        return this.chunkEntities[x] ??= new Set;
+    getBlockAt(x: number, y: number): number {
+        x = Math.round(x);
+        y = Math.round(y);
+        if (!this.inWorld(x, y)) return 0;
+        return this.getFullChunkAt(x, true)[(x & CHUNK_LENGTH_N) | (y << CHUNK_LENGTH_BITS)];
     };
 
-    getBlock(x: number, y: number): { id: number, meta: number } {
-        x = Math.round(x);
-        y = Math.round(y);
-        if (y >= WORLD_HEIGHT || y < 0) return {id: ItemIds.AIR, meta: 0};
-        return {
-            id: this.getChunkAt(x)[(x & 0xf) + y * CHUNK_LENGTH],
-            meta: this.getChunkMetaAt(x)[(x & 0xf) + y * CHUNK_LENGTH]
-        };
-    }
-
-    getBlockId(x: number, y: number): number {
-        x = Math.round(x);
-        y = Math.round(y);
-        if (y >= WORLD_HEIGHT || y < 0) return ItemIds.AIR;
-        return this.getChunkAt(x)[(x & 0xf) + y * CHUNK_LENGTH] ?? ItemIds.AIR;
+    getBlockMetaAt(x: number, y: number): ItemMetadata {
+        return BM[this.getBlockAt(x, y)];
     };
 
-    getBlockMeta(x: number, y: number): number {
-        x = Math.round(x);
-        y = Math.round(y);
-        if (y >= WORLD_HEIGHT || y < 0) return ItemIds.AIR;
-        return this.getChunkMetaAt(x)[(x & 0xf) + y * CHUNK_LENGTH] ?? ItemIds.AIR;
+    inWorld(x: number, y: number) {
+        return y < WORLD_HEIGHT && y >= 0;
     };
 
-    setBlock(x: number, y: number, id: number, meta: number, generate = true) {
-        x = Math.round(x);
-        y = Math.round(y);
-        if (y >= WORLD_HEIGHT || y < 0) return ItemIds.AIR;
-        this.getChunkAt(x, generate)[(x & 0xf) + y * CHUNK_LENGTH] = id;
-        this.getChunkMetaAt(x, generate)[(x & 0xf) + y * CHUNK_LENGTH] = meta;
+    _setBlock(x: number, y: number, fullId: number, generate = true, polluteChunk = true, broadcast = true) {
+        // WARNING: This assumes x and y are integers, and y is a bounded valid height.
+        const chunk = this.getFullChunkAt(x, generate);
+        const i = (x & CHUNK_LENGTH_N) | (y << CHUNK_LENGTH_BITS);
+        if (chunk[i] === fullId) return;
+        chunk[i] = fullId;
+        const chunkX = x >> CHUNK_LENGTH_BITS;
+        if (polluteChunk) this.dirtyChunks.add(chunkX);
+        if (broadcast) this.broadcastBlockAt(x, y, fullId);
     };
 
-    setBlockId(x: number, y: number, id: number, generate = true) {
+    setFullBlock(x: number, y: number, fullId: number, generate = true, polluteChunk = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
-        if (y >= WORLD_HEIGHT || y < 0) return ItemIds.AIR;
-        this.getChunkAt(x, generate)[(x & 0xf) + y * CHUNK_LENGTH] = id;
+        if (!this.inWorld(x, y)) return;
+        this._setBlock(x, y, fullId, generate, polluteChunk, broadcast);
     };
 
-    setBlockMeta(x: number, y: number, meta: number, generate = true) {
+    setBlock(x: number, y: number, id: number, meta: number, generate = true, polluteChunk = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
-        if (y >= WORLD_HEIGHT || y < 0) return ItemIds.AIR;
-        this.getChunkMetaAt(x, generate)[(x & 0xf) + y * CHUNK_LENGTH] = meta;
+        if (!this.inWorld(x, y)) return;
+        this._setBlock(x, y, im2f(id, meta), generate, polluteChunk, broadcast);
     };
 
     ensureChunk(x: number, generate = true) {
         x = Math.round(x);
-        if (!(x in this.chunks) || !(x in this.metaChunks)) this.loadChunk(x);
+        if (!(x in this.chunks)) this.loadChunk(x);
         if (!(x in this.chunks)) this.chunks[x] = new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT);
-        if (!(x in this.metaChunks)) this.metaChunks[x] = new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT);
 
-        if (generate && !this.chunksGenerated.has(x)) {
+        this.chunkEntities[x] ??= [];
+
+        if (generate && this.generator && !this.chunksGenerated.has(x)) {
             this.chunksGenerated.add(x);
             this.generator.generate(x);
+            this.dirtyChunks.add(x);
         }
     };
 
     loadChunk(x: number) {
         const buffer = this.getChunkBuffer(x);
         if (!buffer) return false;
-        this.chunks[x] = deserializeUint16Array(CHUNK_BUFFER_SIZE, buffer, 0);
-        this.metaChunks[x] = deserializeUint16Array(CHUNK_BUFFER_SIZE, buffer, CHUNK_BUFFER_SIZE - 2);
+        try {
+            const chunk = ServerChunkStruct.deserialize(Buffer.from(zstd.decode(buffer)));
+            this.chunks[x] = chunk.data;
+        } catch (e) {
+            console.warn(`Chunk ${x} is corrupted, regenerating...`, e);
+            this.removeChunkBuffer(x);
+            return false;
+        }
         return true;
     };
 
     saveChunk(x: number) {
         if (!this.chunksGenerated.has(x)) return;
-        const buffer = Buffer.alloc(CHUNK_BUFFER_SIZE * 2);
-        serializeUint16Array(this.chunks[x], buffer, 0);
-        serializeUint16Array(this.metaChunks[x], buffer, CHUNK_BUFFER_SIZE);
+        const buffer = zstd.encode(ServerChunkStruct.serialize({data: this.chunks[x]}));
         this.setChunkBuffer(x, buffer);
     };
 
-    abstract getChunkBuffer(x: number): BufferType | null;
+    abstract removeChunkBuffer(x: number): void; // for removing corrupted chunks
 
-    abstract setChunkBuffer(x: number, buffer: BufferType): void;
+    abstract getChunkBuffer(x: number): Buffer | null;
+
+    abstract setChunkBuffer(x: number, buffer: Buffer): void;
+
+    serverUpdate(dt: number): void {
+        for (const x in this.chunkEntities) {
+            this.chunkEntities[x].forEach(e => e.serverUpdate(dt));
+        }
+    };
 
     save() {
-        for (let x in this.chunks) {
-            this.saveChunk(parseInt(x));
+        for (let x of this.dirtyChunks) {
+            this.saveChunk(x);
         }
+        this.dirtyChunks.clear();
     };
 
     unload() {
@@ -198,14 +200,68 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
     unloadChunk(x: number) {
         this.saveChunk(x);
         delete this.chunks[x];
-        delete this.metaChunks[x];
+        delete this.chunkEntities[x];
+    };
+
+    tryToPlaceBlockAt(entity: EntityType, x: number, y: number, id: number, meta: number, polluteChunk = true, broadcast = true) {
+        x = Math.round(x);
+        y = Math.round(y);
+        if (!this.inWorld(x, y) || entity.distance(x, y) > entity.blockReach || !this.hasSurroundingBlock(x, y)) return false;
+        const targetFullId = this.getBlockAt(x, y);
+        const targetId = f2id(targetFullId);
+        const targetMeta = IM[targetId];
+        const replaceableBy = targetMeta.replaceableBy;
+        if (replaceableBy !== "*" && !replaceableBy.includes(id)) return false;
+        const canBePlacedOn = targetMeta.canBePlacedOn;
+        if (canBePlacedOn !== "*" && !canBePlacedOn.includes(id)) return false;
+        if (targetMeta.cannotBePlacedOn.includes(id)) return false;
+        const fullId = im2f(id, meta);
+        this._setBlock(x, y, fullId, true, false);
+        if (this.anyEntityTouchBlock(x, y)) {
+            this._setBlock(x, y, targetFullId, true, false);
+            return false;
+        }
+        const chunkX = x >> CHUNK_LENGTH_BITS;
+        if (polluteChunk) this.dirtyChunks.add(chunkX);
+        if (broadcast) this.broadcastBlockAt(x, y, fullId);
+        return true;
+    };
+
+    canBreakBlockAt(entity: EntityType, x: number, y: number) {
+        x = Math.round(x);
+        y = Math.round(y);
+        const fullId = this.getBlockAt(x, y);
+        const id = f2id(fullId);
+        const data = IM[id];
+        return this.inWorld(x, y)
+            && entity.distance(x, y) <= entity.blockReach
+            && this.getBlockDepth(x, y) >= 3
+            && data.getHardness() !== -1
+            && data.solid;
+    };
+
+    tryToBreakBlockAt(entity: EntityType, x: number, y: number, polluteChunk = true, broadcast = true) {
+        if (!this.canBreakBlockAt(entity, x, y)) return false;
+        this.setFullBlock(x, y, B.AIR, true, polluteChunk, broadcast);
+        return true;
+    };
+
+    anyEntityTouchBlock(x: number, y: number) {
+        const cx = Math.round(x) >> 4;
+        for (let chunkX = cx - 1; chunkX <= cx + 1; chunkX++) {
+            const entities = this.chunkEntities[chunkX];
+            for (const e of entities) {
+                if (e.bb.collidesBlock(x, y)) return true;
+            }
+        }
+        return false;
     };
 
     getBlockCollisions(bb: BoundingBox, limit = Infinity) {
         const collisions = [];
         for (let x = Math.floor(bb.x); x <= Math.ceil(bb.x + bb.width); x++) {
             for (let y = Math.floor(bb.y); y <= Math.ceil(bb.y + bb.height); y++) {
-                if (!BlockCanBePhased[this.getBlockId(x, y)] && bb.collidesBlock(x, y)) { // TODO: check for collision after adding slabs etc.
+                if (!this.getBlockMetaAt(x, y).canBePhased && bb.collidesBlock(x, y)) { // TODO: check for collision after adding slabs etc.
                     collisions.push({x, y});
                     if (collisions.length >= limit) return collisions;
                 }
@@ -215,25 +271,31 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
     };
 
     hasSurroundingBlock(x: number, y: number) {
-        return this.getBlockId(x - 1, y) !== ItemIds.AIR ||
-            this.getBlockId(x + 1, y) !== ItemIds.AIR ||
-            this.getBlockId(x, y - 1) !== ItemIds.AIR ||
-            this.getBlockId(x, y + 1) !== ItemIds.AIR;
+        return f2id(this.getBlockAt(x - 1, y)) !== I.AIR ||
+            f2id(this.getBlockAt(x + 1, y)) !== I.AIR ||
+            f2id(this.getBlockAt(x, y - 1)) !== I.AIR ||
+            f2id(this.getBlockAt(x, y + 1)) !== I.AIR;
     };
 
-    getBlockDepth(x: number, y: number) {
-        if (!BlockIsOpaque[this.getBlockId(x, y)]) return 4;
+    getBlockDepth(x: number, y: number, careOpaque = false) {
+        const targetFullId = this.getBlockAt(x, y);
+        if (careOpaque) {
+            if (!BM[targetFullId].isOpaque) return 4;
+        } else if (targetFullId === B.AIR) return 4;
         for (const [dx, dy] of SPREAD1) {
-            if (!BlockIsOpaque[this.getBlockId(x + dx, y + dy)]) return 3;
+            if (!this.getBlockMetaAt(x + dx, y + dy).isOpaque) return 3;
         }
         for (const [dx, dy] of SPREAD2) {
-            if (!BlockIsOpaque[this.getBlockId(x + dx, y + dy)]) return 2;
+            if (!this.getBlockMetaAt(x + dx, y + dy).isOpaque) return 2;
         }
         for (const [dx, dy] of SPREAD3) {
-            if (!BlockIsOpaque[this.getBlockId(x + dx, y + dy)]) return 1;
+            if (!this.getBlockMetaAt(x + dx, y + dy).isOpaque) return 1;
         }
         return 0;
     };
 
     abstract playSound(path: string, x: number, y: number): void;
+
+    broadcastBlockAt(x: number, y: number, fullId = null, exclude: any[] = [], immediate = false) {
+    };
 }

@@ -2,7 +2,7 @@ import {Server} from "../common/Server";
 import {Generators, getRandomSeed, WorldMetaData} from "../common/world/World";
 import {SWorld} from "./world/SWorld";
 import * as fs from "fs";
-import Printer from "fancy-printer";
+import {SPlayer} from "./entity/SPlayer";
 
 export type ServerConfig = {
     port: number,
@@ -23,14 +23,21 @@ export const DefaultServerConfig: ServerConfig = {
     }
 };
 
-export class SServer extends Server<SWorld> {
+export class SServer extends Server<SWorld, SPlayer> {
+    static instance: SServer;
+
     config: ServerConfig;
 
     constructor() {
         super();
+        SServer.instance = this;
+    };
+
+    init() {
+        super.init();
         if (!fs.existsSync("./server.json")) {
             fs.writeFileSync("./server.json", JSON.stringify(DefaultServerConfig, null, 2));
-            Printer.warn("Created server.json, please edit it and restart the server");
+            printer.warn("Created server.json, please edit it and restart the server");
             process.exit(0);
         }
         this.config = JSON.parse(fs.readFileSync("./server.json", "utf8"));
@@ -39,11 +46,11 @@ export class SServer extends Server<SWorld> {
             this.createWorld(folder, this.config["default-worlds"][folder]);
         }
         for (const folder of this.getWorldFolders()) {
-            if (this.loadWorld(folder)) Printer.pass("Loaded world %c" + folder, "color: yellow");
-            else Printer.fail("Failed to load world %c" + folder, "color: yellow");
+            if (this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
+            else printer.fail("Failed to load world %c" + folder, "color: yellow");
         }
         if (!(this.config["default-world"] in this.worlds)) {
-            Printer.error("Default world couldn't be found. Please create the world named '" + this.config["default-world"] + "'");
+            printer.error("Default world couldn't be found. Please create the world named '" + this.config["default-world"] + "'");
             this.close();
         }
         this.defaultWorld = this.worlds[this.config["default-world"]];
@@ -89,12 +96,19 @@ export class SServer extends Server<SWorld> {
         return fs.existsSync("./worlds/" + folder);
     };
 
+    update(dt: number) {
+        super.update(dt);
+        for (const player of this.players) {
+            player.network.releaseBatch();
+        }
+    };
+
     close(): void {
-        Printer.info("Closing the server...");
-        Printer.info("Saving the worlds...");
+        printer.info("Closing the server...");
+        printer.info("Saving the worlds...");
         for (const folder in this.worlds) {
             this.worlds[folder].save();
-            Printer.pass("Saved world %c" + folder, "color: yellow");
+            printer.pass("Saved world %c" + folder, "color: yellow");
         }
         process.exit();
     };

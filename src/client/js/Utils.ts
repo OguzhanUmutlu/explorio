@@ -1,7 +1,53 @@
-import {Entities, EntityBoundingBoxes} from "../../common/Entities";
+import "./Client"; // gives error if I don't add this for the Index page
+import {Entities, EntityBoundingBoxes, EntityClasses} from "../../common/meta/Entities";
+import {CPlayer} from "./entity/types/CPlayer";
+import {openDB} from "idb";
+import {WorldData} from "./Client";
+import {initCommon} from "../../common/utils/Inits";
 
 export type WorldData = { uuid: string, name: string, seed: number, lastPlayedAt: number };
-export type ServerData = { uuid: string, name: string, ip: string, port: number, lastPlayedAt: number };
+export type ServerData = {
+    uuid: string,
+    name: string,
+    ip: string,
+    port: number,
+    lastPlayedAt: number,
+    preferSecure: boolean
+};
+
+export async function getWorldDb() {
+    return await openDB("world-" + WorldData.uuid, 3, {
+        upgrade(db) {
+            if (!db.objectStoreNames.contains("chunks")) {
+                db.createObjectStore("chunks");
+            }
+        }
+    });
+}
+
+export async function saveChunkDb(index: number, buffer: Uint8Array) {
+    const db = await getWorldDb();
+    const tx = db.transaction("chunks", "readwrite");
+    await tx.objectStore("chunks").put(buffer, index);
+    await tx.done;
+}
+
+export async function getChunkDb(index: number) {
+    const db = await getWorldDb();
+    const tx = db.transaction("chunks", "readonly");
+    const chunk = await tx.objectStore("chunks").get(index);
+    await tx.done;
+    return <Uint8Array>chunk;
+}
+
+export function initClientThings() {
+    initClientEntities();
+    initCommon();
+}
+
+export function initClientEntities() {
+    EntityClasses[Entities.PLAYER] = CPlayer;
+}
 
 export function getWSUrls(ip: string, port: number): string[] {
     let isHttps = ip.startsWith("https://");
@@ -11,7 +57,7 @@ export function getWSUrls(ip: string, port: number): string[] {
     else if (isHttp) url = url.substring(7);
 
     const spl = Math.min(url.indexOf("/"), url.indexOf("#"), url.indexOf("?"));
-    url = `${isHttps ? "https://" : (isHttp ? "http://" : "")}${url.substring(0, spl)}:${port}${url.substring(spl)}`;
+    url = spl === -1 ? `${url}:${port}` : `${url.substring(0, spl)}:${port}${url.substring(spl)}`;
     if (isHttp || isHttps) return [`${isHttps ? "wss://" : "ws://"}${url}`];
     return [`wss://${url}`, `ws://${url}`];
 }
@@ -22,10 +68,16 @@ export function getWorldList(): WorldData[] {
 
 export function addWorld(name: string, seed: number) {
     const worlds = getWorldList();
-    const uuid = crypto.randomUUID();
+    const uuid = Date.now().toString(36);
     worlds.push({uuid, name, seed, lastPlayedAt: Date.now()});
     localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
+}
 
+export function setWorldOptions(uuid: string, options: Partial<WorldData>) {
+    const worlds = getWorldList();
+    const index = worlds.findIndex(w => w.uuid === uuid);
+    worlds[index] = {...worlds[index], ...options};
+    localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
 }
 
 export function removeWorld(index: number) {
@@ -40,7 +92,14 @@ export function getServerList(): ServerData[] {
 
 export function addServer(name: string, ip: string, port: number) {
     const servers = getServerList();
-    servers.push({uuid: crypto.randomUUID(), name, ip, port, lastPlayedAt: Date.now()});
+    servers.push({uuid: Date.now().toString(36), name, ip, port, lastPlayedAt: Date.now(), preferSecure: true});
+    localStorage.setItem("explorio.servers", JSON.stringify(servers));
+}
+
+export function setServerOptions(uuid: string, options: Partial<ServerData>) {
+    const servers = getServerList();
+    const index = servers.findIndex(s => s.uuid === uuid);
+    servers[index] = {...servers[index], ...options};
     localStorage.setItem("explorio.servers", JSON.stringify(servers));
 }
 
@@ -100,7 +159,7 @@ export function renderPlayerModel(
     ctx.drawImage(side.front_leg, -leg[2] / 2, 0, leg[2], leg[3]);
     ctx.restore();
 
-    const item = handItem;
+    // todo: render item
 
     ctx.save();
     ctx.translate(armBody[0] + armBody[2] / 2, armBody[1]);

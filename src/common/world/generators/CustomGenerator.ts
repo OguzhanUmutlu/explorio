@@ -1,9 +1,11 @@
 import {Generator} from "./Generator";
-import {ItemIds} from "../../Items";
-import {CHUNK_LENGTH, World} from "../World";
+import {I} from "../../meta/ItemIds";
+import {World} from "../World";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
 import {DefaultGenerator} from "./DefaultGenerator";
+import {im2f} from "../../meta/Items";
+import {CHUNK_LENGTH} from "../../utils/Utils";
 
 export class CustomGenerator extends Generator {
     processedPattern: [number, number | string][][];
@@ -31,7 +33,7 @@ export class CustomGenerator extends Generator {
                     name = name.substring(name.indexOf("*") + 1);
                 }
 
-                items.push([times, name[0] === ":" ? name : ItemIds[name.toUpperCase()]]);
+                items.push([times, name[0] === ":" ? name : I[name.toUpperCase()]]);
             }
 
             this.processedPattern.push(items);
@@ -47,7 +49,6 @@ export class CustomGenerator extends Generator {
     generate(chunkX: number): void {
         const world = this.world;
         const chunk = world.chunks[chunkX];
-        const metaChunks = world.metaChunks[chunkX];
         const chunkXM = chunkX * CHUNK_LENGTH;
 
         for (let x = 0; x < CHUNK_LENGTH; x++) {
@@ -60,12 +61,12 @@ export class CustomGenerator extends Generator {
                 for (let j = 0; j < times; j++) {
                     if (block === ":tree") {
                         y += DefaultGenerator.plantTree(
-                            world, chunk, metaChunks,
+                            world, chunk,
                             this.noise(worldX / 5, y / 5),
                             x, y, worldX
                         ) + 2;
                     } else if (typeof block === "number") {
-                        this.world.chunks[chunkX][x + y++ * CHUNK_LENGTH] = block;
+                        chunk[x + y++ * CHUNK_LENGTH] = im2f(block);
                     }
                 }
             }

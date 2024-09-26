@@ -1,23 +1,32 @@
 import {Server} from "../../common/Server";
 import {CWorld} from "./world/CWorld";
-import {Generators, getRandomSeed, WorldMetaData} from "../../common/world/World";
+import {Generators, WorldMetaData} from "../../common/world/World";
+import {CPlayer} from "./entity/types/CPlayer";
+import {WorldData} from "./Client";
 
 // This is specifically designed to be used in singleplayer.
-export class CServer extends Server<CWorld> {
+export class CServer extends Server<CWorld, CPlayer> {
     constructor(public uuid: string) {
         super();
-        for (const folder of this.getWorldFolders()) {
-            if (this.loadWorld(folder)) console.log("Loaded world %c" + folder, "color: yellow");
-            else console.log("Failed to load world %c" + folder, "color: yellow");
-        }
-        if (!this.worlds.default) {
+    };
+
+    init() {
+        super.init();
+        if (!bfs.existsSync("singleplayer")) bfs.mkdirSync("singleplayer");
+        if (!bfs.existsSync(`singleplayer/${this.uuid}`)) bfs.mkdirSync(`singleplayer/${this.uuid}`);
+        if (!bfs.existsSync(`singleplayer/${this.uuid}/worlds`)) bfs.mkdirSync(`singleplayer/${this.uuid}/worlds`);
+        if (!this.getWorldData("default")) {
             this.createWorld("default", {
                 name: "default",
                 generator: "default",
                 generatorOptions: "",
-                seed: getRandomSeed()
+                seed: WorldData.seed
             });
             this.loadWorld("default");
+        }
+        for (const folder of this.getWorldFolders()) {
+            if (this.loadWorld(folder)) printer.info("Loaded world %c" + folder, "color: yellow");
+            else printer.fail("Failed to load world %c" + folder, "color: yellow");
         }
         this.defaultWorld = this.worlds.default;
     };
@@ -27,19 +36,19 @@ export class CServer extends Server<CWorld> {
     };
 
     worldExists(folder: string): boolean {
-        return localStorage.getItem(`explorio.${this.uuid}.${folder}`) !== null;
+        return bfs.existsSync(`singleplayer/${this.uuid}/worlds/${folder}`);
     };
 
     getWorldData(folder: string): WorldMetaData | null {
-        const dat = localStorage.getItem(`explorio.${this.uuid}.${folder}`);
-        if (!dat) return null;
-        return JSON.parse(dat);
+        const path = `singleplayer/${this.uuid}/worlds/${folder}/data.json`;
+        if (!bfs.existsSync(path)) return null;
+        return JSON.parse(bfs.readFileSync(path, "utf8"));
     };
 
     getWorldChunkList(folder: string): number[] | null {
-        const dat = localStorage.getItem(`explorio.${this.uuid}.${folder}.chunks`);
-        if (!dat) return null;
-        return JSON.parse(dat);
+        const path = `singleplayer/${this.uuid}/worlds/${folder}/chunks`;
+        if (!bfs.existsSync(path)) return null;
+        return bfs.readdirSync(path).map(x => Number(x.split(".")[0]));
     };
 
     loadWorld(folder: string): CWorld | null {
@@ -53,7 +62,9 @@ export class CServer extends Server<CWorld> {
 
     createWorld(folder: string, data: WorldMetaData): boolean {
         if (this.worldExists(folder)) return false;
-        localStorage.setItem(`explorio.${this.uuid}.${folder}`, JSON.stringify(data));
+        bfs.mkdirSync(`singleplayer/${this.uuid}/worlds/${folder}`);
+        bfs.mkdirSync(`singleplayer/${this.uuid}/worlds/${folder}/chunks`);
+        bfs.writeFileSync(`singleplayer/${this.uuid}/worlds/${folder}/data.json`, JSON.stringify(data));
         return true;
     };
 

@@ -16,7 +16,6 @@
     <div class="y-coord">Y: 0</div>
 </div>
 <canvas></canvas>
-<div class="cursor"></div>
 <div class="hotbar-inventory inventory" data-inventory="inventory" data-start="0" data-end="9">
     <div class="item"></div>
     <div class="item"></div>
@@ -31,6 +30,9 @@
 </body>
 
 <script type="module">
+    import Buffer from "buffer";
+
+    window.Buffer = Buffer.Buffer;
     import {initClient} from "./js/Client";
 
     initClient();

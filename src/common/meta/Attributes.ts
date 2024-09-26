@@ -1,0 +1,16 @@
+export enum Attributes {
+    WALK_SPEED,
+    FLY_SPEED,
+    HEALTH,
+    FOOD,
+    MAX_HEALTH,
+    MAX_FOOD,
+    GRAVITY,
+    IS_FLYING,
+    CAN_TOGGLE_FLY,
+    CAN_PHASE,
+    BLOCK_REACH,
+    ATTACK_REACH,
+    JUMP_VELOCITY,
+    IMMOBILE
+}
