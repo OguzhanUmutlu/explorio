@@ -4,9 +4,9 @@ import {Inventory} from "./Inventory";
 export class CombinedInventory extends Inventory {
     inventories: Inventory[];
 
-    constructor(type: number, inventories: Inventory[] = [], extra: any = null) {
+    constructor(inventories: Inventory[] = [], extra: any = null) {
         const size = inventories.reduce((a, b) => a + b.size, 0);
-        super(size, type, extra);
+        super(size, extra);
         this.inventories = inventories;
     };
 
