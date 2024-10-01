@@ -8,6 +8,8 @@ import {Entities} from "../common/meta/Entities";
 import {SBlockUpdatePacket} from "../common/packet/server/SBlockUpdatePacket";
 import {CStartBreakingPacket} from "../common/packet/client/CStartBreakingPacket";
 import {CStopBreakingPacket} from "../common/packet/client/CStopBreakingPacket";
+import {SendMessagePacket} from "../common/packet/common/SendMessagePacket";
+import {SServer} from "./SServer";
 
 export class PlayerNetwork {
     batch: Packet<any>[] = [];
@@ -24,32 +26,34 @@ export class PlayerNetwork {
             this.processStartBreaking(pk);
         } else if (pk instanceof CStopBreakingPacket) {
             this.processStopBreaking(pk);
+        } else if (pk instanceof SendMessagePacket) {
+            this.processSendMessage(pk);
         } else {
             throw new PacketError("Invalid packet", pk);
         }
     };
 
-    processBatch(pk: BatchPacket) {
-        for (const p of pk.data) {
+    processBatch({data}: BatchPacket) {
+        for (const p of data) {
             this.processPacket(p);
         }
     };
 
-    processMovement(pk: CMovementPacket) {
-        const dist = this.player.distance(pk.data.x, pk.data.y);
+    processMovement({data}: CMovementPacket) {
+        const dist = this.player.distance(data.x, data.y);
         if (dist > 1.5) {
             return this.sendPosition();
         }
-        this.player.x = pk.data.x;
-        this.player.y = pk.data.y;
-        this.player.rotation = pk.data.rotation;
+        this.player.x = data.x;
+        this.player.y = data.y;
+        this.player.rotation = data.rotation;
         this.player.onMovement();
     };
 
-    processStartBreaking(pk: CStartBreakingPacket) {
-        if (!this.player.world.canBreakBlockAt(this.player, pk.data.x, pk.data.y)) return this.sendBlock(pk.data.x, pk.data.y);
-        this.player.breaking = [pk.data.x, pk.data.y];
-        this.player.breakingTime = this.player.world.getBlockMetaAt(pk.data.x, pk.data.y).getHardness();
+    processStartBreaking({data}: CStartBreakingPacket) {
+        if (!this.player.world.canBreakBlockAt(this.player, data.x, data.y)) return this.sendBlock(data.x, data.y);
+        this.player.breaking = [data.x, data.y];
+        this.player.breakingTime = this.player.world.getBlockMetaAt(data.x, data.y).getHardness();
         this.player.broadcastBlockBreaking();
     };
 
@@ -58,6 +62,11 @@ export class PlayerNetwork {
         this.player.breaking = null;
         this.player.breakingTime = 0;
         this.player.broadcastBlockBreaking();
+    };
+
+    processSendMessage({data}: SendMessagePacket) {
+        if (!data) return;
+        SServer.instance.broadcastPacket(new SendMessagePacket(`${this.player.name}: ${data}`));
     };
 
     sendBlock(x: number, y: number, fullId = null, immediate = false) {

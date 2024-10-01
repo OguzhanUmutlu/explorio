@@ -151,4 +151,10 @@ export class CPlayer extends PlayerEntity implements CEntity {
         this.bb.y = this.y - 0.5;
         super.onMovement();
     };
+
+    name = "";
+
+    sendMessage(message: string): void {
+        throw new Error("Cannot send messages to players in client-side");
+    };
 }

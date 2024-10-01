@@ -1,7 +1,7 @@
 import {PacketIds} from "./PacketIds";
 import {Bin} from "stramp";
 
-export abstract class Packet<T = any, V = T["struct"]["__TYPE__"]> {
+export abstract class Packet<T, V = T["struct"]["__TYPE__"]> {
     abstract static packetId: PacketIds;
     abstract static struct: Bin;
     clazz: any;

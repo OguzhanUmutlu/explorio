@@ -72,7 +72,7 @@ export class CServer extends Server<CWorld, CPlayer> {
         for (const folder in this.worlds) {
             this.worlds[folder].save();
         }
-        // location.href = "./";
+        // location.href = URLPrefix;
         // todo: pseudo-kick the client
     };
 }

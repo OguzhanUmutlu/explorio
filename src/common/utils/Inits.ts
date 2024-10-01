@@ -15,9 +15,13 @@ import {CStartBreakingPacket} from "../packet/client/CStartBreakingPacket";
 import {CStopBreakingPacket} from "../packet/client/CStopBreakingPacket";
 import {SBlockBreakingStopPacket} from "../packet/server/SBlockBreakingStopPacket";
 import {SBlockBreakingUpdatePacket} from "../packet/server/SBlockBreakingUpdatePacket";
+import {SendMessagePacket} from "../packet/common/SendMessagePacket";
+import {PingPacket} from "../packet/common/PingPacket";
 
 export function initPackets() {
     PacketClasses[PacketIds.BATCH] = BatchPacket;
+    PacketClasses[PacketIds.PING] = PingPacket;
+    PacketClasses[PacketIds.SEND_MESSAGE] = SendMessagePacket;
 
     PacketClasses[PacketIds.SERVER_BLOCK_BREAKING_STOP] = SBlockBreakingStopPacket;
     PacketClasses[PacketIds.SERVER_BLOCK_BREAKING_UPDATE] = SBlockBreakingUpdatePacket;

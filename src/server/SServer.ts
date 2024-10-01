@@ -3,6 +3,7 @@ import {Generators, getRandomSeed, WorldMetaData} from "../common/world/World";
 import {SWorld} from "./world/SWorld";
 import * as fs from "fs";
 import {SPlayer} from "./entity/SPlayer";
+import {Packet} from "../common/packet/Packet";
 
 export type ServerConfig = {
     port: number,
@@ -84,7 +85,7 @@ export class SServer extends Server<SWorld, SPlayer> {
     loadWorld(folder: string): SWorld | null {
         const data = this.getWorldData(folder);
         if (!data) return null;
-        const gen = Generators[data.generator];
+        const gen = <any>Generators[data.generator];
         const world = new SWorld(
             this, data.name, "./worlds/" + folder, data.seed, new gen(data.generatorOptions),
             new Set(this.getWorldChunkList(folder)));
@@ -111,5 +112,11 @@ export class SServer extends Server<SWorld, SPlayer> {
             printer.pass("Saved world %c" + folder, "color: yellow");
         }
         process.exit();
+    };
+
+    broadcastPacket(pk: Packet<any>, exclude: SPlayer[] = [], immediate = false) {
+        for (const player of this.players) {
+            if (!exclude.includes(player)) player.network.sendPacket(pk, immediate);
+        }
     };
 }

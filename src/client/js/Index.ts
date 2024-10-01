@@ -1,4 +1,4 @@
-import {addServer, addWorld, getServerList, getWorldList, removeServer, removeWorld} from "./Utils";
+import {addServer, addWorld, getServerList, getWorldList, removeServer, removeWorld, URLPrefix} from "./Utils";
 
 type _D = HTMLDivElement;
 type _I = HTMLInputElement;
@@ -58,7 +58,7 @@ function refreshWorlds() {
 
         div.addEventListener("click", () => {
             if (!getWorldList().some(i => i.uuid === world.uuid)) return;
-            location.href = `./client.html#${world.uuid}`
+            location.href = `${URLPrefix}client.html#${world.uuid}`;
         });
     }
 }
@@ -85,7 +85,7 @@ async function refreshServers() {
 
         div.addEventListener("click", () => {
             if (!getServerList().some(i => i.uuid === server.uuid)) return;
-            location.href = `./client.html#${server.uuid}`;
+            location.href = `${URLPrefix}client.html#${server.uuid}`;
         });
     }
     await Promise.all(promises);

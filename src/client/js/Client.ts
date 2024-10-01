@@ -4,7 +4,7 @@ import {f2id, f2meta} from "../../common/meta/Items";
 import {BoundingBox} from "../../common/entity/BoundingBox";
 import {Item} from "../../common/item/Item";
 import {CServer} from "./CServer";
-import {getServerList, getWorldList, initClientThings, ServerData, WorldData} from "./Utils";
+import {getServerList, getWorldList, initClientThings, ServerData, URLPrefix, WorldData} from "./Utils";
 import {CWorld} from "./world/CWorld";
 import {ClientNetwork} from "./ClientNetwork";
 import {CAuthPacket} from "../../common/packet/client/CAuthPacket";
@@ -17,8 +17,10 @@ import {CurrentGameProtocol} from "../../common/packet/Packets";
 import {CHUNK_LENGTH_BITS, makeZstd, WORLD_HEIGHT} from "../../common/utils/Utils";
 import {ZstdInit, ZstdSimple} from "@oneidentity/zstd-js";
 import * as BrowserFS from "browserfs";
+import {SendMessagePacket} from "../../common/packet/common/SendMessagePacket";
 
 export let canvas: HTMLCanvasElement;
+export let chatBox: HTMLDivElement;
 export let ctx: CanvasRenderingContext2D;
 let f3: HTMLDivElement;
 export const TILE_SIZE = 64;
@@ -51,8 +53,8 @@ export function updateCamera() {
 }
 
 function onResize() {
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
+    canvas.width = innerWidth + 1;
+    canvas.height = innerHeight + 1;
     ctx.imageSmoothingEnabled = false;
     updateMouse();
     updateCamera()
@@ -127,6 +129,10 @@ X: ${clientPlayer.x.toFixed(2)}<br>
 Y: ${clientPlayer.y.toFixed(2)}<br>
 Vx: ${clientPlayer.vx.toFixed(2)}<br>
 Vy: ${clientPlayer.vy.toFixed(2)}`;
+
+    if (document.activeElement !== document.body) {
+        Keyboard = {};
+    }
 
     updateMouse();
     updateCamera();
@@ -205,11 +211,11 @@ function update() {
             && clientPlayer.cacheState !== clientPlayer.calcCacheState()
         ) {
             clientPlayer.updateCacheState();
-            clientNetwork.sendPacket(new CMovementPacket({
-                x: parseFloat(clientPlayer.x.toFixed(2)),
-                y: parseFloat(clientPlayer.y.toFixed(2)),
-                rotation: parseFloat(clientPlayer.rotation.toFixed(1))
-            }), true);
+            clientNetwork.sendMovement(
+                parseFloat(clientPlayer.x.toFixed(2)),
+                parseFloat(clientPlayer.y.toFixed(2)),
+                parseFloat(clientPlayer.rotation.toFixed(1))
+            );
         }
     }
 }
@@ -233,12 +239,12 @@ export async function initClient() {
 
     const hash = location.hash.substring(1);
 
-    if (!hash) location.href = "./";
+    if (!hash) location.href = URLPrefix;
 
     ServerData = getServerList().find(i => i.uuid === hash);
     WorldData = getWorldList().find(i => i.uuid === hash);
 
-    if (!ServerData && !WorldData) location.href = "./";
+    if (!ServerData && !WorldData) location.href = URLPrefix;
 
     isOnline = !!ServerData;
 
@@ -253,7 +259,9 @@ export async function initClient() {
     });
     */
     addEventListener("resize", onResize);
-    addEventListener("keydown", e => Keyboard[e.key.toLowerCase()] = true);
+    addEventListener("keydown", e => {
+        if (document.activeElement === document.body) Keyboard[e.key.toLowerCase()] = true;
+    });
     addEventListener("keyup", e => Keyboard[e.key.toLowerCase()] = false);
     addEventListener("blur", () => {
         Keyboard = {};
@@ -310,11 +318,7 @@ export async function initClient() {
         canvas.width = skin.width;
         canvas.height = skin.height;
         canvas.getContext("2d").drawImage(<any>skin, 0, 0);
-        clientNetwork.sendPacket(new CAuthPacket({
-            username: "Steve",
-            skin: canvas.toDataURL(),
-            protocol: CurrentGameProtocol
-        }), true);
+        clientNetwork.sendAuth("Steve", canvas.toDataURL());
     } else {
         clientPlayer.init();
         clientPlayer.gravity = DEFAULT_GRAVITY;
@@ -324,12 +328,23 @@ export async function initClient() {
 
     canvas = <HTMLCanvasElement>document.querySelector("canvas");
     ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
+    chatBox = <HTMLDivElement>document.querySelector(".chat-messages");
+    const chatInput = <HTMLInputElement>document.querySelector(".chat-input");
     f3 = <HTMLDivElement>document.querySelector(".f3-menu");
 
     Mouse._x = innerWidth / 2;
     Mouse._y = innerHeight / 2;
     Mouse._xSmooth = Mouse._x;
     Mouse._ySmooth = Mouse._y;
+
+    chatInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (!chatInput.value) return;
+            (isOnline ? clientNetwork : clientPlayer).sendMessage(chatInput.value);
+            chatInput.value = "";
+        }
+    });
 
     onResize();
     setInterval(update);

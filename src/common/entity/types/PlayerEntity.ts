@@ -2,8 +2,9 @@ import {Entity} from "../Entity";
 import {BoundingBox} from "../BoundingBox";
 import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
 import {Inventory} from "../../item/Inventory";
+import {CommandSender} from "../../command/CommandSender";
 
-export class PlayerEntity extends Entity {
+export abstract class PlayerEntity extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
     rotation = 0;
     bb: BoundingBox = EntityBoundingBoxes[Entities.PLAYER].copy();
@@ -29,4 +30,8 @@ export class PlayerEntity extends Entity {
     get handItem() {
         return this.hotbar.get(this.handIndex);
     };
+
+    abstract name: string;
+
+    abstract sendMessage(message: string): void ;
 }

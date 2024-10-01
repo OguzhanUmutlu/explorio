@@ -69,7 +69,7 @@ wss.on("connection", ws => {
                 return ws.kick("Invalid auth");
             }
 
-            const player = ws.player = new SPlayer(ws, pk.data.username, pk.data.skin, server.defaultWorld);
+            const player = ws.player = new SPlayer(ws, pk.data.name, pk.data.skin, server.defaultWorld);
             player.init();
             server.players.add(player);
             player.y = server.defaultWorld.getHighHeight(ws.player.x) + 0.5;

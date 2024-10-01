@@ -1,4 +1,4 @@
-import {clientNetwork, isOnline, Keyboard, Mouse} from "../../Client";
+import {chatBox, clientNetwork, isOnline, Keyboard, Mouse} from "../../Client";
 import {CPlayer} from "./CPlayer";
 import {BM, I} from "../../../../common/meta/ItemIds";
 import {CStopBreakingPacket} from "../../../../common/packet/client/CStopBreakingPacket";
@@ -8,6 +8,7 @@ import {Containers} from "../../../../common/meta/Containers";
 export class OriginPlayer extends CPlayer {
     containerId: Containers = Containers.CLOSED;
     placeTime = 0;
+    name = "";
 
     render(dt) {
         this.placeTime = Math.max(0, this.placeTime - dt);
@@ -40,19 +41,17 @@ export class OriginPlayer extends CPlayer {
                 } else {
                     this.breaking = null;
                     this.breakingTime = 0;
-                    if (isOnline) clientNetwork.sendPacket(new CStopBreakingPacket(null));
+                    if (isOnline) clientNetwork.sendStopBreaking();
                 }
             } else if (this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
                 this.breaking = [Mouse.rx, Mouse.ry];
                 const fullId = this.world.getBlockAt(Mouse.rx, Mouse.ry);
                 // todo: handle tools
                 this.breakingTime = BM[fullId].getHardness();
-                if (isOnline) clientNetwork.sendPacket(new CStartBreakingPacket({
-                    x: Mouse.rx, y: Mouse.ry
-                }));
+                if (isOnline) clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
             }
         } else {
-            if (this.breaking && isOnline) clientNetwork.sendPacket(new CStopBreakingPacket(null))
+            if (this.breaking && isOnline) clientNetwork.sendStopBreaking();
             this.breaking = null;
             this.breakingTime = 0;
         }
@@ -61,5 +60,14 @@ export class OriginPlayer extends CPlayer {
                 this.placeTime = 0.3;
             }
         } else this.placeTime = 0;
+    };
+
+    sendMessage(message: string) {
+        const div = document.createElement("div");
+        div.classList.add("message");
+        div.innerText = message;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        requestAnimationFrame(() => div.style.translate = "0");
     };
 }

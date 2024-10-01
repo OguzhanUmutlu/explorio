@@ -2,9 +2,9 @@ import {BatchPacket} from "../../common/packet/common/BatchPacket";
 import {Packet,} from "../../common/packet/Packet";
 import {SHandshakePacket} from "../../common/packet/server/SHandshakePacket";
 import {getWSUrls, setServerOptions} from "./Utils";
-import {clientPlayer, ServerData} from "./Client";
+import {clientNetwork, clientPlayer, Mouse, ServerData} from "./Client";
 import {DEFAULT_GRAVITY} from "../../common/entity/Entity";
-import {readPacket} from "../../common/packet/Packets";
+import {CurrentGameProtocol, readPacket} from "../../common/packet/Packets";
 import {SChunkPacket} from "../../common/packet/server/SChunkPacket";
 import {SEntityUpdatePacket} from "../../common/packet/server/SEntityUpdatePacket";
 import {SEntityRemovePacket} from "../../common/packet/server/SEntityRemovePacket";
@@ -16,6 +16,11 @@ import {SBlockUpdatePacket} from "../../common/packet/server/SBlockUpdatePacket"
 import {SBlockBreakingUpdatePacket} from "../../common/packet/server/SBlockBreakingUpdatePacket";
 import {SBlockBreakingStopPacket} from "../../common/packet/server/SBlockBreakingStopPacket";
 import {CPlayer} from "./entity/types/CPlayer";
+import {SendMessagePacket} from "../../common/packet/common/SendMessagePacket";
+import {CStopBreakingPacket} from "../../common/packet/client/CStopBreakingPacket";
+import {CStartBreakingPacket} from "../../common/packet/client/CStartBreakingPacket";
+import {CAuthPacket} from "../../common/packet/client/CAuthPacket";
+import {CMovementPacket} from "../../common/packet/client/CMovementPacket";
 
 // This class is for client contacting the server, not for singleplayer
 export class ClientNetwork {
@@ -87,6 +92,8 @@ export class ClientNetwork {
             this.processBlockBreakingUpdate(pk);
         } else if (pk instanceof SBlockBreakingStopPacket) {
             this.processBlockBreakingStop(pk);
+        } else if (pk instanceof SendMessagePacket) {
+            this.processSendMessage(pk);
         } else {
             console.warn("Unhandled packet: ", pk);
         }
@@ -175,6 +182,10 @@ export class ClientNetwork {
         entity.breakingTime = 0;
     };
 
+    processSendMessage({data}: SendMessagePacket) {
+        clientPlayer.sendMessage(data);
+    };
+
     sendPacket(pk: Packet<any>, immediate = false) {
         if (immediate) {
             if (this.connected) this.worker.postMessage(pk.serialize());
@@ -182,6 +193,28 @@ export class ClientNetwork {
         } else {
             this.batch.push(pk);
         }
+    };
+
+    sendStopBreaking(immediate = false) {
+        clientNetwork.sendPacket(new CStopBreakingPacket(null), immediate);
+    };
+
+    sendStartBreaking(x: number, y: number, immediate = false) {
+        clientNetwork.sendPacket(new CStartBreakingPacket({x, y}), immediate);
+    };
+
+    sendAuth(name: string, skin: string, immediate = true) {
+        clientNetwork.sendPacket(new CAuthPacket({
+            name, skin, protocol: CurrentGameProtocol
+        }), immediate);
+    };
+
+    sendMovement(x: number, y: number, rotation: number, immediate = true) {
+        clientNetwork.sendPacket(new CMovementPacket({x, y, rotation}), immediate);
+    };
+
+    sendMessage(message: string) {
+        clientNetwork.sendPacket(new SendMessagePacket(message));
     };
 
     releaseBatch() {

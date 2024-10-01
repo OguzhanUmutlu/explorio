@@ -16,7 +16,7 @@ export class SPlayer extends PlayerEntity implements SEntity {
     breaking = null;
     breakingTime = 0;
 
-    constructor(public ws, public username: string, public skin: string, world: SWorld) {
+    constructor(public ws, public name: string, public skin: string, world: SWorld) {
         super(world);
     };
 
@@ -84,5 +84,9 @@ export class SPlayer extends PlayerEntity implements SEntity {
         else this.world.broadcastPacketAt(this.x, this.y, new SBlockBreakingStopPacket({
             entityId: this.id
         }), [this]);
+    };
+
+    sendMessage(message: string): void {
+        this.network.sendMessage(message);
     };
 }

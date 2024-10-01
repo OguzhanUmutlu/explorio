@@ -5,6 +5,8 @@ import {openDB} from "idb";
 import {WorldData} from "./Client";
 import {initCommon} from "../../common/utils/Inits";
 
+export const URLPrefix = "/explorio/";
+
 export type WorldData = { uuid: string, name: string, seed: number, lastPlayedAt: number };
 export type ServerData = {
     uuid: string,

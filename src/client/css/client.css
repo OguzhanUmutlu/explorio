@@ -44,3 +44,40 @@ body {
     width: calc(100% / 9);
     aspect-ratio: 1 / 1;
 }
+
+.chat-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 20%;
+    height: 40%;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.chat-input {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: calc(100% - 10px);
+    outline: none;
+    background: rgba(0, 0, 0, 0.5);
+    font-size: 16px;
+    border: none;
+    padding: 5px;
+}
+
+.chat-messages {
+    position: absolute;
+    bottom: 29px;
+    width: calc(100% - 5px);
+    padding-left: 5px;
+    word-wrap: break-word;
+    overflow-y: auto;
+    max-height: calc(100% - 29px);
+}
+
+.message {
+    margin-top: 7px;
+    translate: -100%;
+    transition: translate 0.5s;
+}
