@@ -2,7 +2,7 @@ import {BatchPacket} from "../../common/packet/common/BatchPacket";
 import {Packet,} from "../../common/packet/Packet";
 import {SHandshakePacket} from "../../common/packet/server/SHandshakePacket";
 import {getWSUrls, setServerOptions} from "./Utils";
-import {clientNetwork, clientPlayer, Mouse, ServerData} from "./Client";
+import {clientNetwork, clientPlayer, ServerData} from "./Client";
 import {DEFAULT_GRAVITY} from "../../common/entity/Entity";
 import {CurrentGameProtocol, readPacket} from "../../common/packet/Packets";
 import {SChunkPacket} from "../../common/packet/server/SChunkPacket";
@@ -131,6 +131,7 @@ export class ClientNetwork {
     processChunk({data}: SChunkPacket) {
         clientPlayer.world.chunks[data.x] = new Uint16Array(data.data);
         if (data.resetEntities) clientPlayer.world.chunkEntities[data.x] = [];
+        clientPlayer.world.renderedSubChunks[data.x] = [];
         for (const entity of data.entities) {
             this.spawnEntityFromData(entity);
         }

@@ -3,6 +3,7 @@ import {Texture} from "../../../../common/utils/Texture";
 import {renderPlayerModel} from "../../Utils";
 import {CEntity} from "../CEntity";
 import {PlayerEntity} from "../../../../common/entity/types/PlayerEntity";
+import {CWorld} from "../../world/CWorld";
 
 export function getCurrentSwing() {
     const p = 400;
@@ -10,7 +11,7 @@ export function getCurrentSwing() {
     return (mod > p / 2 ? -1 : 1) * Math.PI / 2.5;
 }
 
-export class CPlayer extends PlayerEntity implements CEntity {
+export class CPlayer extends PlayerEntity<CWorld> implements CEntity {
     skin = Texture.get("assets/steve.png");
 
     breaking: [number, number] | null = null;

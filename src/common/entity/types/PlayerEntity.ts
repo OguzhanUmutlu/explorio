@@ -3,8 +3,9 @@ import {BoundingBox} from "../BoundingBox";
 import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
 import {Inventory} from "../../item/Inventory";
 import {CommandSender} from "../../command/CommandSender";
+import {World} from "../../world/World";
 
-export abstract class PlayerEntity extends Entity implements CommandSender {
+export abstract class PlayerEntity<WorldType extends World> extends Entity<WorldType> implements CommandSender {
     typeId = Entities.PLAYER;
     rotation = 0;
     bb: BoundingBox = EntityBoundingBoxes[Entities.PLAYER].copy();

@@ -90,6 +90,7 @@ export class SServer extends Server<SWorld, SPlayer> {
             this, data.name, "./worlds/" + folder, data.seed, new gen(data.generatorOptions),
             new Set(this.getWorldChunkList(folder)));
         this.worlds[folder] = world;
+        world.ensureSpawnChunks();
         return world;
     };
 

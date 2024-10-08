@@ -131,10 +131,13 @@ export const ChunkBlocksBin = X.makeBin({
     sample: () => new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT)
 });
 
-export const WORLD_HEIGHT = 512;
+export const WORLD_HEIGHT_EXP = 9;
+export const WORLD_HEIGHT = 1 << WORLD_HEIGHT_EXP;
 export const CHUNK_LENGTH_BITS = 4;
-export const CHUNK_LENGTH = 2 << (CHUNK_LENGTH_BITS - 1);
+export const CHUNK_LENGTH = 1 << CHUNK_LENGTH_BITS;
 export const CHUNK_LENGTH_N = CHUNK_LENGTH - 1;
+export const SUB_CHUNK_AMOUNT = WORLD_HEIGHT / CHUNK_LENGTH;
+
 export const SURFACE_HEIGHT = 172;
 export const CAVE_SCALE = 40;
 

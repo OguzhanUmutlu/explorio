@@ -58,6 +58,9 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
         public chunksGenerated: Set<number>
     ) {
         if (generator) generator.setWorld(this);
+    };
+
+    ensureSpawnChunks() {
         for (let x = -2; x <= 2; x++) {
             this.ensureChunk(x);
         }
@@ -117,11 +120,12 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
         // WARNING: This assumes x and y are integers, and y is a bounded valid height.
         const chunk = this.getFullChunkAt(x, generate);
         const i = (x & CHUNK_LENGTH_N) | (y << CHUNK_LENGTH_BITS);
-        if (chunk[i] === fullId) return;
+        if (chunk[i] === fullId) return false;
         chunk[i] = fullId;
         const chunkX = x >> CHUNK_LENGTH_BITS;
         if (polluteChunk) this.dirtyChunks.add(chunkX);
         if (broadcast) this.broadcastBlockAt(x, y, fullId);
+        return true;
     };
 
     setFullBlock(x: number, y: number, fullId: number, generate = true, polluteChunk = true, broadcast = true) {
@@ -139,9 +143,8 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
     };
 
     ensureChunk(x: number, generate = true) {
-        x = Math.round(x);
         if (!(x in this.chunks)) this.loadChunk(x);
-        if (!(x in this.chunks)) this.chunks[x] = new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT);
+        this.chunks[x] ??= new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT);
 
         this.chunkEntities[x] ??= [];
 
@@ -155,8 +158,15 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
     loadChunk(x: number) {
         const buffer = this.getChunkBuffer(x);
         if (!buffer) return false;
+        let buffer0 = buffer[0];
+        let buffer2 = Buffer.allocUnsafe(buffer.length - 1);
+        buffer.copy(buffer2, 0, 1);
         try {
-            const chunk = ServerChunkStruct.deserialize(Buffer.from(zstd.decode(buffer)));
+            if (buffer0 === 1) {
+                // zstd
+                buffer2 = Buffer.from(zstd.decode(buffer2));
+            }
+            const chunk = ServerChunkStruct.deserialize(buffer2);
             this.chunks[x] = chunk.data;
         } catch (e) {
             console.warn(`Chunk ${x} is corrupted, regenerating...`, e);
@@ -168,8 +178,19 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
 
     saveChunk(x: number) {
         if (!this.chunksGenerated.has(x)) return;
-        const buffer = zstd.encode(ServerChunkStruct.serialize({data: this.chunks[x]}));
-        this.setChunkBuffer(x, buffer);
+        const buffer1 = ServerChunkStruct.serialize({data: this.chunks[x]});
+        if (buffer1.length <= 100) {
+            const buffer2 = Buffer.allocUnsafe(buffer1.length + 1);
+            buffer2[0] = 0;
+            buffer1.copy(buffer2, 1);
+            this.setChunkBuffer(x, buffer2);
+        } else {
+            const buffer2 = zstd.encode(buffer1);
+            const buffer3 = Buffer.allocUnsafe(buffer2.length + 1);
+            buffer3[0] = 1;
+            Buffer.from(buffer2).copy(buffer3, 1);
+            this.setChunkBuffer(x, buffer3);
+        }
     };
 
     abstract removeChunkBuffer(x: number): void; // for removing corrupted chunks
@@ -247,7 +268,7 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
     };
 
     anyEntityTouchBlock(x: number, y: number) {
-        const cx = Math.round(x) >> 4;
+        const cx = Math.round(x) >> CHUNK_LENGTH_BITS;
         for (let chunkX = cx - 1; chunkX <= cx + 1; chunkX++) {
             const entities = this.chunkEntities[chunkX];
             for (const e of entities) {

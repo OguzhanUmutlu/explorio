@@ -1,28 +1,30 @@
 import "../../common/utils/Texture";
 import {OriginPlayer} from "./entity/types/OriginPlayer";
-import {f2id, f2meta} from "../../common/meta/Items";
+import {f2id} from "../../common/meta/Items";
 import {BoundingBox} from "../../common/entity/BoundingBox";
 import {Item} from "../../common/item/Item";
 import {CServer} from "./CServer";
 import {getServerList, getWorldList, initClientThings, ServerData, URLPrefix, WorldData} from "./Utils";
 import {CWorld} from "./world/CWorld";
 import {ClientNetwork} from "./ClientNetwork";
-import {CAuthPacket} from "../../common/packet/client/CAuthPacket";
 import "fancy-printer";
-import {CMovementPacket} from "../../common/packet/client/CMovementPacket";
 import {CEntity} from "./entity/CEntity";
 import {DEFAULT_GRAVITY} from "../../common/entity/Entity";
-import {I, IM} from "../../common/meta/ItemIds";
-import {CurrentGameProtocol} from "../../common/packet/Packets";
-import {CHUNK_LENGTH_BITS, makeZstd, WORLD_HEIGHT} from "../../common/utils/Utils";
+import {I} from "../../common/meta/ItemIds";
+import {CHUNK_LENGTH, CHUNK_LENGTH_BITS, makeZstd, SUB_CHUNK_AMOUNT, WORLD_HEIGHT} from "../../common/utils/Utils";
 import {ZstdInit, ZstdSimple} from "@oneidentity/zstd-js";
 import * as BrowserFS from "browserfs";
-import {SendMessagePacket} from "../../common/packet/common/SendMessagePacket";
 
 export let canvas: HTMLCanvasElement;
 export let chatBox: HTMLDivElement;
 export let ctx: CanvasRenderingContext2D;
-let f3: HTMLDivElement;
+export const f3 = {
+    fps: <HTMLSpanElement>null,
+    x: <HTMLSpanElement>null,
+    y: <HTMLSpanElement>null,
+    vx: <HTMLSpanElement>null,
+    vy: <HTMLSpanElement>null
+};
 export const TILE_SIZE = 64;
 
 let isFocused = true;
@@ -104,19 +106,6 @@ export function drawDotTo(x: number, y: number) {
     ctx.fillRect(pos.x - 4, pos.y - 4, 8, 8);
 }
 
-function renderBlock(x: number, y: number) {
-    const fullId = clientPlayer.world.getBlockAt(x, y);
-    const id = f2id(fullId);
-    if (id !== I.AIR) {
-        const pos = getClientPosition(x - 0.5, y + 0.5);
-        ctx.drawImage(IM[id].getTexture(f2meta(fullId)).image,
-            pos.x,
-            pos.y,
-            TILE_SIZE + 2, TILE_SIZE + 2 // for floating point error
-        );
-    }
-}
-
 function animate() {
     requestAnimationFrame(animate);
     const now = Date.now();
@@ -124,11 +113,13 @@ function animate() {
     lastRender = now;
     _fps = _fps.filter(i => i > now - 1000);
     _fps.push(now);
-    f3.innerHTML = `FPS: ${Math.floor(_fps.length)}<br>
-X: ${clientPlayer.x.toFixed(2)}<br>
-Y: ${clientPlayer.y.toFixed(2)}<br>
-Vx: ${clientPlayer.vx.toFixed(2)}<br>
-Vy: ${clientPlayer.vy.toFixed(2)}`;
+
+    // this part is 0.09ms, the slowest part of the render
+    f3.fps.innerText = Math.floor(_fps.length).toString();
+    f3.x.innerText = clientPlayer.x.toFixed(2);
+    f3.y.innerText = clientPlayer.y.toFixed(2);
+    f3.vx.innerText = clientPlayer.vx.toFixed(2);
+    f3.vy.innerText = clientPlayer.vy.toFixed(2);
 
     if (document.activeElement !== document.body) {
         Keyboard = {};
@@ -139,21 +130,25 @@ Vy: ${clientPlayer.vy.toFixed(2)}`;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const minX = Math.floor(camera.x - innerWidth / TILE_SIZE / 2);
-    const minY = Math.floor(camera.y - innerHeight / TILE_SIZE / 2);
+    const minY = Math.max(0, Math.floor(camera.y - innerHeight / TILE_SIZE / 2));
     const maxX = Math.ceil(camera.x + innerWidth / TILE_SIZE / 2);
-    const maxY = Math.ceil(camera.y + innerHeight / TILE_SIZE / 2);
-    for (let x = minX; x <= maxX; x++) {
-        for (let y = minY; y <= maxY; y++) {
-            const depth = clientPlayer.world.getBlockDepth(x, y);
-            if (depth != 0) renderBlock(x, y);
-            if (depth < 3) {
-                const pos = getClientPosition(x - 0.5, y + 0.5);
-                ctx.save();
-                ctx.fillStyle = "black";
-                ctx.globalAlpha = [1, 0.8, 0.5][depth];
-                ctx.fillRect(pos.x - 1, pos.y - 1, TILE_SIZE + 4, TILE_SIZE + 4);
-                ctx.restore();
-            }
+    const maxY = Math.min(WORLD_HEIGHT - 1, Math.ceil(camera.y + innerHeight / TILE_SIZE / 2));
+
+    const minSubX = (minX >> CHUNK_LENGTH_BITS) - 1;
+    const minSubY = Math.max(0, (minY >> CHUNK_LENGTH_BITS) - 1);
+    const maxSubX = (maxX >> CHUNK_LENGTH_BITS) + 1;
+    const maxSubY = Math.min(SUB_CHUNK_AMOUNT - 1, (maxY >> CHUNK_LENGTH_BITS) + 1);
+    const subLength = TILE_SIZE * CHUNK_LENGTH;
+
+    // 0.06ms for 1 render, yes this is javascript, not C, somehow
+    for (let x = minSubX; x <= maxSubX; x++) {
+        for (let y = minSubY; y <= maxSubY; y++) {
+            clientPlayer.world.renderSubChunk(x, y);
+            const cnv = clientPlayer.world.renderedSubChunks[x][y];
+            const wx = x << CHUNK_LENGTH_BITS;
+            const wy = y << CHUNK_LENGTH_BITS;
+            const pos = getClientPosition(wx - 0.5, wy - 0.5);
+            ctx.drawImage(<any>cnv, pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
         }
     }
 
@@ -296,6 +291,7 @@ export async function initClient() {
     clientServer = new CServer(WorldData ? WorldData.uuid : "");
     if (isOnline) {
         clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set);
+        clientServer.defaultWorld.ensureSpawnChunks();
     } else {
         window.fsr = {};
         BrowserFS.install(window.fsr);
@@ -330,7 +326,10 @@ export async function initClient() {
     ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
     chatBox = <HTMLDivElement>document.querySelector(".chat-messages");
     const chatInput = <HTMLInputElement>document.querySelector(".chat-input");
-    f3 = <HTMLDivElement>document.querySelector(".f3-menu");
+
+    for (const k in f3) {
+        f3[k] = <HTMLSpanElement>document.querySelector(`.f3-${k}`);
+    }
 
     Mouse._x = innerWidth / 2;
     Mouse._y = innerHeight / 2;

@@ -28,10 +28,10 @@ const SKIN_PARTS = {
     back_leg: [[16, 52, 4, 12], [8, 20, 4, 12]]
 };
 
-type Canvas = HTMLCanvasElement | import("canvas").Canvas | CanvasImageSource & Record<any, any>;
-type Image = HTMLImageElement;
+export type Canvas = HTMLCanvasElement | import("canvas").Canvas | CanvasImageSource & Record<any, any>;
+export type Image = HTMLImageElement;
 
-function createCanvas(width: number, height: number): Canvas {
+export function createCanvas(width: number, height: number): Canvas {
     if (typeof global === "undefined") {
         if (typeof document === "undefined") {
             return <any>{
@@ -216,6 +216,7 @@ export class Texture {
 
     async wait() {
         await this._promise;
+        return this.image;
     };
 }
 

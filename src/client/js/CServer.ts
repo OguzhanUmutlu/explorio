@@ -57,7 +57,9 @@ export class CServer extends Server<CWorld, CPlayer> {
 
         const gen = Generators[dat.generator];
         if (!gen) return null;
-        return this.worlds[folder] = new CWorld(this, dat.name, folder, dat.seed, new gen(dat.generatorOptions), new Set(this.getWorldChunkList(folder)));
+        const world = this.worlds[folder] = new CWorld(this, dat.name, folder, dat.seed, new gen(dat.generatorOptions), new Set(this.getWorldChunkList(folder)));
+        world.ensureSpawnChunks();
+        return world;
     };
 
     createWorld(folder: string, data: WorldMetaData): boolean {
