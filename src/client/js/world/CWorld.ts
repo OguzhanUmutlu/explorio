@@ -10,7 +10,6 @@ import {f2id, f2meta} from "../../../common/meta/Items";
 import {I, IM} from "../../../common/meta/ItemIds";
 
 export class CWorld extends World<CEntity, CServer> {
-    x = 0;
     renderedSubChunks: Record<number, Canvas[]> = {};
 
     ensureChunk(x, generate = true) {
@@ -85,7 +84,7 @@ export class CWorld extends World<CEntity, CServer> {
 
     getChunkBuffer(x: number): Buffer | null {
         if (isOnline) return null;
-        const path = `singleplayer/${this.server.uuid}/worlds/${this.path}/chunks/${x}.dat`;
+        const path = `singleplayer/${this.server.uuid}/worlds/${this.folder}/chunks/${x}.dat`;
         if (!bfs.existsSync(path)) return null;
         const buf = bfs.readFileSync(path);
         return Buffer.from(buf);
@@ -93,12 +92,12 @@ export class CWorld extends World<CEntity, CServer> {
 
     setChunkBuffer(x: number, buffer: Buffer): void {
         if (isOnline) return;
-        bfs.writeFileSync(`singleplayer/${this.server.uuid}/worlds/${this.path}/chunks/${x}.dat`, Buffer.from(buffer));
+        bfs.writeFileSync(`singleplayer/${this.server.uuid}/worlds/${this.folder}/chunks/${x}.dat`, Buffer.from(buffer));
     };
 
     removeChunkBuffer(x: number) {
         if (isOnline) return;
-        bfs.unlinkSync(`singleplayer/${this.server.uuid}/worlds/${this.path}/chunks/${x}.dat`);
+        bfs.unlinkSync(`singleplayer/${this.server.uuid}/worlds/${this.folder}/chunks/${x}.dat`);
     };
 
     getPlayers() {

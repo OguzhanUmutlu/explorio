@@ -2,7 +2,7 @@ import {ctx, getClientPosition, TILE_SIZE, TILE_SIZE as BLK} from "../../Client"
 import {Texture} from "../../../../common/utils/Texture";
 import {renderPlayerModel} from "../../Utils";
 import {CEntity} from "../CEntity";
-import {PlayerEntity} from "../../../../common/entity/types/PlayerEntity";
+import {Player} from "../../../../common/entity/types/Player";
 import {CWorld} from "../../world/CWorld";
 
 export function getCurrentSwing() {
@@ -11,7 +11,7 @@ export function getCurrentSwing() {
     return (mod > p / 2 ? -1 : 1) * Math.PI / 2.5;
 }
 
-export class CPlayer extends PlayerEntity<CWorld> implements CEntity {
+export class CPlayer extends Player<CWorld> implements CEntity {
     skin = Texture.get("assets/steve.png");
 
     breaking: [number, number] | null = null;
@@ -157,5 +157,13 @@ export class CPlayer extends PlayerEntity<CWorld> implements CEntity {
 
     sendMessage(message: string): void {
         throw new Error("Cannot send messages to players in client-side");
+    };
+
+    kick(): void {
+        console.log("Got kicked."); // todo: disconnect screen
+    };
+
+    save() {
+        bfs.writeFileSync(`singleplayer/${this.server.uuid}/player.dat`, this.getSaveBuffer());
     };
 }

@@ -5,4 +5,8 @@ export interface CEntity extends Entity<CWorld> {
     typeId: number;
 
     serverUpdate(dt: number): void;
+
+    getSaveData(): any;
+
+    loadFromData(data: any): void;
 }

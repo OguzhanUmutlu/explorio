@@ -9,6 +9,8 @@ import {SPlaySoundPacket} from "../../common/packet/server/SPlaySoundPacket";
 import {CHUNK_LENGTH_BITS} from "../../common/utils/Utils";
 
 export class SWorld extends World<SEntity, SServer> {
+    path = "./worlds/" + this.folder;
+
     playSound(path: string, x: number, y: number): void {
         this.broadcastPacketAt(x, y, new SPlaySoundPacket({path, x, y}));
     };

@@ -1,4 +1,4 @@
-import {PlayerEntity} from "../../common/entity/types/PlayerEntity";
+import {Player} from "../../common/entity/types/Player";
 import {SEntity} from "./SEntity";
 import {PlayerNetwork} from "../PlayerNetwork";
 import {SWorld} from "../world/SWorld";
@@ -6,13 +6,13 @@ import {CHUNK_LENGTH_BITS} from "../../common/utils/Utils";
 import {SBlockBreakingUpdatePacket} from "../../common/packet/server/SBlockBreakingUpdatePacket";
 import {SBlockBreakingStopPacket} from "../../common/packet/server/SBlockBreakingStopPacket";
 import {B} from "../../common/meta/ItemIds";
+import * as fs from "fs";
 
-export class SPlayer extends PlayerEntity implements SEntity {
+export class SPlayer extends Player<SWorld> implements SEntity {
     rotation = 0;
     network = new PlayerNetwork(this);
     viewingChunks: number[] = [];
     sentChunks: Set<number> = new Set;
-    world: SWorld;
     breaking = null;
     breakingTime = 0;
 
@@ -88,5 +88,14 @@ export class SPlayer extends PlayerEntity implements SEntity {
 
     sendMessage(message: string): void {
         this.network.sendMessage(message);
+    };
+
+    kick(reason = "Kicked by an operator"): void {
+        this.network.kick(reason);
+    };
+
+    save() {
+        if (!fs.existsSync("./players")) fs.mkdirSync("./players");
+        fs.writeFileSync(`./players/${this.name}.dat`, this.getSaveBuffer());
     };
 }

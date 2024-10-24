@@ -1,6 +1,7 @@
 import {Item, ItemDescriptor} from "./Item";
 import {World} from "../world/World";
 import {IM} from "../meta/ItemIds";
+import {InventoryStruct} from "../utils/Utils";
 
 export class Inventory {
     cleanDirty = false;
@@ -27,6 +28,13 @@ export class Inventory {
 
     getContents() {
         return this.contents;
+    };
+
+    setContents(items: Item[]) {
+        const length = this.contents.length;
+        this.contents = items;
+        this.contents.length = length;
+        return this;
     };
 
     get(index: number): Item | null {
@@ -165,6 +173,14 @@ export class Inventory {
     };
 
     serialize() {
-        return this.getContents().map(i => i ? i.serialize() : 0);
+        return this.getContents().map(i => i ? i.serialize() : null);
+    };
+
+    getSaveData(): (typeof InventoryStruct)["__TYPE__"] {
+        return this.serialize();
+    };
+
+    getSaveBuffer(): Buffer {
+        return InventoryStruct(this.size).serialize(this.getSaveData());
     };
 }

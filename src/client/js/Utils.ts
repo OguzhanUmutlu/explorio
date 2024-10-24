@@ -1,8 +1,7 @@
 import "./Client"; // gives error if I don't add this for the Index page
 import {Entities, EntityBoundingBoxes, EntityClasses} from "../../common/meta/Entities";
 import {CPlayer} from "./entity/types/CPlayer";
-import {openDB} from "idb";
-import {WorldData} from "./Client";
+import {clientServer, WorldData} from "./Client";
 import {initCommon} from "../../common/utils/Inits";
 
 export const URLPrefix = "/explorio/";
@@ -16,31 +15,6 @@ export type ServerData = {
     lastPlayedAt: number,
     preferSecure: boolean
 };
-
-export async function getWorldDb() {
-    return await openDB("world-" + WorldData.uuid, 3, {
-        upgrade(db) {
-            if (!db.objectStoreNames.contains("chunks")) {
-                db.createObjectStore("chunks");
-            }
-        }
-    });
-}
-
-export async function saveChunkDb(index: number, buffer: Uint8Array) {
-    const db = await getWorldDb();
-    const tx = db.transaction("chunks", "readwrite");
-    await tx.objectStore("chunks").put(buffer, index);
-    await tx.done;
-}
-
-export async function getChunkDb(index: number) {
-    const db = await getWorldDb();
-    const tx = db.transaction("chunks", "readonly");
-    const chunk = await tx.objectStore("chunks").get(index);
-    await tx.done;
-    return <Uint8Array>chunk;
-}
 
 export function initClientThings() {
     initClientEntities();

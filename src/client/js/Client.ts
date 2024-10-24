@@ -340,7 +340,11 @@ export async function initClient() {
         if (e.key === "Enter") {
             e.preventDefault();
             if (!chatInput.value) return;
-            (isOnline ? clientNetwork : clientPlayer).sendMessage(chatInput.value);
+            if (isOnline) {
+                clientNetwork.sendMessage(chatInput.value);
+            } else {
+                clientServer.processMessage(clientPlayer, chatInput.value);
+            }
             chatInput.value = "";
         }
     });

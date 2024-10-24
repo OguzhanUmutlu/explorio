@@ -4,7 +4,6 @@
 }
 
 * {
-    color: white;
     image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;
     /*noinspection CssInvalidPropertyValue*/
@@ -17,5 +16,6 @@
 }
 
 body {
+    color: white;
     letter-spacing: -1px;
 }

@@ -8,7 +8,7 @@ import {DefaultGenerator} from "./generators/DefaultGenerator";
 import {FlowerLandGenerator} from "./generators/FlowerLandGenerator";
 import {CustomGenerator} from "./generators/CustomGenerator";
 import {Server} from "../Server";
-import {CHUNK_LENGTH, CHUNK_LENGTH_BITS, CHUNK_LENGTH_N, ServerChunkStruct, WORLD_HEIGHT, zstd} from "../utils/Utils";
+import {CHUNK_LENGTH, CHUNK_LENGTH_BITS, CHUNK_LENGTH_N, ChunkStruct, WORLD_HEIGHT, zstd} from "../utils/Utils";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -52,7 +52,7 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
     constructor(
         public server: ServerType,
         public name: string,
-        public path: string,
+        public folder: string,
         public seed: number,
         public generator: Generator,
         public chunksGenerated: Set<number>
@@ -166,7 +166,7 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
                 // zstd
                 buffer2 = Buffer.from(zstd.decode(buffer2));
             }
-            const chunk = ServerChunkStruct.deserialize(buffer2);
+            const chunk = ChunkStruct.deserialize(buffer2);
             this.chunks[x] = chunk.data;
         } catch (e) {
             console.warn(`Chunk ${x} is corrupted, regenerating...`, e);
@@ -178,7 +178,7 @@ export abstract class World<EntityType extends Entity = Entity, ServerType exten
 
     saveChunk(x: number) {
         if (!this.chunksGenerated.has(x)) return;
-        const buffer1 = ServerChunkStruct.serialize({data: this.chunks[x]});
+        const buffer1 = ChunkStruct.serialize({data: this.chunks[x]});
         if (buffer1.length <= 100) {
             const buffer2 = Buffer.allocUnsafe(buffer1.length + 1);
             buffer2[0] = 0;

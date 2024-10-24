@@ -1,9 +1,8 @@
 import {chatBox, clientNetwork, isOnline, Keyboard, Mouse} from "../../Client";
 import {CPlayer} from "./CPlayer";
 import {BM, I} from "../../../../common/meta/ItemIds";
-import {CStopBreakingPacket} from "../../../../common/packet/client/CStopBreakingPacket";
-import {CStartBreakingPacket} from "../../../../common/packet/client/CStartBreakingPacket";
 import {Containers} from "../../../../common/meta/Containers";
+import {ColorCodes} from "../../../../common/utils/Utils";
 
 export class OriginPlayer extends CPlayer {
     containerId: Containers = Containers.CLOSED;
@@ -65,8 +64,55 @@ export class OriginPlayer extends CPlayer {
     sendMessage(message: string) {
         const div = document.createElement("div");
         div.classList.add("message");
-        div.innerText = message;
+        // b = bold
+        // u = underline
+        // s = strikethrough
+        // i = italics
+        // k = obfuscated
+        let parent = <any>div;
+        const sep = message.split(/(§[\da-fbusik]|:[a-z]+:)/);
+        for (const part of sep) {
+            if (/^§[\da-fbusik]$/.test(part)) {
+                const dv = document.createElement("span");
+                dv.classList.add("sub-message");
+                parent.appendChild(dv);
+                if (part[1] in ColorCodes) {
+                    dv.style.color = ColorCodes[part[1]];
+                } else switch (part[1]) {
+                    case "b":
+                        dv.style.fontWeight = "bold";
+                        break;
+                    case "u":
+                        dv.style.textDecoration = "underline";
+                        break;
+                    case "s":
+                        dv.style.textDecoration = "line-through";
+                        break;
+                    case "i":
+                        dv.style.fontStyle = "italic";
+                        break;
+                    case "k":
+                        dv.style.fontStyle = "oblique";
+                        break;
+                }
+                parent = dv;
+            } else if (/^:[a-z]+:$/.test(part) && [
+                "eyes", "nerd", "skull", "slight_smile"
+            ].includes(part.slice(1, -1))) {
+                const emote = document.createElement("div");
+                emote.classList.add("emote");
+                const emotePath = `./assets/textures/emotes/${part.slice(1, -1)}.png`;
+                emote.style.backgroundImage = `url(${emotePath})`;
+                parent.appendChild(emote);
+            } else parent.appendChild(document.createTextNode(part));
+        }
+
         chatBox.appendChild(div);
+
+        while (chatBox.children.length > 100) {
+            chatBox.children.item(0).remove();
+        }
+
         chatBox.scrollTop = chatBox.scrollHeight;
         requestAnimationFrame(() => div.style.translate = "0");
     };

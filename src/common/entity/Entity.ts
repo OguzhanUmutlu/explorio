@@ -4,6 +4,7 @@ import {World} from "../world/World";
 import {SEntityUpdatePacket} from "../packet/server/SEntityUpdatePacket";
 import {SEntityRemovePacket} from "../packet/server/SEntityRemovePacket";
 import {isServer} from "../utils/Utils";
+import {RotatedPosition} from "../utils/RotatedPosition";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -14,12 +15,12 @@ let _entity_id = 0;
 
 export abstract class Entity<WorldType extends World = World> {
     abstract typeId: number;
+    abstract name: string;
     id = _entity_id++;
     chunk: WorldType["chunkEntities"][number];
     _x = 0;
     _y = 0;
-    x = 0;
-    y = 0;
+    position = new RotatedPosition(0, 0, 0);
     renderX = 0;
     renderY = 0;
     vx = 0;
@@ -27,9 +28,39 @@ export abstract class Entity<WorldType extends World = World> {
     onGround = true;
     bb: BoundingBox;
     cacheState;
+    server: WorldType["server"];
+
+    get x() {
+        return this.position.x;
+    };
+
+    get y() {
+        return this.position.y;
+    };
+
+    get rotation() {
+        return this.position.rotation;
+    };
+
+    set x(x: number) {
+        this.position.x = x;
+    };
+
+    set y(y: number) {
+        this.position.y = y;
+    };
+
+    set rotation(rotation: number) {
+        this.position.rotation = rotation;
+    };
 
     protected constructor(public world: WorldType) {
+        this.server = world.server;
     };
+
+    abstract getSaveData(): any;
+
+    abstract loadFromData(data: any): void;
 
     init() {
         this.updateCacheState();

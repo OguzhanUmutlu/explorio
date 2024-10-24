@@ -4,6 +4,7 @@ import {SWorld} from "./world/SWorld";
 import * as fs from "fs";
 import {SPlayer} from "./entity/SPlayer";
 import {Packet} from "../common/packet/Packet";
+import {SendMessagePacket} from "../common/packet/common/SendMessagePacket";
 
 export type ServerConfig = {
     port: number,
@@ -55,6 +56,9 @@ export class SServer extends Server<SWorld, SPlayer> {
             this.close();
         }
         this.defaultWorld = this.worlds[this.config["default-world"]];
+        this.operators = fs.existsSync(`./ops.txt`)
+            ? fs.readFileSync("ops.txt", "utf8").split("\n").filter(i => i)
+            : [];
     };
 
     createWorld(folder: string, data: WorldMetaData): boolean {
@@ -87,7 +91,7 @@ export class SServer extends Server<SWorld, SPlayer> {
         if (!data) return null;
         const gen = <any>Generators[data.generator];
         const world = new SWorld(
-            this, data.name, "./worlds/" + folder, data.seed, new gen(data.generatorOptions),
+            this, data.name, folder, data.seed, new gen(data.generatorOptions),
             new Set(this.getWorldChunkList(folder)));
         this.worlds[folder] = world;
         world.ensureSpawnChunks();
@@ -119,5 +123,13 @@ export class SServer extends Server<SWorld, SPlayer> {
         for (const player of this.players) {
             if (!exclude.includes(player)) player.network.sendPacket(pk, immediate);
         }
+    };
+
+    broadcastMessage(message: string) {
+        this.broadcastPacket(new SendMessagePacket(message));
+    };
+
+    saveOperators() {
+        fs.writeFileSync("./ops.txt", this.operators.join("\n"));
     };
 }

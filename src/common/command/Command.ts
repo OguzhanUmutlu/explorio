@@ -1,10 +1,16 @@
 import {CommandSender} from "./CommandSender";
+import {CommandDefinition} from "./CommandDefinition";
+import {Token} from "./CommandProcessor";
 
-export enum CommandResponse {
-    USAGE,
-    PERMISSION,
-    INVALID,
-    SUCCESS
+export class CommandSuccess {
+    constructor(public message: string) {
+    };
+}
+
+export class CommandError extends Error {
+    constructor(public message: string) {
+        super(message);
+    };
 }
 
 export abstract class Command {
@@ -15,7 +21,7 @@ export abstract class Command {
         public description: string,
         public usage: string,
         public aliases: string[] = [],
-        public permission = false
+        public permission: string | false = false
     ) {
         this.usageMessage = `§cUsage: /${name}${usage ? ` ${usage}` : ``}`;
     };
@@ -23,5 +29,5 @@ export abstract class Command {
     init() {
     };
 
-    abstract execute(sender: CommandSender, args: string[], command: string): CommandResponse;
+    abstract define(source: CommandSender, args: Token[], params: string): CommandDefinition;
 }

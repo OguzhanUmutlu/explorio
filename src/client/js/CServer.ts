@@ -2,7 +2,7 @@ import {Server} from "../../common/Server";
 import {CWorld} from "./world/CWorld";
 import {Generators, WorldMetaData} from "../../common/world/World";
 import {CPlayer} from "./entity/types/CPlayer";
-import {WorldData} from "./Client";
+import {clientPlayer, WorldData} from "./Client";
 
 // This is specifically designed to be used in singleplayer.
 export class CServer extends Server<CWorld, CPlayer> {
@@ -75,6 +75,17 @@ export class CServer extends Server<CWorld, CPlayer> {
             this.worlds[folder].save();
         }
         // location.href = URLPrefix;
-        // todo: pseudo-kick the client
+        // todo: show disconnect screen
+    };
+
+    saveOperators() {
+    };
+
+    broadcastMessage(message: string) {
+        clientPlayer.sendMessage(message);
+    };
+
+    isOperator(name: string): boolean {
+        return true;
     };
 }

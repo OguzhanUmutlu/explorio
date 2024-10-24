@@ -9,7 +9,6 @@ import {SBlockUpdatePacket} from "../common/packet/server/SBlockUpdatePacket";
 import {CStartBreakingPacket} from "../common/packet/client/CStartBreakingPacket";
 import {CStopBreakingPacket} from "../common/packet/client/CStopBreakingPacket";
 import {SendMessagePacket} from "../common/packet/common/SendMessagePacket";
-import {SServer} from "./SServer";
 
 export class PlayerNetwork {
     batch: Packet<any>[] = [];
@@ -66,7 +65,7 @@ export class PlayerNetwork {
 
     processSendMessage({data}: SendMessagePacket) {
         if (!data) return;
-        SServer.instance.broadcastPacket(new SendMessagePacket(`${this.player.name}: ${data}`));
+        this.player.server.processMessage(this.player, data);
     };
 
     sendBlock(x: number, y: number, fullId = null, immediate = false) {
@@ -84,12 +83,20 @@ export class PlayerNetwork {
         }), immediate);
     };
 
+    sendMessage(message: string, immediate = false) {
+        this.sendPacket(new SendMessagePacket(message), immediate);
+    };
+
     sendPacket(pk: Packet<any>, immediate = false) {
         if (immediate) {
             pk.send(this.player.ws);
         } else {
             this.batch.push(pk);
         }
+    };
+
+    kick(reason = "Kicked by an operator") {
+        this.player.ws.kick(reason);
     };
 
     releaseBatch() {
