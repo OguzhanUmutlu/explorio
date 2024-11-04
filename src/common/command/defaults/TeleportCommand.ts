@@ -1,50 +1,65 @@
-import {AdvancedCommand} from "../AdvancedCommand";
-import {Player} from "../../entity/types/Player";
-import {CommandError} from "../Command";
+import {DefinitiveCommand} from "../DefinitiveCommand";
 import {CommandDefinition} from "../CommandDefinition";
 
-export class TeleportCommand extends AdvancedCommand {
+export class TeleportCommand extends DefinitiveCommand {
     constructor() {
         super("teleport", "Teleport to a position.", ["tp"], "command.teleport");
     };
 
     definitions = [
         new CommandDefinition()
-            .addSelectorArgument("entities")
+            .addEntitiesArgument("entities")
             .addPositionArgument("position")
-            .then((source, as, at, entities, pos) => {
+            .then((sender, as, at, entities, pos) => {
                 entities.forEach(e => {
                     e.teleport(pos.x, pos.y);
                 });
 
-                return `${entities.length} entities have been teleported to (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)})`;
+                sender.sendMessage(
+                    `${entities.length} entities have been teleported to `
+                    + `(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)})`
+                );
             }),
         new CommandDefinition()
             .addPositionArgument("position")
-            .then((source, as, at, pos) => {
-                if (!(as instanceof Player)) throw new CommandError("You must be a player to teleport.");
+            .then((sender, as, _, pos) => {
+                if (!as || !("teleport" in as)) {
+                    sender.sendMessage("No entities given");
+                    return;
+                }
+
                 as.teleport(pos.x, pos.y);
 
-                return `Teleported to (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)})`;
+                sender.sendMessage(
+                    `Teleported ${as.name} to (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)})`
+                );
             }),
         new CommandDefinition()
             .addEntityArgument("target")
-            .then((source, as, at, target) => {
-                if (!(as instanceof Player)) throw new CommandError("You must be a player to teleport.");
+            .then((sender, as, _, target) => {
+                if (!as || !("teleport" in as)) {
+                    sender.sendMessage("No entities given");
+                    return;
+                }
 
                 as.teleport(target.x, target.y);
 
-                return `Teleported to (${target.x.toFixed(2)}, ${target.y.toFixed(2)})`;
+                sender.sendMessage(
+                    `Teleported to (${target.x.toFixed(2)}, ${target.y.toFixed(2)})`
+                );
             }),
         new CommandDefinition()
-            .addSelectorArgument("entities")
+            .addEntitiesArgument("entities")
             .addEntityArgument("target")
-            .then((source, as, at, entities, target) => {
-                entities.forEach(e => {
-                    e.teleport(target.x, target.y);
+            .then((sender, _, __, entities, target) => {
+                entities.forEach(entity => {
+                    entity.teleport(target.x, target.y);
                 });
 
-                return `${entities.length} entities have been teleported to (${target.x.toFixed(2)}, ${target.y.toFixed(2)})`;
+                sender.sendMessage(
+                    `${entities.length} ${entities.length === 1 ? "entity has" : "entities have"} been teleported to `
+                    + `(${target.x.toFixed(2)}, ${target.y.toFixed(2)})`
+                );
             })
     ];
 }

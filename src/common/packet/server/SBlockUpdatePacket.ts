@@ -1,12 +1,9 @@
-import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
+import {makePacketClass} from "../Packet";
+import {PacketIds} from "../../meta/PacketIds.js";
 import X from "stramp";
 
-export class SBlockUpdatePacket extends Packet<SBlockUpdatePacket> {
-    static packetId = PacketIds.SERVER_BLOCK_UPDATE;
-    static struct = X.object.struct({
-        x: X.i32,
-        y: X.u32,
-        fullId: X.u16
-    });
-}
+export const SBlockUpdatePacket = makePacketClass(PacketIds.SERVER_BLOCK_UPDATE, X.object.struct({
+    x: X.i32,
+    y: X.u32,
+    fullId: X.u16
+}));

@@ -11,19 +11,22 @@ const GameModeNames = ["survival", "creative", "adventure", "spectator"];
 const GameModeValues = [GameMode.Survival, GameMode.Creative, GameMode.Adventure, GameMode.Spectator];
 
 export class GameModeArgument extends CommandArgument<GameMode> {
+    default = GameMode.Survival;
+
     read(as, at, args, index) {
         const arg = args[index];
         const raw = arg.rawText;
 
         if (GameModeNames.includes(raw)) {
-            return {value: <GameMode>GameModeValues[raw], index: index + 1};
+            return GameModeValues[raw];
         }
 
-        return {value: <GameMode>raw * 1, index: index + 1};
+        return raw * 1;
     };
 
     blindCheck(args, index) {
         const arg = args[index];
+        if (!arg) return {pass: false, index: index + 1};
         const raw = arg.rawText;
         const num = raw * 1;
 

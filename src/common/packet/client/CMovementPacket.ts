@@ -1,12 +1,9 @@
-import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
+import {makePacketClass} from "../Packet";
+import {PacketIds} from "../../meta/PacketIds.js";
 import X from "stramp";
 
-export class CMovementPacket extends Packet<CMovementPacket> {
-    static packetId = PacketIds.CLIENT_MOVEMENT;
-    static struct = X.object.struct({
-        x: X.f32,
-        y: X.f32,
-        rotation: X.f32
-    });
-}
+export const CMovementPacket = makePacketClass(PacketIds.CLIENT_MOVEMENT, X.object.struct({
+    x: X.f32,
+    y: X.f32,
+    rotation: X.f32
+}));

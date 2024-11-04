@@ -1,8 +1,5 @@
-import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
+import {makePacketClass} from "../Packet";
+import {PacketIds} from "../../meta/PacketIds.js";
 import X from "stramp";
 
-export class SEntityRemovePacket extends Packet<SEntityRemovePacket> {
-    static packetId = PacketIds.SERVER_ENTITY_REMOVE;
-    static struct = X.u32;
-}
+export const SEntityRemovePacket = makePacketClass(PacketIds.SERVER_ENTITY_REMOVE, X.u32);

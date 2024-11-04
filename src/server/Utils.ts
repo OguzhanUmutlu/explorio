@@ -1,7 +1,6 @@
 import {Entities, EntityClasses} from "../common/meta/Entities";
-import {SPlayer} from "./entity/SPlayer";
 import {initCommon} from "../common/utils/Inits";
-import {SServer} from "./SServer";
+import {Player} from "../common/entity/types/Player.js";
 
 export function initServerThings() {
     initCommon();
@@ -9,5 +8,5 @@ export function initServerThings() {
 }
 
 export function initServerEntities() {
-    EntityClasses[Entities.PLAYER] = SPlayer;
+    EntityClasses[Entities.PLAYER] = Player;
 }

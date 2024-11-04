@@ -1,11 +1,6 @@
-import {CommandSender} from "./CommandSender";
-import {CommandDefinition} from "./CommandDefinition";
-import {Token} from "./CommandProcessor";
-
-export class CommandSuccess {
-    constructor(public message: string) {
-    };
-}
+import {CommandAs, CommandSender} from "./CommandSender";
+import {Entity} from "../entity/Entity";
+import {Location} from "../utils/Location";
 
 export class CommandError extends Error {
     constructor(public message: string) {
@@ -29,5 +24,5 @@ export abstract class Command {
     init() {
     };
 
-    abstract define(source: CommandSender, args: Token[], params: string): CommandDefinition;
+    abstract execute(sender: CommandSender, as: CommandAs, at: Location, args: string[], label: string): any;
 }

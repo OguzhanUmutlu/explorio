@@ -1,20 +1,16 @@
-import {CommandArgument} from "../CommandArgument";
-import {SelectorToken} from "../CommandProcessor";
 import {Entity} from "../../entity/Entity";
+import {EntitiesArgument} from "./EntitiesArgument.js";
 
-export class EntityArgument extends CommandArgument<Entity> {
-    read(as, at, args, index) {
-        const arg = <SelectorToken>args[index];
+export class EntityArgument<T = Entity> extends EntitiesArgument<Entity> {
+    default = <T>null;
 
-        const targets = [];
-        // TODO: handle selector filters etc.
-        if (targets.length !== 1) throw new Error(`Expected one target, got ${targets.length}.`);
-
-        return {value: <Entity>targets[0], index: index + 1};
+    getDefault() {
+        if (!this.default) throw new Error(`No default value set for the '${this.name}' argument.`);
+        return this.default;
     };
 
-    blindCheck(args, index) {
-        return {pass: args[index] instanceof SelectorToken, index: index + 1};
+    read(as, at, args, index) {
+        return super.read(as, at, args, index)[0];
     };
 
     toString() {

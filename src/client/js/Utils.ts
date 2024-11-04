@@ -1,7 +1,7 @@
 import "./Client"; // gives error if I don't add this for the Index page
 import {Entities, EntityBoundingBoxes, EntityClasses} from "../../common/meta/Entities";
 import {CPlayer} from "./entity/types/CPlayer";
-import {clientServer, WorldData} from "./Client";
+import {WorldData} from "./Client";
 import {initCommon} from "../../common/utils/Inits";
 
 export const URLPrefix = "/explorio/";
@@ -17,6 +17,7 @@ export type ServerData = {
 };
 
 export function initClientThings() {
+    loadOptions();
     initClientEntities();
     initCommon();
 }
@@ -38,8 +39,30 @@ export function getWSUrls(ip: string, port: number): string[] {
     return [`wss://${url}`, `ws://${url}`];
 }
 
+export type OptionsType = {
+    username: string,
+    music: number,
+    sfx: number,
+    cameraSpeed: number
+};
+
+export let Options: OptionsType;
+
+export function loadOptions() {
+    Options = JSON.parse(localStorage.getItem("explorio.options")) || {};
+    Options.username ??= "Steve";
+    Options.music ??= 100;
+    Options.sfx ??= 100;
+    Options.cameraSpeed ??= 12;
+    return Options;
+}
+
+export function saveOptions() {
+    localStorage.setItem("explorio.options", JSON.stringify(Options));
+}
+
 export function getWorldList(): WorldData[] {
-    return JSON.parse(localStorage.getItem("explorio.worlds") || "[]");
+    return JSON.parse(localStorage.getItem("explorio.worlds")) || [];
 }
 
 export function addWorld(name: string, seed: number) {

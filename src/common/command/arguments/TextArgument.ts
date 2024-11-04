@@ -1,6 +1,9 @@
 import {CommandArgument} from "../CommandArgument";
+import {CommandError} from "../Command";
 
 export class TextArgument extends CommandArgument<string> {
+    default = "";
+
     constructor(name: string, public choices: string[] = []) {
         super(name);
     };
@@ -13,19 +16,19 @@ export class TextArgument extends CommandArgument<string> {
     read(as, at, args, index) {
         const arg = args[index];
 
-        if (this.choices.length === 0) return {value: arg.rawText, index: index + 1};
+        if (this.choices.length === 0) return arg.rawText;
 
         for (const choice of this.choices) {
             if (choice === arg.rawText) {
-                return {value: choice, index: index + 1};
+                return choice;
             }
         }
 
-        return null;
+        throw new CommandError(`Expected one of these options: ${this.choices.join(", ")}`)
     };
 
     blindCheck(args, index) {
-        return {pass: true, index: index + 1};
+        return {pass: !!args[index], index: index + 1};
     };
 
     toString() {

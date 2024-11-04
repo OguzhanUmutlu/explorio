@@ -13,10 +13,4 @@ export class CItemEntity extends ItemEntity implements CEntity {
         const pos = getClientPosition(bb.x, bb.y);
         ctx.fillRect(pos.x, pos.y, 10, 10);
     };
-
-    onMovement() {
-        this.bb.x = this.x - this.bb.width / 2;
-        this.bb.y = this.y;
-        super.onMovement();
-    };
 }

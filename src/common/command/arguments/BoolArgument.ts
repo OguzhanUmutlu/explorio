@@ -1,12 +1,14 @@
 import {CommandArgument} from "../CommandArgument";
 
 export class BoolArgument extends CommandArgument<boolean> {
+    default = false;
+
     read(as, at, args, index) {
-        return {value: <boolean>args[index].value, index: index + 1};
+        return args[index].value;
     };
 
     blindCheck(args, index) {
-        return {pass: args[index].type === "bool", index: index + 1};
+        return {pass: args[index] && args[index].type === "bool", index: index + 1};
     };
 
     toString() {

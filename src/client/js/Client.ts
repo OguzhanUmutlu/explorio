@@ -1,22 +1,25 @@
 import "../../common/utils/Texture";
 import {OriginPlayer} from "./entity/types/OriginPlayer";
-import {f2id} from "../../common/meta/Items";
 import {BoundingBox} from "../../common/entity/BoundingBox";
 import {Item} from "../../common/item/Item";
 import {CServer} from "./CServer";
-import {getServerList, getWorldList, initClientThings, ServerData, URLPrefix, WorldData} from "./Utils";
+import {getServerList, getWorldList, initClientThings, Options, ServerData, URLPrefix, WorldData} from "./Utils";
 import {CWorld} from "./world/CWorld";
 import {ClientNetwork} from "./ClientNetwork";
 import "fancy-printer";
 import {CEntity} from "./entity/CEntity";
-import {DEFAULT_GRAVITY} from "../../common/entity/Entity";
 import {I} from "../../common/meta/ItemIds";
 import {CHUNK_LENGTH, CHUNK_LENGTH_BITS, makeZstd, SUB_CHUNK_AMOUNT, WORLD_HEIGHT} from "../../common/utils/Utils";
 import {ZstdInit, ZstdSimple} from "@oneidentity/zstd-js";
+import OptionsContainer from "../components/OptionsContainer";
+// noinspection TypeScriptCheckImport
+import ServerWorker from "./worker/SinglePlayerWorker.js?worker";
 import * as BrowserFS from "browserfs";
 
 export let canvas: HTMLCanvasElement;
+export let chatContainer: HTMLDivElement;
 export let chatBox: HTMLDivElement;
+export let chatInput: HTMLInputElement;
 export let ctx: CanvasRenderingContext2D;
 export const f3 = {
     fps: <HTMLSpanElement>null,
@@ -30,6 +33,7 @@ export const TILE_SIZE = 64;
 let isFocused = true;
 
 export let clientServer: CServer;
+export let singlePlayerWorker: Worker;
 
 export let clientPlayer: OriginPlayer;
 
@@ -40,7 +44,7 @@ export const camera = {x: 0, y: 0};
 export let ServerData: ServerData;
 export let WorldData: WorldData;
 
-export let isOnline: boolean;
+export let isMultiPlayer: boolean;
 
 export function updateCamera() {
     const cameraPan = 1;
@@ -59,7 +63,7 @@ function onResize() {
     canvas.height = innerHeight + 1;
     ctx.imageSmoothingEnabled = false;
     updateMouse();
-    updateCamera()
+    updateCamera();
 }
 
 export let Keyboard: Record<string, boolean> = {};
@@ -78,6 +82,7 @@ export const Mouse = {
 };
 
 export function updateMouse() {
+    if (!canvas) return;
     Mouse.x = (Mouse._x - canvas.width / 2 + camera.x * TILE_SIZE) / TILE_SIZE;
     Mouse.y = (-Mouse._y + canvas.height / 2 + camera.y * TILE_SIZE) / TILE_SIZE;
     Mouse.rx = Math.round(Mouse.x);
@@ -140,11 +145,13 @@ function animate() {
     const maxSubY = Math.min(SUB_CHUNK_AMOUNT - 1, (maxY >> CHUNK_LENGTH_BITS) + 1);
     const subLength = TILE_SIZE * CHUNK_LENGTH;
 
+    const world = <CWorld>clientPlayer.world;
+
     // 0.06ms for 1 render, yes this is javascript, not C, somehow
     for (let x = minSubX; x <= maxSubX; x++) {
         for (let y = minSubY; y <= maxSubY; y++) {
-            clientPlayer.world.renderSubChunk(x, y);
-            const cnv = clientPlayer.world.renderedSubChunks[x][y];
+            world.renderSubChunk(x, y);
+            const cnv = world.renderedSubChunks[x][y];
             const wx = x << CHUNK_LENGTH_BITS;
             const wy = y << CHUNK_LENGTH_BITS;
             const pos = getClientPosition(wx - 0.5, wy - 0.5);
@@ -154,21 +161,21 @@ function animate() {
 
     const chunkX = clientPlayer.x >> CHUNK_LENGTH_BITS;
     for (let cx = chunkX - 2; cx <= chunkX + 2; cx++) {
-        const entities = clientPlayer.world.chunkEntities[cx] ??= [];
+        const entities = world.chunkEntities[cx] ??= [];
         for (const entity of entities) {
             (<CEntity>entity).render(dt);
         }
     }
 
-    const smoothDt = Math.min(dt, 0.015) * 12; // TODO: Add this to settings (The number 12)
+    const smoothDt = Math.min(dt, 0.015) * Options.cameraSpeed;
     Mouse._xSmooth += (Mouse._x - Mouse._xSmooth) * smoothDt;
     Mouse._ySmooth += (Mouse._y - Mouse._ySmooth) * smoothDt;
 
-    const mouseBlockId = f2id(clientPlayer.world.getBlockAt(Mouse.rx, Mouse.ry));
+    const mouseBlock = clientPlayer.world.getBlock(Mouse.rx, Mouse.ry);
     if (
         Mouse.ry >= 0 &&
         Mouse.ry < WORLD_HEIGHT &&
-        (mouseBlockId !== I.AIR || clientPlayer.world.hasSurroundingBlock(Mouse.rx, Mouse.ry)) &&
+        (mouseBlock.id !== I.AIR || clientPlayer.world.hasSurroundingBlock(Mouse.rx, Mouse.ry)) &&
         clientPlayer.world.getBlockDepth(Mouse.rx, Mouse.ry) >= 3 &&
         clientPlayer.distance(Mouse.rx, Mouse.ry) <= clientPlayer.blockReach
     ) {
@@ -197,21 +204,19 @@ function update() {
     }
     updateAcc %= 1 / 60;
 
-    if (isOnline) {
-        clientNetwork.releaseBatch();
+    clientNetwork.releaseBatch();
 
-        if (
-            clientPlayer.world.chunks[clientPlayer.x >> CHUNK_LENGTH_BITS]
-            && clientNetwork.handshake
-            && clientPlayer.cacheState !== clientPlayer.calcCacheState()
-        ) {
-            clientPlayer.updateCacheState();
-            clientNetwork.sendMovement(
-                parseFloat(clientPlayer.x.toFixed(2)),
-                parseFloat(clientPlayer.y.toFixed(2)),
-                parseFloat(clientPlayer.rotation.toFixed(1))
-            );
-        }
+    if (
+        clientPlayer.world.chunks[clientPlayer.x >> CHUNK_LENGTH_BITS]
+        && clientNetwork.handshake
+        && clientPlayer.cacheState !== clientPlayer.calcCacheState()
+    ) {
+        clientPlayer.updateCacheState();
+        clientNetwork.sendMovement(
+            parseFloat(clientPlayer.x.toFixed(2)),
+            parseFloat(clientPlayer.y.toFixed(2)),
+            parseFloat(clientPlayer.rotation.toFixed(1))
+        );
     }
 }
 
@@ -228,9 +233,8 @@ declare global {
 
 export async function initClient() {
     await ZstdInit();
-    Error.stackTraceLimit = 50;
     makeZstd(v => ZstdSimple.compress(v), b => ZstdSimple.decompress(b));
-    printer.options.disabledTags.push("debug");
+    Error.stackTraceLimit = 50;
 
     const hash = location.hash.substring(1);
 
@@ -241,7 +245,10 @@ export async function initClient() {
 
     if (!ServerData && !WorldData) location.href = URLPrefix;
 
-    isOnline = !!ServerData;
+    isMultiPlayer = !!ServerData;
+
+    const chatHistory = [""];
+    let chatIndex = 0;
 
     /*
     // Client zooming, it works, but no reason to keep it
@@ -256,6 +263,11 @@ export async function initClient() {
     addEventListener("resize", onResize);
     addEventListener("keydown", e => {
         if (document.activeElement === document.body) Keyboard[e.key.toLowerCase()] = true;
+        if (e.key === "t") chatInput.focus();
+        if (e.key === "Escape") {
+            if (document.activeElement === chatInput) chatInput.blur();
+            else openOptions();
+        }
     });
     addEventListener("keyup", e => Keyboard[e.key.toLowerCase()] = false);
     addEventListener("blur", () => {
@@ -288,44 +300,37 @@ export async function initClient() {
 
     initClientThings();
 
-    clientServer = new CServer(WorldData ? WorldData.uuid : "");
-    if (isOnline) {
-        clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set);
-        clientServer.defaultWorld.ensureSpawnChunks();
-    } else {
-        window.fsr = {};
-        BrowserFS.install(window.fsr);
-        await new Promise(r => BrowserFS.configure({fs: "LocalStorage", options: {}}, e => {
-            if (e) console.error(e);
-            else r();
-        }));
-        window.bfs = window.fsr.require("fs");
-        window.Buffer = window.fsr.require("buffer").Buffer;
-        clientServer.init();
-    }
+    const openOptions = await OptionsContainer();
 
-    clientPlayer = new OriginPlayer(clientServer.defaultWorld);
-    if (isOnline) {
-        clientPlayer.gravity = 0;
-        clientPlayer.immobile = true;
-        clientNetwork = new ClientNetwork;
-        const skin = clientPlayer.skin.image;
-        const canvas = document.createElement("canvas");
-        canvas.width = skin.width;
-        canvas.height = skin.height;
-        canvas.getContext("2d").drawImage(<any>skin, 0, 0);
-        clientNetwork.sendAuth("Steve", canvas.toDataURL());
-    } else {
-        clientPlayer.init();
-        clientPlayer.gravity = DEFAULT_GRAVITY;
-        clientPlayer.immobile = false;
-        clientPlayer.y = clientPlayer.world.getHighHeight(clientPlayer.x) + 1;
+    clientServer = new CServer();
+    clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set);
+    clientServer.defaultWorld.ensureSpawnChunks();
+
+    clientPlayer = OriginPlayer.spawn(clientServer.defaultWorld);
+    clientPlayer.name = Options.username;
+
+    clientPlayer.gravity = 0;
+    clientPlayer.immobile = true;
+    clientNetwork = new ClientNetwork;
+    if (isMultiPlayer) clientNetwork._connect().then(r => r); // not waiting for it to connect
+    else {
+        singlePlayerWorker = new ServerWorker();
+        singlePlayerWorker.postMessage(WorldData.uuid);
+        clientNetwork.worker = singlePlayerWorker;
+        singlePlayerWorker.onmessage = () => {
+            singlePlayerWorker.onmessage = ({data}) => {
+                clientNetwork.processPacketBuffer(data);
+            };
+            clientNetwork.connected = true;
+            clientNetwork.sendAuth(true);
+        };
     }
 
     canvas = <HTMLCanvasElement>document.querySelector("canvas");
     ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
     chatBox = <HTMLDivElement>document.querySelector(".chat-messages");
-    const chatInput = <HTMLInputElement>document.querySelector(".chat-input");
+    chatContainer = <HTMLDivElement>document.querySelector(".chat-container");
+    chatInput = <HTMLInputElement>document.querySelector(".chat-input");
 
     for (const k in f3) {
         f3[k] = <HTMLSpanElement>document.querySelector(`.f3-${k}`);
@@ -337,14 +342,29 @@ export async function initClient() {
     Mouse._ySmooth = Mouse._y;
 
     chatInput.addEventListener("keydown", e => {
-        if (e.key === "Enter") {
+        if (e.key === "ArrowUp" || e.key === "KeyUp") {
+            if (chatIndex > 0) {
+                if (chatIndex === chatHistory.length - 1) {
+                    chatHistory[chatIndex] = chatInput.value;
+                }
+                chatIndex--;
+                const v = chatInput.value = chatHistory[chatIndex];
+                chatInput.setSelectionRange(v.length, v.length);
+            }
+        } else if (e.key === "ArrowDown" || e.key === "KeyDown") {
+            if (chatIndex < chatHistory.length - 1) {
+                chatIndex++;
+                const v = chatInput.value = chatHistory[chatIndex];
+                chatInput.setSelectionRange(v.length, v.length);
+            }
+        } else if (e.key === "Enter") {
             e.preventDefault();
             if (!chatInput.value) return;
-            if (isOnline) {
-                clientNetwork.sendMessage(chatInput.value);
-            } else {
-                clientServer.processMessage(clientPlayer, chatInput.value);
-            }
+            clientNetwork.sendMessage(chatInput.value);
+            chatHistory.splice(chatIndex + 1, chatHistory.length - chatIndex);
+            chatHistory[chatIndex] = chatInput.value;
+            chatHistory.push("");
+            chatIndex++;
             chatInput.value = "";
         }
     });
@@ -356,4 +376,12 @@ export async function initClient() {
     setInterval(() => {
         clientPlayer.inventory.add(new Item(I.STONE));
     }, 1000);
+
+    self.fsr = {};
+    BrowserFS.install(self.fsr);
+    await new Promise(r => BrowserFS.configure({fs: "IndexedDB", options: {}}, e => {
+        if (e) console.error(e);
+        else r();
+    }));
+    self.bfs = self.fsr.require("fs");
 }

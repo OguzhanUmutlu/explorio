@@ -1,15 +1,18 @@
 // @a - all players in all worlds
 // @p - closest player to the sender's position
-// @r - random player
 // @s - sender
 // @e - every entity in all worlds
+// @c - every entity in the current chunk
 
-export const SelectorTags = ["a", "p", "r", "s", "e"] as const;
+import {CommandError} from "./Command";
+import {checkArray, checkObject} from "../utils/Utils";
+
+export const SelectorTags = ["a", "p", "s", "e", "c"] as const;
 export type SelectorTagName = typeof SelectorTags[number];
 export type TokenType =
-    "word"
-    | "string"
+    "text"
     | "number"
+    | "range"
     | "bool"
     | "selector"
     | "object"
@@ -17,45 +20,102 @@ export type TokenType =
     | "rawObject"
     | "rawArray";
 type TokenTypeMap = {
-    word: string;
-    string: string;
+    text: string;
     number: number;
     bool: boolean;
     selector: SelectorTagName;
     object: Record<string, TokenValue>;
     array: TokenValue[];
-    rawObject: Record<string, Token>;
-    rawArray: Token[];
+    rawObject: Record<string, AnyToken>;
+    rawArray: AnyToken[];
 };
 
 export type TokenValue<T extends keyof TokenTypeMap = keyof TokenTypeMap> = TokenTypeMap[T];
 
 export const WordRegex = /^[a-zA-Z~_^!][a-zA-Z~_^!\d]*/;
 
-export class Token<T extends TokenType = any> {
+export type AnyToken = Token | SelectorToken;
+
+export class Token<T extends TokenType = TokenType> {
     raw: string;
     rawText: string;
+    yes = 1;
 
     constructor(public text: string, public start: number, public end: number, public type: T, public value: TokenValue<T>) {
         this.raw = text.substring(start, end);
         this.rawText = this.raw;
-        if (this.type === "string") this.rawText = this.value;
+        if (this.type === "text") this.rawText = this.value;
+    };
+
+    toJSON() {
+        switch (this.type) {
+            case "number":
+            case "object":
+            case "array":
+            case "text":
+            case "bool":
+                return this.value;
+            case "range":
+            case "selector":
+                throw new Error("Cannot serialize ranges and selectors.");
+            case "rawArray":
+                return (<TokenValue<"rawArray">>this.value).map(i => i.toJSON());
+            case "rawObject":
+                const val = <TokenValue<"rawObject">>this.value;
+                const obj = {};
+                for (const k in val) {
+                    obj[k] = val[k].toJSON();
+                }
+                return obj;
+        }
+    };
+
+    equalsValue(value: any) {
+        switch (this.type) {
+            case "number":
+            case "text":
+            case "bool":
+                return this.value === value;
+            case "selector":
+                throw new Error("Cannot compare selectors.");
+            case "range":
+                return typeof value === "number"
+                    && !isNaN(value)
+                    && value >= this.value[0]
+                    && value <= this.value[1];
+            case "object":
+                return checkObject(this.value, value);
+            case "array":
+                return checkArray(this.value, value);
+            case "rawArray":
+                const arr = <TokenValue<"rawArray">>this.value;
+                for (let i = 0; i < arr.length; i++) {
+                    if (!arr[i].equalsValue(value[i])) return false;
+                }
+                return true;
+            case "rawObject":
+                const obj = <TokenValue<"rawObject">>this.value;
+                for (const k in obj) {
+                    if (!obj[k].equalsValue(value[k])) return false;
+                }
+                return true;
+        }
     };
 
     static bool(text: string, start: number, end: number, value: boolean): Token<"bool"> {
         return new Token(text, start, end, "bool", value);
     };
 
-    static string(text: string, start: number, end: number, value: string): Token<"string"> {
-        return new Token(text, start, end, "string", value);
-    };
-
-    static word(text: string, start: number, end: number, value: string): Token<"word"> {
-        return new Token(text, start, end, "word", value);
+    static text(text: string, start: number, end: number, value: string): Token<"text"> {
+        return new Token(text, start, end, "text", value);
     };
 
     static number(text: string, start: number, end: number, value: number): Token<"number"> {
         return new Token(text, start, end, "number", value);
+    };
+
+    static range(text: string, start: number, end: number, value: [number, number]): Token<"range"> {
+        return new Token(text, start, end, "range", value);
     };
 
     static object(text: string, start: number, end: number, value: Record<string, TokenValue>): Token<"object"> {
@@ -76,7 +136,7 @@ export class Token<T extends TokenType = any> {
 }
 
 export class SelectorToken extends Token<SelectorTagName> {
-    constructor(text: string, start: number, end: number, value: SelectorTagName, public args: TokenValue<"rawObject">) {
+    constructor(text: string, start: number, end: number, value: SelectorTagName, public filters: TokenValue<"rawObject">) {
         super(text, start, end, "selector", value);
     };
 }
@@ -92,13 +152,13 @@ export function readSelector(text: string, index: number): SelectorToken {
     if (text[index] !== "@" || !SelectorTags.includes(text[index + 1])) return null;
 
     if (text[index + 2] === "{") {
-        const args = readObject(text, index + 2, true, true);
+        const args = readObject(text, index + 2, false, true);
         return new SelectorToken(text, index, args.end, text[index + 1], args.value);
     } else if (text[index + 2] && text[index + 2] !== " ") return null;
     return new SelectorToken(text, index, index + 1, text[index + 1], {});
 }
 
-export function readString(text: string, index: number): Token<"string"> | null {
+export function readString(text: string, index: number): Token<"text"> | null {
     const startIndex = index;
     const start = text[index];
 
@@ -122,7 +182,7 @@ export function readString(text: string, index: number): Token<"string"> | null 
         }
 
         if (text[i] === start) {
-            return Token.string(text, startIndex, i + 1, value);
+            return Token.text(text, startIndex, i + 1, value);
         }
 
         value += text[i];
@@ -131,11 +191,11 @@ export function readString(text: string, index: number): Token<"string"> | null 
     throw new Error(`Unclosed string at ${startIndex + 1}th character`);
 }
 
-export function readWord(text: string, index: number, regex: RegExp = WordRegex): Token<"word"> {
+export function readWord(text: string, index: number, regex: RegExp = WordRegex): Token<"text"> {
     const match = text.substring(index).match(regex);
-    if (!match) return Token.word(text, index, index, "");
+    if (!match) return Token.text(text, index, index, "");
     const word = match[0];
-    return Token.word(text, index, index + word.length, word);
+    return Token.text(text, index, index + word.length, word);
 }
 
 export function readWordOrString(text: string, index: number, regex: RegExp = WordRegex) {
@@ -146,8 +206,35 @@ export function readWordOrString(text: string, index: number, regex: RegExp = Wo
 
 export function readNumber(text: string, index: number) {
     if (isNaN(text[index] * 1)) return null; // Only allowing X and X.X syntax for numbers.
-    const word = readWord(text, index, /^(\d+)|(\d+\.\d+)/);
+    const word = readWord(text, index, /^-?(\d+)|-?(\d+\.\d+)/);
     return Token.number(text, word.start, word.end, parseFloat(word.value));
+}
+
+export function readRange(text: string, index: number) {
+    if (text[index] === "." && text[index + 1] === ".") {
+        // example: ..25
+        const num = readNumber(text, index + 2);
+        if (num === null) {
+            // example: ..
+            return Token.range(text, index, index + 2, [-Infinity, Infinity]);
+        }
+        return Token.range(text, index, num.end, [-Infinity, num.value]);
+    }
+
+    const num1 = readNumber(text, index);
+    if (num1 === null) return null;
+    index = num1.end;
+
+    if (text[index] !== "." && text[++index] !== ".") return null;
+
+    const num2 = readNumber(text, index);
+    if (num2 === null) {
+        // example: 25..
+        return Token.range(text, num1.start, index, [num1.value, Infinity]);
+    }
+
+    // example: 25..25
+    return Token.range(text, num1.start, num2.end, [num1.value, num2.value]);
 }
 
 export function readObject<isRaw extends boolean>(
@@ -170,7 +257,7 @@ export function readObject<isRaw extends boolean>(
         i = skipWhitespace(text, i);
 
         const key = readWordOrString(text, i);
-        if (!key || (key.type === "word" && !key.value)) {
+        if (!key || (key.type === "text" && !key.value)) {
             throw new Error(`Unexpected character '${text[i]}' at ${i + 1}th character`);
         }
         if (!key.value) {
@@ -179,15 +266,22 @@ export function readObject<isRaw extends boolean>(
 
         i = skipWhitespace(text, key.end);
 
-        if (text[i] !== ":" && text[i] !== "=") throw new Error(`Missing colon(or equals sign) at ${i + 1}th character`);
+        if (
+            text[i] !== ":" // x : y
+            && text[i] !== "=" // x = y
+            && !(raw && text[i] === "!" && text[i + 1] === "=") // x != y (only works if raw=true)
+        ) throw new CommandError(`Missing ':' or '=' or '!=' at ${i + 1}th character`);
+        const not = text[i] === "!";
+        if (not) i++;
         i++;
         i = skipWhitespace(text, i);
 
         const value = (allowSelector ? readSelector(text, i) : null) || readAny(text, i, allowSelector, raw);
-        if (!value || (value.type === "word" && !value.value)) {
+        if (!value || (value.type === "text" && !value.value)) {
             throw new Error(`Unexpected character '${text[i]}' at ${i + 1}th character`);
         }
         i = skipWhitespace(text, value.end);
+        if (not) value.yes = 0;
         object[key.value] = raw ? <any>value : value.value;
     }
 
@@ -222,16 +316,17 @@ export function skipWhitespace(text: string, index: number) {
 }
 
 // List of possible results:
-// "Hello, world!" {type: "string", value: "Hello, world!", index: 10}
+// "Hello, world!" {type: "text", value: "Hello, world!", index: 10}
 // true {type: "bool", value: true, index: 10}
 // 25 {type: "number", value: 25, index: 10}
 // {x=10 y=20} {type: "object", value: {x: 10, y: 20}, index: 10}
 // [10 20] {type: "array", value: [10, 20], index: 10}
 // @a{x=20} {type: "selector", value: "a", arguments: {x: {type:"number",value:20}}, index: 10}
-// Hello {type: "word", value: "Hello", index: 10}
+// Hello {type: "text", value: "Hello", index: 10}
 export function readAny(text: string, index: number, allowSelector = false, raw = false) {
     return readString(text, index)
         || readBool(text, index)
+        || readRange(text, index)
         || readNumber(text, index)
         || readObject(text, index, allowSelector, raw)
         || readArray(text, index, allowSelector, raw)
@@ -242,11 +337,11 @@ export function readAny(text: string, index: number, allowSelector = false, raw 
 // Input: @a{x=10, y=10} "hello, world!" hello, world!
 // Output: [{selector: "a", arguments: {x: 10, y: 20}}, "hello, world!", "hello,", "world!"]
 export function splitParameters(params: string) {
-    const args: Token[] = [];
+    const args: AnyToken[] = [];
 
     for (let i = 0; i < params.length; i++) {
         i = skipWhitespace(params, i);
-        const token = readSelector(params, i) || readAny(params, i);
+        const token = readSelector(params, i) || readAny(params, i, false, true);
         if (!token) break;
         args.push(token);
         i = token.end;

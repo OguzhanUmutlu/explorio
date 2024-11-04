@@ -1,7 +1,23 @@
-import {addServer, addWorld, getServerList, getWorldList, removeServer, removeWorld, URLPrefix} from "./Utils";
+import {
+    addServer,
+    addWorld,
+    getServerList,
+    getWorldList,
+    loadOptions,
+    Options,
+    removeServer,
+    removeWorld,
+    saveOptions,
+    URLPrefix
+} from "./Utils";
+import OptionsContainer from "../components/OptionsContainer";
 
 type _D = HTMLDivElement;
 type _I = HTMLInputElement;
+
+loadOptions();
+
+await OptionsContainer();
 
 const blackBg = <_D>document.querySelector(".black-background");
 const spCon = <_D>document.querySelector(".singleplayer-container");
@@ -121,7 +137,7 @@ function openContainer(con) {
     }
     con.style.scale = "1";
     con.style.pointerEvents = "auto";
-    blackBg.style.opacity = "0.2";
+    blackBg.style.opacity = "1";
     blackBg.style.pointerEvents = "auto";
 }
 

@@ -1,10 +1,11 @@
-import {Attributes} from "../meta/Attributes";
 import {BoundingBox} from "./BoundingBox";
 import {World} from "../world/World";
 import {SEntityUpdatePacket} from "../packet/server/SEntityUpdatePacket";
 import {SEntityRemovePacket} from "../packet/server/SEntityRemovePacket";
-import {isServer} from "../utils/Utils";
-import {RotatedPosition} from "../utils/RotatedPosition";
+import {EntitySaveStruct, EntityStructs, zstdOptionalDecode, zstdOptionalEncode} from "../utils/Utils";
+import {Location} from "../utils/Location";
+import {ObjectStruct} from "stramp";
+import {server} from "../Server";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -13,14 +14,18 @@ export const DEFAULT_GRAVITY = 18;
 
 let _entity_id = 0;
 
-export abstract class Entity<WorldType extends World = World> {
+export abstract class Entity<
+    Struct extends ObjectStruct = ObjectStruct,
+    V extends any = Struct["__TYPE__"]
+> {
     abstract typeId: number;
-    abstract name: string;
+    abstract typeName: string; // used in selectors' type= attribute
+    abstract name: string; // used for chat messages and informational purposes
     id = _entity_id++;
-    chunk: WorldType["chunkEntities"][number];
+    chunk: World["chunkEntities"][number];
     _x = 0;
     _y = 0;
-    position = new RotatedPosition(0, 0, 0);
+    location = new Location(0, 0, 0, null);
     renderX = 0;
     renderY = 0;
     vx = 0;
@@ -28,44 +33,70 @@ export abstract class Entity<WorldType extends World = World> {
     onGround = true;
     bb: BoundingBox;
     cacheState;
-    server: WorldType["server"];
+    server = server;
+    tags: Set<string> = new Set;
 
-    get x() {
-        return this.position.x;
+    walkSpeed = DEFAULT_WALK_SPEED;
+    flySpeed = DEFAULT_FLY_SPEED;
+    jumpVelocity = DEFAULT_JUMP_VELOCITY;
+    health = 20;
+    maxHealth = 20;
+    gravity = 0;
+    canPhase = false;
+    immobile = false;
+
+    getRotationTowards(x: number, y: number) {
+        return this.location.getRotationTowards(x, y, this.bb.width / 2, this.bb.height);
     };
 
-    get y() {
-        return this.position.y;
+    get eyeHeight() {
+        return this.bb.height;
     };
 
-    get rotation() {
-        return this.position.rotation;
+    get struct() {
+        return EntityStructs[this.typeId];
     };
 
-    set x(x: number) {
-        this.position.x = x;
+    getSaveBuffer(): Buffer {
+        return EntitySaveStruct.serialize(this);
     };
-
-    set y(y: number) {
-        this.position.y = y;
-    };
-
-    set rotation(rotation: number) {
-        this.position.rotation = rotation;
-    };
-
-    protected constructor(public world: WorldType) {
-        this.server = world.server;
-    };
-
-    abstract getSaveData(): any;
-
-    abstract loadFromData(data: any): void;
 
     init() {
         this.updateCacheState();
         this.onMovement();
         this.world.entities[this.id] = this;
+    };
+
+    get x() {
+        return this.location.x;
+    };
+
+    get y() {
+        return this.location.y;
+    };
+
+    get rotation() {
+        return this.location.rotation;
+    };
+
+    get world() {
+        return this.location.world;
+    };
+
+    set x(x: number) {
+        this.location.x = x;
+    };
+
+    set y(y: number) {
+        this.location.y = y;
+    };
+
+    set rotation(rotation: number) {
+        this.location.rotation = rotation;
+    };
+
+    set world(world) {
+        this.location.world = world;
     };
 
     calcCacheState(): string {
@@ -79,23 +110,6 @@ export abstract class Entity<WorldType extends World = World> {
     render(dt: number) {
         this.renderX += (this.x - this.renderX) / 5;
         this.renderY += (this.y - this.renderY) / 5;
-    };
-
-    attributes = {
-        [Attributes.WALK_SPEED]: DEFAULT_WALK_SPEED,
-        [Attributes.FLY_SPEED]: DEFAULT_FLY_SPEED,
-        [Attributes.JUMP_VELOCITY]: DEFAULT_JUMP_VELOCITY,
-        [Attributes.HEALTH]: 20,
-        [Attributes.FOOD]: 20,
-        [Attributes.MAX_HEALTH]: 20,
-        [Attributes.MAX_FOOD]: 20,
-        [Attributes.GRAVITY]: 0,
-        [Attributes.IS_FLYING]: 0,
-        [Attributes.CAN_TOGGLE_FLY]: 0,
-        [Attributes.CAN_PHASE]: 0,
-        [Attributes.BLOCK_REACH]: 5,
-        [Attributes.ATTACK_REACH]: 5,
-        [Attributes.IMMOBILE]: false
     };
 
     calculateGround() { // used in the server-side
@@ -174,29 +188,23 @@ export abstract class Entity<WorldType extends World = World> {
     };
 
     broadcastMovement() {
-        if (isServer) {
-            (<any>this.world).broadcastPacketAt(this.x, this.y, new SEntityUpdatePacket({
-                entityId: this.id,
-                typeId: this.typeId,
-                props: this.getMovementData()
-            }), [<any>this]);
-        }
+        this.world.broadcastPacketAt(this.x, this.y, new SEntityUpdatePacket({
+            entityId: this.id,
+            typeId: this.typeId,
+            props: this.getMovementData()
+        }), [<any>this]);
     };
 
     broadcastSpawn() {
-        if (isServer) {
-            (<any>this.world).broadcastPacketAt(this.x, this.y, new SEntityUpdatePacket({
-                entityId: this.id,
-                typeId: this.typeId,
-                props: this.getSpawnData()
-            }), [<any>this]);
-        }
+        this.world.broadcastPacketAt(this.x, this.y, new SEntityUpdatePacket({
+            entityId: this.id,
+            typeId: this.typeId,
+            props: this.getSpawnData()
+        }), [<any>this]);
     };
 
     broadcastDespawn() {
-        if (isServer) {
-            (<any>this.world).broadcastPacketAt(this.x, this.y, new SEntityRemovePacket(this.id), [<any>this]);
-        }
+        this.world.broadcastPacketAt(this.x, this.y, new SEntityRemovePacket(this.id), [<any>this]);
     };
 
     serverUpdate(dt: number): void {
@@ -204,118 +212,6 @@ export abstract class Entity<WorldType extends World = World> {
             this.updateCacheState();
             this.broadcastMovement();
         }
-    };
-
-    get walkSpeed() {
-        return this.attributes[Attributes.WALK_SPEED];
-    };
-
-    get flySpeed() {
-        return this.attributes[Attributes.FLY_SPEED];
-    };
-
-    get jumpVelocity() {
-        return this.attributes[Attributes.JUMP_VELOCITY];
-    };
-
-    get health() {
-        return this.attributes[Attributes.HEALTH];
-    };
-
-    get food() {
-        return this.attributes[Attributes.FOOD];
-    };
-
-    get maxHealth() {
-        return this.attributes[Attributes.MAX_HEALTH];
-    };
-
-    get maxFood() {
-        return this.attributes[Attributes.MAX_FOOD];
-    };
-
-    get gravity() {
-        return this.attributes[Attributes.GRAVITY];
-    };
-
-    get isFlying() {
-        return this.attributes[Attributes.IS_FLYING];
-    };
-
-    get canToggleFly() {
-        return this.attributes[Attributes.CAN_TOGGLE_FLY];
-    };
-
-    get canPhase() {
-        return this.attributes[Attributes.CAN_PHASE];
-    };
-
-    get blockReach() {
-        return this.attributes[Attributes.BLOCK_REACH];
-    };
-
-    get attackReach() {
-        return this.attributes[Attributes.ATTACK_REACH];
-    };
-
-    get immobile() {
-        return this.attributes[Attributes.IMMOBILE];
-    };
-
-    set walkSpeed(speed: number) {
-        this.attributes[Attributes.WALK_SPEED] = speed;
-    };
-
-    set flySpeed(speed: number) {
-        this.attributes[Attributes.FLY_SPEED] = speed;
-    };
-
-    set jumpVelocity(velocity: number) {
-        this.attributes[Attributes.JUMP_VELOCITY] = velocity;
-    };
-
-    set health(health: number) {
-        this.attributes[Attributes.HEALTH] = health;
-    };
-
-    set food(food: number) {
-        this.attributes[Attributes.FOOD] = food;
-    };
-
-    set maxHealth(health: number) {
-        this.attributes[Attributes.MAX_HEALTH] = health;
-    };
-
-    set maxFood(food: number) {
-        this.attributes[Attributes.MAX_FOOD] = food;
-    };
-
-    set gravity(gravity: number) {
-        this.attributes[Attributes.GRAVITY] = gravity;
-    };
-
-    set isFlying(isFlying: number) {
-        this.attributes[Attributes.IS_FLYING] = isFlying;
-    };
-
-    set canToggleFly(canToggleFly: number) {
-        this.attributes[Attributes.CAN_TOGGLE_FLY] = canToggleFly;
-    };
-
-    set canPhase(canPhase: number) {
-        this.attributes[Attributes.CAN_PHASE] = canPhase;
-    };
-
-    set blockReach(blockReach: number) {
-        this.attributes[Attributes.BLOCK_REACH] = blockReach;
-    };
-
-    set attackReach(attackReach: number) {
-        this.attributes[Attributes.ATTACK_REACH] = attackReach;
-    };
-
-    set immobile(immobile: boolean) {
-        this.attributes[Attributes.IMMOBILE] = immobile;
     };
 
     distance(x: number, y: number) {
@@ -329,5 +225,20 @@ export abstract class Entity<WorldType extends World = World> {
         const index = entities.indexOf(this);
         if (index !== -1) entities.splice(index, 1);
         this.broadcastDespawn();
+    };
+
+    toString() {
+        return this.name;
+    };
+
+    static spawn(world: World) {
+        const entity = <this>new (<any>this);
+        entity.world = world;
+        entity.init();
+        return entity;
+    };
+
+    static loadEntity(buffer: Buffer) {
+        return EntitySaveStruct.deserialize(zstdOptionalDecode(buffer));
     };
 }

@@ -1,8 +1,12 @@
-import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
-import {ChunkExchangeStruct} from "../../utils/Utils";
+import {makePacketClass} from "../Packet";
+import {PacketIds} from "../../meta/PacketIds.js";
+import X from "stramp";
+import {SEntityUpdatePacket} from "./SEntityUpdatePacket";
+import {ChunkBlocksBin} from "../../utils/Bins";
 
-export class SChunkPacket extends Packet<SChunkPacket> {
-    static packetId = PacketIds.SERVER_CHUNK;
-    static struct = ChunkExchangeStruct;
-}
+export const SChunkPacket = makePacketClass(PacketIds.SERVER_CHUNK, X.object.struct({
+    x: X.i32,
+    data: ChunkBlocksBin,
+    entities: X.array.typed(SEntityUpdatePacket.struct),
+    resetEntities: X.bool
+}));

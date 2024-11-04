@@ -1,32 +1,63 @@
-import {World, WorldMetaData} from "./world/World";
+import {Generators, getRandomSeed, World, WorldMetaData} from "./world/World";
 import {Player} from "./entity/types/Player";
-import {Command, CommandError, CommandSuccess} from "./command/Command";
-import {CommandSender} from "./command/CommandSender";
-import {cleanText, splitParameters} from "./command/CommandProcessor";
-import {RotatedPosition} from "./utils/RotatedPosition";
+import {Command, CommandError} from "./command/Command";
+import {CommandAs, CommandSender} from "./command/CommandSender";
+import {cleanText, SelectorToken} from "./command/CommandProcessor";
+import {Location} from "./utils/Location";
 import {Entity} from "./entity/Entity";
 import {TeleportCommand} from "./command/defaults/TeleportCommand";
+import {SelectorSorters} from "./utils/Utils";
+import {ListCommand} from "./command/defaults/ListCommand";
+import {ConsoleCommandSender} from "./command/ConsoleCommandSender";
+import {ExecuteCommand} from "./command/defaults/ExecuteCommand";
+import {SendMessagePacket} from "./packet/common/SendMessagePacket";
+import {Packet} from "./packet/Packet";
+import {PermissionCommand} from "./command/defaults/PermissionCommand.js";
 
-export type PlayerData = {
-    x: number,
-    y: number,
-    spawnX: number,
-    spawnY: number,
-    world: string
+export let server: Server;
+
+export type ServerConfig = {
+    port: number,
+    "render-distance": number,
+    "default-world": string,
+    "default-worlds": Record<string, WorldMetaData>
 };
 
-export abstract class Server<WorldType extends World = World, PlayerType extends Player<WorldType> = Player<WorldType>> {
-    __player_type__: PlayerType;
-    operators: string[];
+export const DefaultServerConfig: ServerConfig = {
+    port: 1881,
+    "render-distance": 3,
+    "default-world": "default",
+    "default-worlds": {
+        default: {
+            name: "default",
+            generator: "default",
+            generatorOptions: "",
+            seed: getRandomSeed()
+        }
+    }
+};
 
-    worlds: Record<string, WorldType> = {};
-    defaultWorld: WorldType;
-    players: Set<PlayerType> = new Set;
+export class Server {
+    worlds: Record<string, World> = {};
+    defaultWorld: World;
+    players: Record<string, Player> = {};
     lastUpdate = Date.now() - 1;
     saveCounter = 0;
+    saveCounterMax = 45;
     commands: Record<string, Command> = {};
+    sender: ConsoleCommandSender;
+    config: ServerConfig;
 
-    init() {
+    constructor(public fs, public path: string) {
+    };
+
+    isClientSide() {
+        return !this.fs;
+    };
+
+    async init() {
+        server = this;
+        this.sender = new ConsoleCommandSender;
         setInterval(() => {
             const now = Date.now();
             const dt = Math.min((now - this.lastUpdate) / 1000, 0.015);
@@ -35,91 +66,318 @@ export abstract class Server<WorldType extends World = World, PlayerType extends
         });
 
         for (const clazz of [
-            TeleportCommand
+            ListCommand,
+            TeleportCommand,
+            ExecuteCommand,
+            PermissionCommand
         ]) this.registerCommand(new clazz());
+
+        if (!await this.fs.existsSync(this.path)) await this.fs.mkdirSync(this.path);
+
+        if (!await this.fs.existsSync(`${this.path}/server.json`) && !this.config) {
+            this.config ??= DefaultServerConfig;
+            await this.fs.writeFileSync(`${this.path}/server.json`, JSON.stringify(
+                this.config, null, 2
+            ));
+            printer.warn("Created server.json, please edit it and restart the server");
+            process.exit(0);
+        } else {
+            this.config ??= JSON.parse(await this.fs.readFileSync(`${this.path}/server.json`, "utf8"));
+        }
+        if (!await this.fs.existsSync(`${this.path}/worlds`)) await this.fs.mkdirSync(`${this.path}/worlds`);
+        for (const folder in this.config["default-worlds"]) {
+            await this.createWorld(folder, this.config["default-worlds"][folder]);
+        }
+        for (const folder of await this.getWorldFolders()) {
+            if (await this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
+            else printer.fail("Failed to load world %c" + folder, "color: yellow");
+        }
+        if (!(this.config["default-world"] in this.worlds)) {
+            printer.error("Default world couldn't be found. Please create the world named '" + this.config["default-world"] + "'");
+            await this.close();
+        }
+        this.defaultWorld = this.worlds[this.config["default-world"]];
     };
 
-    abstract worldExists(folder: string): boolean;
+    getAllEntities() {
+        const entities: Entity[] = [];
+        for (const world in this.worlds) {
+            entities.push(...Object.values(this.worlds[world].entities));
+        }
+        return entities;
+    };
 
-    abstract getWorldData(folder: string): WorldMetaData | null;
+    executeSelector(as: CommandAs, at: Location, selector: SelectorToken) {
+        let entities: Entity[];
 
-    abstract getWorldChunkList(folder: string): number[] | null;
+        switch (selector.value) {
+            case "a":
+                entities = Object.values(this.players);
+                break;
+            case "p":
+                if (as instanceof Player) entities = [as];
+                else {
+                    let player: Player;
+                    let distance = Infinity;
+                    for (const pName in this.players) {
+                        const p = this.players[pName];
+                        const dist = p.distance(at.x, at.y);
+                        if (dist < distance) {
+                            distance = dist;
+                            player = p;
+                        }
+                    }
+                    entities = player ? [player] : [];
+                }
+                break;
+            case "s":
+                entities = as instanceof Entity ? [as] : [];
+                break;
+            case "e":
+                entities = this.getAllEntities();
+                break;
+            case "c":
+                entities = at.world.getChunkEntitiesAt(at.x);
+                break;
+        }
 
-    abstract getWorldFolders(): string[];
+        if ("sort" in selector.filters) {
+            const token = selector.filters.sort;
+            const val = token.value;
 
-    abstract loadWorld(folder: string): WorldType | null;
+            if (token.type !== "text") throw new CommandError(`Invalid 'sort' attribute for the selector`);
+            if (val in SelectorSorters) {
+                entities.sort((a, b) => SelectorSorters[val](a, b, at));
+            } else throw new CommandError(`Invalid 'sort' attribute for the selector`);
+        }
 
-    abstract createWorld(folder: string, data: WorldMetaData): boolean;
+        for (const k in selector.filters) {
+            const token = selector.filters[k];
+            const val = token.value;
+            const bm = 1 - token.yes;
+            switch (k) {
+                case "x":
+                case "y":
+                    if (token.type === "range") {
+                        entities.filter(entity => bm - (entity[k] <= val[1] && entity[k] >= val[0]));
+                    } else if (token.type === "number") {
+                        entities.filter(entity => bm - (entity[k] === val));
+                    } else throw new CommandError(`Invalid '${k}' attribute for the selector`);
+                    break;
+                case "distance":
+                    if (token.type === "range") entities = entities.filter(i => {
+                        const dist = i.distance(at.x, at.y);
+                        return bm - (dist <= val[1] && dist >= val[0]);
+                    }); else if (token.type === "number") {
+                        entities = entities.filter(entity => {
+                            return bm - (entity.distance(at.x, at.y) === val);
+                        });
+                    } else throw new CommandError("Invalid 'distance' attribute for the selector");
+                    break;
+                case "dx":
+                case "dy":
+                    if (token.type === "range") {
+                        entities = entities.filter(entity => {
+                            return bm - (entity[k] - at[k] <= val[1] && entity[k] - at[k] >= val[0]);
+                        });
+                    } else if (token.type === "number") {
+                        entities = entities.filter(entity => {
+                            return bm - (entity[k] - at[k] === val);
+                        });
+                    } else throw new CommandError(`Invalid '${k}' attribute for the selector`);
+                    break;
+                case "rotation":
+                    if (token.type === "range") {
+                        entities = entities.filter(entity => {
+                            return bm - (entity.rotation - at.rotation <= val[1] && entity.rotation - at.rotation >= val[0]);
+                        });
+                    } else if (token.type === "number") {
+                        entities = entities.filter(entity => {
+                            return bm - (entity.rotation - at.rotation === val);
+                        });
+                    } else throw new CommandError(`Invalid 'rotation' attribute for the selector`);
+                    break;
+                case "tag":
+                    if (token.type !== "text") {
+                        throw new CommandError(`Invalid 'tag' attribute for the selector`);
+                    }
 
-    abstract close(): void;
+                    entities = entities.filter(entity => {
+                        return bm - (entity.tags.has(val));
+                    });
+                    break;
+                case "nbt":
+                    if (token.type !== "object") throw new CommandError(`Invalid 'nbt' attribute for the selector`);
+
+                    entities = entities.filter(entity => {
+                        for (const k in val) {
+                            if (!entity.struct.keys().includes(k)) return false;
+                            if (!val[k].equalsValue(entity[k])) return false;
+                        }
+                        return bm - token.equalsValue(entity);
+                    });
+                    break;
+                case "type":
+                    if (token.type !== "text") throw new CommandError(`Invalid 'type' attribute for the selector`);
+
+                    entities = entities.filter(entity => {
+                        return bm - (entity.typeName === val);
+                    });
+                    break;
+                case "name":
+                    if (token.type !== "text") throw new CommandError(`Invalid 'name' attribute for the selector`);
+
+                    entities = entities.filter(entity => {
+                        return bm - (entity.name === val);
+                    });
+                    break;
+                case "world":
+                    if (token.type !== "text") throw new CommandError(`Invalid 'world' attribute for the selector`);
+
+                    entities = entities.filter(entity => {
+                        return bm - (entity.world.folder === val);
+                    });
+                    break;
+                case "permissions":
+                    if (token.type !== "array" || val.some(i => typeof i !== "string")) {
+                        throw new CommandError(`Invalid 'permissions' attribute for the selector`);
+                    }
+
+                    entities = entities.filter(entity => {
+                        return bm - (entity instanceof Player && val.every(perm => entity.hasPermission(perm)));
+                    });
+                    break;
+                case "limit":
+                case "sort":
+                    break;
+                default:
+                    throw new CommandError(`Invalid '${k}' attribute for the selector`);
+            }
+        }
+
+        if ("limit" in selector.filters) {
+            const token = selector.filters.limit;
+            if (token.type !== "number") throw new CommandError(`Invalid 'limit' attribute for the selector`);
+            const val = Math.floor(token.value);
+            if (val < 0) throw new CommandError(`Invalid 'limit' attribute for the selector`);
+            entities = entities.slice(0, val);
+        }
+
+        return entities;
+    };
+
+    async worldExists(folder: string): Promise<boolean> {
+        return await this.fs.existsSync(this.path + "/worlds/" + folder);
+    };
+
+    async getWorldData(folder: string): Promise<WorldMetaData | null> {
+        const path = this.path + "/worlds/" + folder + "/world.json";
+        if (!await this.fs.existsSync(path)) return null;
+
+        return JSON.parse(await this.fs.readFileSync(path, "utf8"));
+    };
+
+    async getWorldChunkList(folder: string): Promise<number[] | null> {
+        const worldPath = this.path + "/worlds/" + folder;
+        if (!await this.fs.existsSync(worldPath)) return null;
+        const chunksPath = this.path + "/worlds/" + folder + "/chunks";
+        if (!await this.fs.existsSync(chunksPath)) await this.fs.mkdirSync(chunksPath);
+        return (await this.fs.readdirSync(chunksPath)).map(file => parseInt(file.split(".")[0]));
+    };
+
+    async getWorldFolders(): Promise<string[]> {
+        return await this.fs.readdirSync(this.path + "/worlds");
+    };
+
+    async loadWorld(folder: string): Promise<World | null> {
+        const data = await this.getWorldData(folder);
+        if (!data) return null;
+        const gen = <any>Generators[data.generator];
+        const world = new World(
+            this, data.name, folder, data.seed, new gen(data.generatorOptions),
+            new Set(await this.getWorldChunkList(folder))
+        );
+        this.worlds[folder] = world;
+        world.ensureSpawnChunks();
+        return world;
+    };
+
+    async createWorld(folder: string, data: WorldMetaData): Promise<boolean> {
+        if (await this.worldExists(folder)) return false;
+        await this.fs.mkdirSync(this.path + "/worlds/" + folder);
+        await this.fs.mkdirSync(this.path + "/worlds/" + folder + "/chunks");
+        await this.fs.writeFileSync(this.path + "/worlds/" + folder + "/world.json", JSON.stringify(data, null, 2));
+        return true;
+    };
 
     update(dt: number) {
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
         }
         this.saveCounter += dt;
-        if (this.saveCounter > 5) {
-            this.save();
+        if (this.saveCounter > this.saveCounterMax) {
+            this.save().then(r => r); // ignoring the save time
             this.saveCounter = 0;
         }
-    };
 
-    save() {
-        for (const folder in this.worlds) {
-            this.worlds[folder].save();
+        for (const name in this.players) {
+            const player = this.players[name];
+            player.network.releaseBatch();
         }
     };
 
-    abstract broadcastMessage(message: string): void;
+    broadcastPacket(pk: Packet<any>, exclude: Player[] = [], immediate = false) {
+        for (const name in this.players) {
+            const player = this.players[name];
+            if (!exclude.includes(player)) player.network.sendPacket(pk, immediate);
+        }
+    };
+
+    broadcastMessage(message: string): void {
+        this.broadcastPacket(new SendMessagePacket(message));
+        printer.info(message);
+    };
 
     processChat(sender: CommandSender, message: string) {
         this.broadcastMessage(sender.name + " > " + message);
     };
 
-    executeCommandLabel(source: CommandSender, as: CommandSender[], at: RotatedPosition, label: string) {
+    executeCommandLabel(sender: CommandSender, as: CommandAs, at: Location, label: string) {
         const split = label.split(" ");
         const commandLabel = split[0];
         const command = this.commands[commandLabel];
         if (!command) {
-            source.sendMessage(`Unknown command: ${commandLabel}. Type /help for a list of commands`);
+            sender.sendMessage(`§cUnknown command: ${commandLabel}. Type /help for a list of commands`);
             return;
         }
-        const params = split.slice(1).join(" "); // todo: command definition permissions. argument required and spread
-        const args = splitParameters(params);
+        const args = split.slice(1);
         try {
-            const exec = command.define(source, args, params);
-            if (command.permission && !source.hasPermission(command.permission)) {
-                source.sendMessage(`§cYou don't have permission to execute this command.`);
+            if (command.permission && !sender.hasPermission(command.permission)) {
+                sender.sendMessage(`§cYou don't have permission to execute this command.`);
                 return;
             }
 
-            let fail = 0;
-            let exec0 = exec;
-            for (const s of as) {
-                if (!(exec0 = (<any>exec).run(source, s, at, ...args))) fail++;
-            }
-
-            if (fail && as.length > 1) {
-                source.sendMessage(`§cFailed to execute the command for ${fail} targets.`);
-            }
-
-            if (as.length === 1 && exec0 instanceof CommandSuccess) {
-                source.sendMessage(`§a${exec0.message}`);
-            }
+            return command.execute(sender, as, at, args, label);
         } catch (e) {
             if (e instanceof CommandError) {
-                source.sendMessage(`§c${e.message}`);
+                sender.sendMessage(`§c${e.message}`);
             } else {
                 printer.error(e);
-                if (as instanceof Player) as.kick();
+                if (as instanceof Player) as.kick("§cAn error occurred while executing this command.");
             }
         }
+        return Error;
     };
 
     processMessage(sender: CommandSender, message: string) {
         message = cleanText(message);
         if (message[0] === "/") {
-            this.executeCommandLabel(sender, [sender], sender instanceof Entity ? sender.position : new RotatedPosition(0, 0, 0), message.substring(1));
+            this.executeCommandLabel(
+                sender,
+                sender,
+                sender instanceof Entity ? sender.location : new Location(0, 0, 0, this.defaultWorld),
+                message.substring(1)
+            );
         } else this.processChat(sender, message);
     };
 
@@ -128,5 +386,42 @@ export abstract class Server<WorldType extends World = World, PlayerType extends
         for (const alias of command.aliases) {
             this.commands[alias] = command;
         }
+        command.init();
+    };
+
+    async saveWorlds() {
+        for (const folder in this.worlds) {
+            await this.worlds[folder].save();
+        }
+    };
+
+    async savePlayers() {
+        for (const player in this.players) {
+            await this.players[player].save();
+        }
+    };
+
+    async save() {
+        await this.saveWorlds();
+        await this.savePlayers();
+    };
+
+    async close() {
+        printer.info("Closing the server...");
+
+        printer.info("Kicking players...");
+        for (const player in this.players) {
+            this.players[player].kick("Server closed");
+        }
+
+        printer.info("Saving the server...");
+        await this.saveWorlds();
+
+        this.terminateProcess();
+    };
+
+    terminateProcess() {
+        if (typeof process === "object") process.exit();
+        else close();
     };
 }

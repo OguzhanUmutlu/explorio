@@ -51,7 +51,19 @@ body {
     left: 0;
     width: 30%;
     height: 40%;
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.05);
+    opacity: 0.4;
+    transition: all 0.3s;
+    border-radius: 10px;
+}
+
+.chat-container:has(.chat-input:focus), .chat-container:hover {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+}
+
+.chat-input:focus {
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .chat-input {
@@ -60,10 +72,12 @@ body {
     bottom: 0;
     width: calc(100% - 10px);
     outline: none;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.1);
     font-size: 16px;
     border: none;
+    border-radius: 0;
     padding: 5px;
+    margin: 0;
 }
 
 .chat-messages {
@@ -100,8 +114,4 @@ body {
     aspect-ratio: 1 / 1;
     background-size: 100%;
     background-repeat: no-repeat;
-}
-
-input {
-    color: white;
 }

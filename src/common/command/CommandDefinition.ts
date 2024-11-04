@@ -2,22 +2,24 @@ import {CommandArgument} from "./CommandArgument";
 import {NumberArgument} from "./arguments/NumberArgument";
 import {GameModeArgument} from "./arguments/GameModeArgument";
 import {PositionArgument} from "./arguments/PositionArgument";
-import {SelectorArgument} from "./arguments/SelectorArgument";
+import {EntitiesArgument} from "./arguments/EntitiesArgument";
 import {TextArgument} from "./arguments/TextArgument";
 import {BoolArgument} from "./arguments/BoolArgument";
 import {ObjectArgument} from "./arguments/ObjectArgument";
 import {ArrayArgument} from "./arguments/ArrayArgument";
-import {CommandSender} from "./CommandSender";
-import {RotatedPosition} from "../utils/RotatedPosition";
+import {CommandAs, CommandSender} from "./CommandSender";
+import {Location} from "../utils/Location";
 import {EntityArgument} from "./arguments/EntityArgument";
-import {CommandError, CommandSuccess} from "./Command";
+import {LabelArgument} from "./arguments/LabelArgument.js";
 
 export type Append<T, V> = T extends [] ? [V] : [...T, V];
 
+export type CommandDefinitionType = CommandDefinition<CommandArgument[]>;
+
 export class CommandDefinition<T extends CommandArgument[] = []> {
     permission: string | false = false;
-    arguments: CommandArgument<any>[] = <any>[];
-    run: (source: CommandSender, as: CommandSender, at: RotatedPosition, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => CommandSuccess | string | void;
+    arguments: CommandArgument[] = <any>[];
+    run: (sender: CommandSender, as: CommandAs | null, at: Location, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => any | void;
 
     addArgumentViaClass<V extends CommandArgument>(clazz: new (name: string) => V, name: string, fn?: (n: V) => any): CommandDefinition<Append<T, V>> {
         const arg = new clazz(name);
@@ -38,8 +40,8 @@ export class CommandDefinition<T extends CommandArgument[] = []> {
         return this.addArgumentViaClass(PositionArgument, name, fn);
     };
 
-    addSelectorArgument<M extends SelectorArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
-        return this.addArgumentViaClass(SelectorArgument, name, fn);
+    addEntitiesArgument<M extends EntitiesArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+        return this.addArgumentViaClass(EntitiesArgument, name, fn);
     };
 
     addEntityArgument<M extends EntityArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
@@ -62,6 +64,10 @@ export class CommandDefinition<T extends CommandArgument[] = []> {
         return this.addArgumentViaClass(ArrayArgument, name, fn);
     };
 
+    addLabelArgument<M extends LabelArgument>(name: string, fn?: (n: M) => any) {
+        return <CommandDefinition<T>>this.addArgumentViaClass(LabelArgument, name, fn);
+    };
+
     setPermission(permission: string | false) {
         this.permission = permission;
         return this;
@@ -72,25 +78,7 @@ export class CommandDefinition<T extends CommandArgument[] = []> {
         return this;
     };
 
-    execute(source: CommandSender, as: CommandSender, at: RotatedPosition, args: T) {
-        let response: any;
-        try {
-            response = <any>this.run(source, as, at, ...args);
-            if (response instanceof CommandSuccess) response = response.message;
-            if (typeof response === "string") source.sendMessage(`§a${response}`);
-        } catch (e) {
-            if (e instanceof CommandError) {
-                source.sendMessage(`§c${e.message}`);
-            } else {
-                source.sendMessage("§cAn unexpected error occurred.");
-                printer.error(e);
-            }
-        }
-    };
-
     toString() {
-        return this.arguments.map(i => {
-            return `${i.required ? "<" : "["}${i.spread ? "..." : ""}${i.name}: ${i.toString()}${i.required ? ">" : "]"}`;
-        }).join(" ");
+        return this.arguments.map(arg => arg.toUsageString()).join(" ");
     };
 }

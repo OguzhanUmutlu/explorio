@@ -1,4 +1,4 @@
-import {I} from "../meta/ItemIds";
+import {I, ItemsByAccess} from "../meta/ItemIds";
 import X from "stramp";
 
 export class Item {
@@ -102,6 +102,10 @@ export class ItemPool {
         const select = this.select();
         if (!select) return null;
         return select.evaluate();
+    };
+
+    static fromidentifier(name: string) {
+        return ItemsByAccess[name] || null;
     };
 }
 

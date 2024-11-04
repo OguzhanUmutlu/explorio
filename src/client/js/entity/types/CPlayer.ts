@@ -3,7 +3,6 @@ import {Texture} from "../../../../common/utils/Texture";
 import {renderPlayerModel} from "../../Utils";
 import {CEntity} from "../CEntity";
 import {Player} from "../../../../common/entity/types/Player";
-import {CWorld} from "../../world/CWorld";
 
 export function getCurrentSwing() {
     const p = 400;
@@ -11,14 +10,10 @@ export function getCurrentSwing() {
     return (mod > p / 2 ? -1 : 1) * Math.PI / 2.5;
 }
 
-export class CPlayer extends Player<CWorld> implements CEntity {
+export class CPlayer extends Player implements CEntity {
     skin = Texture.get("assets/steve.png");
-
-    breaking: [number, number] | null = null;
-    breakingTime = 0;
-
-    // (head rotation)
-    rotation = 0; // IN DEGREES
+    name = "";
+    ws = <any>null;
 
     // self explanatory properties:
     renderHeadRotation = 0; // IN DEGREES
@@ -38,17 +33,13 @@ export class CPlayer extends Player<CWorld> implements CEntity {
 
     lastX = 0;
 
-    calcCacheState() {
-        return `${this.rotation.toFixed(1)};${super.calcCacheState()}`;
-    };
-
     render(dt) {
         super.render(dt);
         // this.renderHeadRotation += (this.rotation - this.renderHeadRotation) / 20;
 
         const breaking = this.breaking;
         if (breaking) {
-            const hardness = this.world.getBlockMetaAt(breaking[0], breaking[1]).getHardness();
+            const hardness = this.world.getBlock(breaking[0], breaking[1]).getHardness();
             const ratio = 1 - this.breakingTime / hardness;
             const blockPos = getClientPosition(breaking[0], breaking[1]);
             ctx.drawImage(Texture.get(`assets/textures/destroy/${Math.min(Math.floor(ratio * 10), 9)}.png`).image, blockPos.x - TILE_SIZE / 2, blockPos.y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
@@ -145,25 +136,5 @@ export class CPlayer extends Player<CWorld> implements CEntity {
         //     BLK * bb.width / 2,
         //     BLK * (bb.height - bb.width) / 2
         // );
-    };
-
-    onMovement() {
-        this.bb.x = this.x - 0.25;
-        this.bb.y = this.y - 0.5;
-        super.onMovement();
-    };
-
-    name = "";
-
-    sendMessage(message: string): void {
-        throw new Error("Cannot send messages to players in client-side");
-    };
-
-    kick(): void {
-        console.log("Got kicked."); // todo: disconnect screen
-    };
-
-    save() {
-        bfs.writeFileSync(`singleplayer/${this.server.uuid}/player.dat`, this.getSaveBuffer());
     };
 }

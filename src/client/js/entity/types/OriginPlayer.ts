@@ -1,8 +1,7 @@
-import {chatBox, clientNetwork, isOnline, Keyboard, Mouse} from "../../Client";
+import {chatBox, clientNetwork, isMultiPlayer, Keyboard, Mouse} from "../../Client";
 import {CPlayer} from "./CPlayer";
-import {BM, I} from "../../../../common/meta/ItemIds";
+import {I} from "../../../../common/meta/ItemIds";
 import {Containers} from "../../../../common/meta/Containers";
-import {ColorCodes} from "../../../../common/utils/Utils";
 
 export class OriginPlayer extends CPlayer {
     containerId: Containers = Containers.CLOSED;
@@ -13,14 +12,14 @@ export class OriginPlayer extends CPlayer {
         this.placeTime = Math.max(0, this.placeTime - dt);
         this.renderX = this.x;
         this.renderY = this.y;
-        this.renderHeadRotation = this.rotation = Math.atan2(Mouse.x - this.x, Mouse.y - (this.y + this.bb.height - this.bb.width)) / Math.PI * 180 - 90;
+        this.renderHeadRotation = this.rotation = this.getRotationTowards(Mouse.x, Mouse.y);
         super.render(dt);
     };
 
     update(dt: number) {
         super.update(dt);
 
-        const speed = this.walkSpeed * dt;
+        const speed = this.walkSpeed * dt * (Keyboard.shift ? 2 : 1);
         const walkMultiplier = this.onGround ? 1 : 0.8;
         if ((Keyboard.w || Keyboard[" "]) && this.onGround) this.vy = this.jumpVelocity;
         if (Keyboard.a) this.tryToMove(-speed * walkMultiplier, 0);
@@ -32,7 +31,7 @@ export class OriginPlayer extends CPlayer {
                     && this.breaking[1] === Mouse.ry
                     && this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
                     if (this.breakingTime === 0) {
-                        if (!isOnline) {
+                        if (!isMultiPlayer) {
                             this.breaking = null;
                             this.world.tryToBreakBlockAt(this, Mouse.rx, Mouse.ry);
                         }
@@ -40,17 +39,17 @@ export class OriginPlayer extends CPlayer {
                 } else {
                     this.breaking = null;
                     this.breakingTime = 0;
-                    if (isOnline) clientNetwork.sendStopBreaking();
+                    if (isMultiPlayer) clientNetwork.sendStopBreaking();
                 }
             } else if (this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
                 this.breaking = [Mouse.rx, Mouse.ry];
-                const fullId = this.world.getBlockAt(Mouse.rx, Mouse.ry);
+                const block = this.world.getBlock(Mouse.rx, Mouse.ry);
                 // todo: handle tools
-                this.breakingTime = BM[fullId].getHardness();
-                if (isOnline) clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
+                this.breakingTime = block.getHardness();
+                if (isMultiPlayer) clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
             }
         } else {
-            if (this.breaking && isOnline) clientNetwork.sendStopBreaking();
+            if (this.breaking && isMultiPlayer) clientNetwork.sendStopBreaking();
             this.breaking = null;
             this.breakingTime = 0;
         }
@@ -62,6 +61,12 @@ export class OriginPlayer extends CPlayer {
     };
 
     sendMessage(message: string) {
+        if (message.includes("\n")) {
+            for (const msg of message.split("\n")) {
+                this.sendMessage(msg);
+            }
+            return;
+        }
         const div = document.createElement("div");
         div.classList.add("message");
         // b = bold
@@ -72,12 +77,13 @@ export class OriginPlayer extends CPlayer {
         let parent = <any>div;
         const sep = message.split(/(§[\da-fbusik]|:[a-z]+:)/);
         for (const part of sep) {
-            if (/^§[\da-fbusik]$/.test(part)) {
-                const dv = document.createElement("span");
+            if (/^§§[\da-f]|§[\da-fbusik]$/.test(part)) {
+                const dv = document.createElement("div");
                 dv.classList.add("sub-message");
                 parent.appendChild(dv);
-                if (part[1] in ColorCodes) {
-                    dv.style.color = ColorCodes[part[1]];
+
+                if (/^§[\da-f]$/.test(part)) {
+                    dv.style.color = `var(--color-${part[1]})`;
                 } else switch (part[1]) {
                     case "b":
                         dv.style.fontWeight = "bold";
@@ -104,7 +110,9 @@ export class OriginPlayer extends CPlayer {
                 const emotePath = `./assets/textures/emotes/${part.slice(1, -1)}.png`;
                 emote.style.backgroundImage = `url(${emotePath})`;
                 parent.appendChild(emote);
-            } else parent.appendChild(document.createTextNode(part));
+            } else {
+                parent.appendChild(document.createTextNode(part));
+            }
         }
 
         chatBox.appendChild(div);
@@ -115,5 +123,9 @@ export class OriginPlayer extends CPlayer {
 
         chatBox.scrollTop = chatBox.scrollHeight;
         requestAnimationFrame(() => div.style.translate = "0");
+    };
+
+    hasPermission(permission: string): boolean {
+        return !isMultiPlayer || super.hasPermission(permission);
     };
 }

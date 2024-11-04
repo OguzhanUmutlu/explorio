@@ -1,9 +1,9 @@
 import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
+import {PacketIds} from "../../meta/PacketIds.js";
 import {PacketClasses} from "../Packets";
 import {PacketError} from "../PacketError";
 
-export class BatchPacket extends Packet<null, Packet<any>[]> {
+export class BatchPacket extends Packet<null> {
     packetId = PacketIds.BATCH;
     static struct = null;
     struct = null;

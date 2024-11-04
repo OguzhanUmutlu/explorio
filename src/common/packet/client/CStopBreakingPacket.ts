@@ -1,6 +1,5 @@
-import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
+import {PacketIds} from "../../meta/PacketIds.js";
+import X from "stramp";
+import {makePacketClass} from "../Packet";
 
-export class CStopBreakingPacket extends Packet<CStopBreakingPacket> {
-    static packetId = PacketIds.CLIENT_STOP_BREAKING;
-}
+export const CStopBreakingPacket = makePacketClass(PacketIds.CLIENT_STOP_BREAKING, X.null);

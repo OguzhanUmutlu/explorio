@@ -1,27 +1,10 @@
-import X from "stramp";
-import {SEntityUpdatePacket} from "../packet/server/SEntityUpdatePacket";
-import {Item} from "../item/Item";
+import X, {Bin} from "stramp";
+import {ItemStruct} from "../item/Item";
 import {Inventory} from "../item/Inventory";
-
-// minecraft based
-export const ColorCodes = {
-    "0": "#000000",
-    "1": "#0000AA",
-    "2": "#00AA00",
-    "3": "#00AAAA",
-    "4": "#AA0000",
-    "5": "#AA00AA",
-    "6": "#FFAA00",
-    "7": "#AAAAAA",
-    "8": "#555555",
-    "9": "#5555FF",
-    "a": "#55FF55",
-    "b": "#55FFFF",
-    "c": "#FF5555",
-    "d": "#FF55FF",
-    "e": "#FFFF55",
-    "f": "#FFFFFF"
-};
+import {server} from "../Server";
+import {Entities, EntityClasses} from "../meta/Entities";
+import {Entity} from "../entity/Entity";
+import {ChunkBlocksBin} from "./Bins";
 
 export const zstd = {encode: _ => Buffer.alloc(1), decode: _ => Buffer.alloc(1)};
 
@@ -29,8 +12,6 @@ export function makeZstd(encoder, decoder) {
     zstd.encode = encoder;
     zstd.decode = decoder;
 }
-
-export const isServer = typeof global !== "undefined";
 
 export function getUTCDate() {
     return Date.now() + new Date().getTimezoneOffset() * 60 * 1000;
@@ -80,79 +61,6 @@ export function deserializeUint16Array(size: number, buffer: Buffer, offset: num
     return chunk;
 }
 
-function findSmallPatterns(array, max = 255) {
-    const result = [];
-    for (let i = 0; i < array.length; i++) {
-        let count = 1;
-        while (count < max && array[i] === array[i + 1]) {
-            count++;
-            i++;
-        }
-        result.push([array[i], count]);
-    }
-    return result;
-}
-
-function blocksToBuffer(blocks) {
-    let zeroEnd = 0;
-    for (let i = blocks.length - 1; i >= 0; i--) {
-        if (blocks[i] !== 0) {
-            zeroEnd = i;
-            break;
-        }
-    }
-    const buf = [];
-    const spl = findSmallPatterns(blocks.slice(0, zeroEnd + 1));
-    for (let i = 0; i < spl.length; i++) {
-        const sp = spl[i];
-        if (sp[1] > 1) {
-            buf.push(0xfe);
-            buf.push(sp[1]);
-        }
-        buf.push(sp[0] & 0xff);
-        buf.push((sp[0] >> 8) & 0xff);
-    }
-    return buf;
-}
-
-export const ChunkBlocksBin = X.makeBin({
-    name: "chunk",
-    write(buffer, index, value) {
-        const buf = Buffer.from(blocksToBuffer(value));
-        buf.copy(buffer, index[0]);
-        index[0] += buf.length;
-        buffer[index[0]++] = 0xff;
-    },
-    read(buffer, index) {
-        const blocks = new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT);
-        let i = 0;
-        for (; i < blocks.length; i++) {
-            if (buffer[index[0]] === 0xff) {
-                index[0]++;
-                break;
-            }
-            if (buffer[index[0]] === 0xfe) {
-                index[0]++;
-                const count = buffer[index[0]++];
-                const val = buffer.readUInt16LE(index[0]);
-                index[0] += 2;
-                for (let j = 0; j < count; j++) {
-                    blocks[i++] = val;
-                }
-                i--;
-                continue;
-            }
-            const val = buffer.readUInt16LE(index[0]);
-            index[0] += 2;
-            blocks[i] = val;
-        }
-        return blocks;
-    },
-    size: value => blocksToBuffer(value).length + 1,
-    validate: X.u16array.validate,
-    sample: () => new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT)
-});
-
 export const WORLD_HEIGHT_EXP = 9;
 export const WORLD_HEIGHT = 1 << WORLD_HEIGHT_EXP;
 export const CHUNK_LENGTH_BITS = 4;
@@ -167,34 +75,45 @@ export const ChunkStruct = X.object.struct({
     data: ChunkBlocksBin
 });
 
-export const ChunkExchangeStruct = X.object.struct({
-    x: X.i32,
-    data: ChunkBlocksBin,
-    entities: X.array.typed(SEntityUpdatePacket.struct),
-    resetEntities: X.bool
-});
-
-export const ItemStruct = X.any.of(
-    X.object.struct({
-        id: X.u16,
-        meta: X.u8,
-        count: X.u8,
-        nbt: X.object
-    }).class(Item, obj => new Item(obj.id, obj.meta, obj.count, obj.nbt)),
-    X.null
-);
+const ItemList = X.array.typed(ItemStruct.or(X.null));
 
 export const InventoryStruct = (size: number) => {
-    return X.object.struct({
-        items: ItemStruct.array(size)
-    }).class(Inventory, obj => new Inventory(size).setContents(obj.items));
+    return X.makeBin({
+        name: `Inventory<${size}>`,
+        write: (buffer, index, inv) => ItemList.write(buffer, index, inv.serialize()),
+        read: (buffer, index) => new Inventory(size).setContents(ItemList.read(buffer, index)),
+        size: inv => ItemList.getSize(inv.contents),
+        validate: inv => ItemList.validate(inv.contents),
+        sample: () => new Inventory(size)
+    });
 };
 
-export const PlayerStruct = X.object.struct({
+export const WorldFolder: Bin<(typeof server)["worlds"][number]> = X.makeBin({
+    name: "World",
+    write: (buffer, index, value) => X.string8.write(buffer, index, value.folder),
+    read: (buffer, index) => server.worlds[X.string8.read(buffer, index)],
+    size: world => X.string8.getSize(world.folder),
+    validate: world => X.string8.validate(world.folder),
+    sample: () => server.defaultWorld
+});
+
+export const EntityStruct = X.object.struct({
     x: X.f32,
     y: X.f32,
-    worldFolder: X.string,
-    permissions: X.set.typed(X.string),
+    tags: X.set.typed(X.string16),
+    walkSpeed: X.f32,
+    flySpeed: X.f32,
+    jumpVelocity: X.f32,
+    health: X.f32,
+    maxHealth: X.f32,
+    gravity: X.f32,
+    canPhase: X.bool,
+    immobile: X.bool
+});
+
+export const PlayerStruct = EntityStruct.extend({
+    world: WorldFolder,
+    permissions: X.set.typed(X.string16),
     handIndex: X.u8,
     hotbar: InventoryStruct(9),
     inventory: InventoryStruct(27),
@@ -203,7 +122,43 @@ export const PlayerStruct = X.object.struct({
     chest: InventoryStruct(27),
     doubleChest: InventoryStruct(54),
     crafting2x2: InventoryStruct(5),
-    crafting3x3: InventoryStruct(10)
+    crafting3x3: InventoryStruct(10),
+    xp: X.u32,
+    blockReach: X.f32,
+    attackReach: X.f32,
+    isFlying: X.bool,
+    canToggleFly: X.bool,
+    food: X.f32,
+    maxFood: X.f32
+});
+
+export const EntityStructs = {
+    [Entities.PLAYER]: PlayerStruct
+};
+
+export const EntitySaveStruct: Bin<Entity> = X.makeBin({
+    name: "Entity",
+    write: (buffer, index, entity) => {
+        buffer[index[0]++] = entity.typeId;
+        entity.struct.write(buffer, index, entity);
+    },
+    read: (buffer, index) => {
+        const typeId = buffer[index[0]++];
+        const struct = EntityStructs[typeId];
+        const obj = struct.read(buffer, index);
+        const entity = new (EntityClasses[typeId])(null);
+
+        for (const k in obj) {
+            entity[k] = obj[k];
+        }
+
+        return entity;
+    },
+    size: entity => 1 + entity.struct.getSize(entity),
+    validate: entity => {
+        if (!(entity instanceof Entity) || !entity.struct) return "Not an entity";
+    },
+    sample: () => <Entity<any>>null
 });
 
 export function permissionCheck(permissions: Set<string>, wanted: string) {
@@ -222,4 +177,83 @@ export function permissionCheck(permissions: Set<string>, wanted: string) {
         if (!fail) return true;
     }
     return false;
+}
+
+export function checkAny(source: any, target: any) {
+    if (source === target) return true;
+
+    if (typeof source === "object" && source !== null) {
+        if ((Array.isArray(source) && !checkArray(source, target)) || !checkObject(source, target)) return false;
+        else if (!checkObject(source, target)) return false;
+    }
+
+    return true;
+}
+
+export function checkArray(source: any[], target: any) {
+    if (!Array.isArray(target)) return false;
+    if (source.length !== target.length) return false;
+    for (let i = 0; i < source.length; i++) {
+        if (!checkAny(source[i], target[i])) return false;
+    }
+    return true;
+}
+
+export function checkObject(source: Record<string, any>, target: any) {
+    if (typeof target !== "object" || target === null || target.constructor !== Object) return false;
+    for (const k in source) {
+        const v = source[k];
+        if (!checkAny(v, target[k])) return false;
+    }
+    return true;
+}
+
+export function xpToLocalXP(xp: number): number {
+    const level = xpToLevels(xp);
+    const xpForCurrentLevel = levelsToXP(level);
+    return xp - xpForCurrentLevel;
+}
+
+export function xpToLevels(xp: number): number {
+    if (xp < 352) return Math.sqrt(xp + 9) - 3;
+    else if (xp < 1507) return 8.1 + Math.sqrt(0.4 * (xp - 195.975));
+    else return 325 / 18 + Math.sqrt(2 / 9 * (xp - 54215 / 72));
+}
+
+export function levelsToXP(levels: number): number {
+    if (levels < 16) return levels * levels + 6 * levels;
+    else if (levels < 31) return 2.5 * levels * levels - 40.5 * levels + 360;
+    else return 4.5 * levels * levels - 162.5 * levels + 2220;
+}
+
+export const SelectorSorters = {
+    nearest: (a, b, at) => a.distance(at.x, at.y) - b.distance(at.x, at.y),
+    furthest: (a, b, at) => b.distance(at.x, at.y) - a.distance(at.x, at.y),
+    type: (a, b) => a.typeName.localeCompare(b.typeName),
+    random: () => Math.random() - 0.5,
+    name: (a, b) => a.name.localeCompare(b.name),
+    id: (a, b) => a.id - b.id
+};
+
+export function zstdOptionalEncode(buffer: Buffer) {
+    if (buffer.length > 100) {
+        const compressed = zstd.encode(buffer);
+        const buffer2 = Buffer.alloc(compressed.length + 1);
+        buffer2[0] = buffer.length > 100 ? 1 : 0;
+        buffer2.set(compressed, 1);
+        return buffer2;
+    }
+
+    const buffer2 = Buffer.alloc(buffer.length + 1);
+    buffer2.set(buffer, 1);
+    return buffer2;
+}
+
+export function zstdOptionalDecode(buffer: Buffer) {
+    const sliced = Buffer.alloc(buffer.length - 1);
+    buffer.copy(sliced, 0, 1);
+
+    if (buffer[0] === 1) return Buffer.from(zstd.decode(sliced));
+
+    return sliced;
 }

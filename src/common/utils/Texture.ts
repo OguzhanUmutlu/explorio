@@ -88,7 +88,6 @@ export class Texture {
     _rotated: Record<number, Canvas> = {};
     _skin: Record<keyof typeof SKIN_PARTS, Canvas>[];
     _promise: Promise<Image>;
-    _actualSrc: string;
     _slabTop: Canvas | null = null;
     _slabBottom: Canvas | null = null;
     _stairsTopLeft: Canvas | null = null; // removes top left part of the block
@@ -96,25 +95,26 @@ export class Texture {
     _stairsBottomLeft: Canvas | null = null;
     _stairsBottomRight: Canvas | null = null;
 
-    constructor(actualSrc: string) {
-        if (actualSrc === "") {
-            this.image = imagePlaceholder;
-            return;
+    constructor(public actualSrc: string, known?: Promise<Canvas> | Canvas | null) {
+        if(this.actualSrc.endsWith("undefined.png")) throw new Error("sa")
+        this.actualSrc = simplifyTexturePath(this.actualSrc);
+
+        if (!known || known instanceof Promise) {
+            this._promise = <Promise<Canvas>>known || loadImage(this.actualSrc);
+            this._promise.then(image => {
+                this.image = image;
+                printer.debug("%cLoaded " + this.actualSrc, "color: #00ff00");
+            }).catch(() => {
+                printer.error("%cFailed to load " + this.actualSrc, "color: #ff0000");
+                return this.image = invalidImage;
+            });
+        } else {
+            this.image = known;
         }
-        actualSrc = simplifyTexturePath(actualSrc);
-        this._promise = loadImage(actualSrc);
-        this._promise.then(image => {
-            this.image = image;
-            printer.debug("%cLoaded " + actualSrc, "color: #00ff00");
-        }).catch(() => {
-            printer.error("%cFailed to load " + actualSrc, "color: #ff0000");
-            this.image = invalidImage;
-        });
-        this._actualSrc = actualSrc;
     };
 
     destroy() {
-        delete Texture.textures[this._actualSrc];
+        delete Texture.textures[this.actualSrc];
         delete this._flipped;
         delete this.image;
         delete this._rotated;
@@ -220,5 +220,4 @@ export class Texture {
     };
 }
 
-const
-    texturePlaceholder = new Texture("");
+export const texturePlaceholder = new Texture("", imagePlaceholder);

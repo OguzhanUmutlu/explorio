@@ -1,11 +1,8 @@
-import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
+import {makePacketClass} from "../Packet";
+import {PacketIds} from "../../meta/PacketIds.js";
 import X from "stramp";
 
-export class SHandshakePacket extends Packet<SHandshakePacket> {
-    static packetId = PacketIds.SERVER_HANDSHAKE;
-    static struct = X.object.struct({
-        entityId: X.u32,
-        x: X.f32, y: X.f32
-    });
-}
+export const SHandshakePacket = makePacketClass(PacketIds.SERVER_HANDSHAKE, X.object.struct({
+    entityId: X.u32,
+    x: X.f32, y: X.f32
+}));

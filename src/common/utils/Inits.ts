@@ -1,6 +1,6 @@
 import {initItems} from "../meta/Items";
 import {PacketClasses} from "../packet/Packets";
-import {PacketIds} from "../packet/PacketIds";
+import {PacketIds} from "../meta/PacketIds.js";
 import {BatchPacket} from "../packet/common/BatchPacket";
 import {SDisconnectPacket} from "../packet/server/SDisconnectPacket";
 import {SHandshakePacket} from "../packet/server/SHandshakePacket";
@@ -17,8 +17,6 @@ import {SBlockBreakingStopPacket} from "../packet/server/SBlockBreakingStopPacke
 import {SBlockBreakingUpdatePacket} from "../packet/server/SBlockBreakingUpdatePacket";
 import {SendMessagePacket} from "../packet/common/SendMessagePacket";
 import {PingPacket} from "../packet/common/PingPacket";
-import {Server} from "../Server";
-import {TeleportCommand} from "../command/defaults/TeleportCommand";
 
 export function initPackets() {
     PacketClasses[PacketIds.BATCH] = BatchPacket;

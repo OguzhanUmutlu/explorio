@@ -9,7 +9,8 @@ body {
 
 .panorama {
     position: fixed;
-    top: -75%;
+    top: 50%;
+    translate: 0 -50%;
     width: 200%;
     background-image: url("../assets/textures/gui/panorama.png");
     background-size: 100% 100%;
@@ -40,21 +41,6 @@ body {
     translate: -50% -50%;
 }
 
-.title, .mid-title {
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 30px;
-    text-shadow: 0 0 20px white;
-}
-
-.title {
-    font-size: 50px;
-}
-
-.mid-title {
-    font-size: 25px;
-}
-
 .buttons {
     letter-spacing: -2px !important;
 }
@@ -72,63 +58,6 @@ body {
 .btn:hover {
     scale: 1.05;
     background-color: rgba(0, 0, 0, 0.4);
-}
-
-.black-background {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: black;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.close-btn {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 45px;
-    padding: 8px;
-    background-color: rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-    border-top-right-radius: 15px;
-    display: flex;
-    justify-content: center;
-    align-content: center;
-}
-
-.close-btn:hover {
-    background-color: #ff3131;
-    color: white;
-}
-
-.container {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    translate: -50% -50%;
-    width: 50%;
-    height: 50%;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 10px 15px;
-    border-radius: 15px;
-    backdrop-filter: blur(5px);
-
-    pointer-events: none;
-    scale: 0;
-    transition: scale 0.3s;
-}
-
-input {
-    border: none;
-    outline: none;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 10px;
-    border-radius: 10px;
-    color: white;
-    margin: 10px;
 }
 
 .new-world, .new-server {
@@ -169,22 +98,4 @@ input {
 
 .error {
     color: red;
-}
-
-::-webkit-scrollbar {
-    width: 30px;
-}
-
-::-webkit-scrollbar-track {
-    background: none;
-}
-
-::-webkit-scrollbar-thumb {
-    background: url("../assets/textures/gui/inventory/creative_scroll_disabled.png") no-repeat;
-    background-size: 30px 37px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: url("../assets/textures/gui/inventory/creative_scroll_enabled.png") no-repeat;
-    background-size: 30px 37px;
 }

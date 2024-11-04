@@ -3,6 +3,25 @@
     src: url("../assets/fonts/Minecraft.ttf");
 }
 
+:root {
+    --color-0: #000000;
+    --color-1: #0000AA;
+    --color-2: #00AA00;
+    --color-3: #00AAAA;
+    --color-4: #AA0000;
+    --color-5: #AA00AA;
+    --color-6: #FFAA00;
+    --color-7: #AAAAAA;
+    --color-8: #555555;
+    --color-9: #5555FF;
+    --color-a: #55FF55;
+    --color-b: #55FFFF;
+    --color-c: #FF5555;
+    --color-d: #FF55FF;
+    --color-e: #FFFF55;
+    --color-f: #FFFFFF;
+}
+
 * {
     image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;
@@ -18,4 +37,186 @@
 body {
     color: white;
     letter-spacing: -1px;
+}
+
+.rainbow-text {
+    font-size: 2em;
+    font-weight: bold;
+    background-image: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+    background-size: 400%;
+    background-clip: text;
+    color: transparent;
+    animation: rainbow-animation 3s infinite linear;
+}
+
+@keyframes rainbow-animation {
+    0% {
+        background-position: 0;
+    }
+    100% {
+        background-position: 100%;
+    }
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.option-list {
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+.option-list > div {
+    display: flex;
+    align-items: center;
+}
+
+.option-key {
+    white-space: nowrap;
+}
+
+.option-value {
+    justify-content: center;
+    width: 100%;
+}
+
+.option-value > input {
+    width: 100%;
+}
+
+.option-value-text {
+    position: absolute;
+    font-size: 20px;
+    opacity: 0.7;
+    text-shadow: 0 0 5px;
+    pointer-events: none;
+}
+
+.option-value > input[type="range"] {
+    -webkit-appearance: none;
+    background: none;
+    padding: 0;
+}
+
+.option-value > input[type="range"]::-webkit-slider-runnable-track {
+    background: #4A4E69;
+    border-radius: 10px;
+}
+
+.option-value > input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 25px;
+    width: 15px;
+    background: #9A8C98;
+    border: 3px solid #22223B;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.option-value > input[type="range"]::-webkit-slider-thumb:hover {
+    background: #C9ADA7;
+}
+
+.option-value > input[type="range"]::-moz-range-thumb {
+    height: 25px;
+    width: 15px;
+    background: #9A8C98;
+    border: 3px solid #22223B;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.option-value > input[type="range"]::-moz-range-track {
+    background: #4A4E69;
+    height: 8px;
+    border-radius: 5px;
+}
+
+.black-background {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    backdrop-filter: blur(3px);
+    transition: all 0.2s;
+}
+
+.container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+    width: 50%;
+    height: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px 15px;
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+
+    pointer-events: none;
+    scale: 0;
+    transition: scale 0.3s;
+}
+
+input {
+    border: none;
+    outline: none;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 10px;
+    color: white;
+    margin: 10px;
+}
+
+.close-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 45px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    border-top-right-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+}
+
+.close-btn:hover {
+    background-color: #ff3131;
+    color: white;
+}
+
+.title, .mid-title {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-shadow: 0 0 20px white;
+}
+
+.title {
+    font-size: 50px;
+}
+
+.mid-title {
+    font-size: 25px;
 }

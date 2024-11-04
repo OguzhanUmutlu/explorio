@@ -1,8 +1,5 @@
-import {Packet} from "../Packet";
-import {PacketIds} from "../PacketIds";
+import {makePacketClass} from "../Packet";
+import {PacketIds} from "../../meta/PacketIds.js";
 import X from "stramp";
 
-export class SDisconnectPacket extends Packet<SDisconnectPacket> {
-    static packetId = PacketIds.SERVER_DISCONNECT;
-    static struct = X.object.struct({reason: X.string});
-}
+export const SDisconnectPacket = makePacketClass(PacketIds.SERVER_DISCONNECT, X.string16);

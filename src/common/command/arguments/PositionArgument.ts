@@ -2,6 +2,8 @@ import {CommandArgument} from "../CommandArgument";
 import {Vector2} from "../../utils/Vector2";
 
 export class PositionArgument extends CommandArgument<Vector2> {
+    default = new Vector2(0, 0);
+
     read(as, at, args, index) {
         const argX = args[index].rawText;
         const argY = args[index + 1].rawText;
@@ -17,10 +19,12 @@ export class PositionArgument extends CommandArgument<Vector2> {
         if (argY[0] === "~") y = at.y + argY.substring(1) * 1;
         else if (argY[0] === "^") y = at.y + argY.substring(1) * 1; // todo
 
-        return {value: new Vector2(x, y), index: index + 2};
+        return new Vector2(x, y);
     };
 
     blindCheck(args, index) {
+        if (!args[index] || !args[index + 1]) return {pass: false, index: index + 2};
+
         const argX = args[index].rawText;
         const argY = args[index + 1].rawText;
 

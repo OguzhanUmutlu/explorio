@@ -83,6 +83,8 @@ export const IM: Record<number, ItemMetadata> = <any>{};                // IM[it
 export const B: Record<keyof typeof ItemIds, number> = <any>{};         // B.REDSTONE = block full id
 export const BM: Record<number, ItemMetadata> = <any>{};                // BM[im2f(I.REDSTONE, 5)] = block metadata
 
+export const ItemsByAccess: Record<string, ItemMetadata> = {};          // ItemsByidentifier["stone"] = item/block metadata
+
 for (let i = 0; i < ItemIds.__MAX__; i++) {
     I[ItemIds[i]] = i;
     B[ItemIds[i]] = i << ITEM_META_BITS;
