@@ -1,8 +1,11 @@
-import "./Client"; // gives error if I don't add this for the Index page
-import {Entities, EntityBoundingBoxes, EntityClasses} from "../../common/meta/Entities";
-import {CPlayer} from "./entity/types/CPlayer";
-import {WorldData} from "./Client";
-import {initCommon} from "../../common/utils/Inits";
+import "../Client.js"; // gives error if I don't add this for the Index page
+import {Entities, EntityBoundingBoxes, EntityClasses} from "../../../common/meta/Entities.js";
+import {CPlayer} from "../entity/types/CPlayer.js";
+import {WorldData} from "../Client.js";
+import {initCommon} from "../../../common/utils/Inits.js";
+
+export type Div = HTMLDivElement;
+export type Input = HTMLInputElement;
 
 export const URLPrefix = "/explorio/";
 
@@ -16,10 +19,10 @@ export type ServerData = {
     preferSecure: boolean
 };
 
-export function initClientThings() {
+export async function initClientThings() {
     loadOptions();
     initClientEntities();
-    initCommon();
+    await initCommon();
 }
 
 export function initClientEntities() {
@@ -40,10 +43,13 @@ export function getWSUrls(ip: string, port: number): string[] {
 }
 
 export type OptionsType = {
-    username: string,
-    music: number,
-    sfx: number,
-    cameraSpeed: number
+    username: string;
+    music: number;
+    sfx: number;
+    cameraSpeed: number;
+    tileSize: number;
+    updatesPerSecond: number;
+    chatLimit: number;
 };
 
 export let Options: OptionsType;
@@ -54,6 +60,9 @@ export function loadOptions() {
     Options.music ??= 100;
     Options.sfx ??= 100;
     Options.cameraSpeed ??= 12;
+    Options.tileSize ??= 64;
+    Options.updatesPerSecond ??= 60;
+    Options.chatLimit ??= 100;
     return Options;
 }
 

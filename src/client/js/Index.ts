@@ -1,49 +1,44 @@
 import {
     addServer,
-    addWorld,
+    addWorld, Div,
     getServerList,
-    getWorldList,
+    getWorldList, Input,
     loadOptions,
-    Options,
     removeServer,
     removeWorld,
-    saveOptions,
     URLPrefix
-} from "./Utils";
+} from "./utils/Utils.js";
 import OptionsContainer from "../components/OptionsContainer";
-
-type _D = HTMLDivElement;
-type _I = HTMLInputElement;
 
 loadOptions();
 
 await OptionsContainer();
 
-const blackBg = <_D>document.querySelector(".black-background");
-const spCon = <_D>document.querySelector(".singleplayer-container");
-const mpCon = <_D>document.querySelector(".multiplayer-container");
-const optionsCon = <_D>document.querySelector(".options-container");
-const newWorldCon = <_D>document.querySelector(".new-world-container");
-const newServerCon = <_D>document.querySelector(".new-server-container");
+const blackBg = <Div>document.querySelector(".black-background");
+const spCon = <Div>document.querySelector(".singleplayer-container");
+const mpCon = <Div>document.querySelector(".multiplayer-container");
+const optionsCon = <Div>document.querySelector(".options-container");
+const newWorldCon = <Div>document.querySelector(".new-world-container");
+const newServerCon = <Div>document.querySelector(".new-server-container");
 
-const spBtn = <_D>document.querySelector(".singleplayer");
-const mpBtn = <_D>document.querySelector(".multiplayer");
-const optionsBtn = <_D>document.querySelector(".options");
-const newWorldBtn = <_D>document.querySelector(".new-world");
-const newServerBtn = <_D>document.querySelector(".new-server");
+const spBtn = <Div>document.querySelector(".singleplayer");
+const mpBtn = <Div>document.querySelector(".multiplayer");
+const optionsBtn = <Div>document.querySelector(".options");
+const newWorldBtn = <Div>document.querySelector(".new-world");
+const newServerBtn = <Div>document.querySelector(".new-server");
 
-const createWorldBtn = <_D>document.querySelector(".create-world");
-const createServerBtn = <_D>document.querySelector(".create-server");
+const createWorldBtn = <Div>document.querySelector(".create-world");
+const createServerBtn = <Div>document.querySelector(".create-server");
 
-const worldName = <_I>document.querySelector(".world-name > input");
-const worldSeed = <_I>document.querySelector(".world-seed > input");
+const worldName = <Input>document.querySelector(".world-name > input");
+const worldSeed = <Input>document.querySelector(".world-seed > input");
 
-const serverName = <_I>document.querySelector(".server-name > input");
-const serverIP = <_I>document.querySelector(".server-ip > input");
-const serverPort = <_I>document.querySelector(".server-port > input");
+const serverName = <Input>document.querySelector(".server-name > input");
+const serverIP = <Input>document.querySelector(".server-ip > input");
+const serverPort = <Input>document.querySelector(".server-port > input");
 
-const worldAddError = <_D>document.querySelector(".new-world-container > .error");
-const serverAddError = <_D>document.querySelector(".new-server-container > .error");
+const worldAddError = <Div>document.querySelector(".new-world-container > .error");
+const serverAddError = <Div>document.querySelector(".new-server-container > .error");
 
 const map = [
     [spBtn, spCon],

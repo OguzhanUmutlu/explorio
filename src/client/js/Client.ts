@@ -3,23 +3,40 @@ import {OriginPlayer} from "./entity/types/OriginPlayer";
 import {BoundingBox} from "../../common/entity/BoundingBox";
 import {Item} from "../../common/item/Item";
 import {CServer} from "./CServer";
-import {getServerList, getWorldList, initClientThings, Options, ServerData, URLPrefix, WorldData} from "./Utils";
+import {
+    Div,
+    getServerList,
+    getWorldList,
+    initClientThings,
+    Input,
+    Options,
+    saveOptions,
+    ServerData,
+    URLPrefix,
+    WorldData
+} from "./utils/Utils.js";
 import {CWorld} from "./world/CWorld";
-import {ClientNetwork} from "./ClientNetwork";
+import {ClientNetwork} from "./network/ClientNetwork.js";
 import "fancy-printer";
 import {CEntity} from "./entity/CEntity";
 import {I} from "../../common/meta/ItemIds";
-import {CHUNK_LENGTH, CHUNK_LENGTH_BITS, makeZstd, SUB_CHUNK_AMOUNT, WORLD_HEIGHT} from "../../common/utils/Utils";
-import {ZstdInit, ZstdSimple} from "@oneidentity/zstd-js";
+import {CHUNK_LENGTH, CHUNK_LENGTH_BITS, SUB_CHUNK_AMOUNT, WORLD_HEIGHT} from "../../common/utils/Utils";
 import OptionsContainer from "../components/OptionsContainer";
 // noinspection TypeScriptCheckImport
 import ServerWorker from "./worker/SinglePlayerWorker.js?worker";
 import * as BrowserFS from "browserfs";
+import {Packets} from "../../common/network/Packets.js";
+import {
+    animateContainers,
+    ContainerToggler,
+    getInventoryHandler,
+    initContainerDivs
+} from "./utils/ContainerRenderer.js";
 
 export let canvas: HTMLCanvasElement;
-export let chatContainer: HTMLDivElement;
-export let chatBox: HTMLDivElement;
-export let chatInput: HTMLInputElement;
+export let chatContainer: Div;
+export let chatBox: Div;
+export let chatInput: Input;
 export let ctx: CanvasRenderingContext2D;
 export const f3 = {
     fps: <HTMLSpanElement>null,
@@ -28,7 +45,8 @@ export const f3 = {
     vx: <HTMLSpanElement>null,
     vy: <HTMLSpanElement>null
 };
-export const TILE_SIZE = 64;
+export const UpdatesPerSecond = 60;
+export const ChatLimit = 100;
 
 let isFocused = true;
 
@@ -49,8 +67,8 @@ export let isMultiPlayer: boolean;
 export function updateCamera() {
     const cameraPan = 1;
 
-    camera.x = clientPlayer.x + (Mouse._xSmooth / innerWidth * 2 - 1) * 45 * cameraPan / TILE_SIZE;
-    camera.y = clientPlayer.y + clientPlayer.bb.height - 1 - (Mouse._ySmooth / innerHeight * 2 - 1) * 45 * cameraPan / TILE_SIZE;
+    camera.x = clientPlayer.x + (Mouse._xSmooth / innerWidth * 2 - 1) * 45 * cameraPan / Options.tileSize;
+    camera.y = clientPlayer.y + clientPlayer.bb.height - 1 - (Mouse._ySmooth / innerHeight * 2 - 1) * 45 * cameraPan / Options.tileSize;
     /*
     // camera shake support no one asked for:
     camera.x += Math.sin(Date.now() * 1000) / TILE_SIZE * 6;
@@ -66,7 +84,12 @@ function onResize() {
     updateCamera();
 }
 
-export let Keyboard: Record<string, boolean> = {};
+export const Keyboard: Record<string, boolean> = {};
+
+export function resetKeyboard() {
+    for (const k in Keyboard) delete Keyboard[k];
+}
+
 export const Mouse = {
     x: 0,
     y: 0,
@@ -83,8 +106,8 @@ export const Mouse = {
 
 export function updateMouse() {
     if (!canvas) return;
-    Mouse.x = (Mouse._x - canvas.width / 2 + camera.x * TILE_SIZE) / TILE_SIZE;
-    Mouse.y = (-Mouse._y + canvas.height / 2 + camera.y * TILE_SIZE) / TILE_SIZE;
+    Mouse.x = (Mouse._x - canvas.width / 2 + camera.x * Options.tileSize) / Options.tileSize;
+    Mouse.y = (-Mouse._y + canvas.height / 2 + camera.y * Options.tileSize) / Options.tileSize;
     Mouse.rx = Math.round(Mouse.x);
     Mouse.ry = Math.round(Mouse.y);
 }
@@ -95,14 +118,14 @@ let lastUpdate = Date.now() - 1;
 
 export function getClientPosition(x: number, y: number) {
     return {
-        x: (x - camera.x) * TILE_SIZE + canvas.width / 2,
-        y: (-y + camera.y) * TILE_SIZE + canvas.height / 2
+        x: (x - camera.x) * Options.tileSize + canvas.width / 2,
+        y: (-y + camera.y) * Options.tileSize + canvas.height / 2
     };
 }
 
 export function renderBoundingBox(bb: BoundingBox) {
     const {x: cx, y: cy} = getClientPosition(bb.x, bb.y);
-    ctx.strokeRect(cx, cy, bb.width * TILE_SIZE, -bb.height * TILE_SIZE);
+    ctx.strokeRect(cx, cy, bb.width * Options.tileSize, -bb.height * Options.tileSize);
 }
 
 export function drawDotTo(x: number, y: number) {
@@ -127,23 +150,23 @@ function animate() {
     f3.vy.innerText = clientPlayer.vy.toFixed(2);
 
     if (document.activeElement !== document.body) {
-        Keyboard = {};
+        resetKeyboard();
     }
 
     updateMouse();
     updateCamera();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const minX = Math.floor(camera.x - innerWidth / TILE_SIZE / 2);
-    const minY = Math.max(0, Math.floor(camera.y - innerHeight / TILE_SIZE / 2));
-    const maxX = Math.ceil(camera.x + innerWidth / TILE_SIZE / 2);
-    const maxY = Math.min(WORLD_HEIGHT - 1, Math.ceil(camera.y + innerHeight / TILE_SIZE / 2));
+    const minX = Math.floor(camera.x - innerWidth / Options.tileSize / 2);
+    const minY = Math.max(0, Math.floor(camera.y - innerHeight / Options.tileSize / 2));
+    const maxX = Math.ceil(camera.x + innerWidth / Options.tileSize / 2);
+    const maxY = Math.min(WORLD_HEIGHT - 1, Math.ceil(camera.y + innerHeight / Options.tileSize / 2));
 
     const minSubX = (minX >> CHUNK_LENGTH_BITS) - 1;
     const minSubY = Math.max(0, (minY >> CHUNK_LENGTH_BITS) - 1);
     const maxSubX = (maxX >> CHUNK_LENGTH_BITS) + 1;
     const maxSubY = Math.min(SUB_CHUNK_AMOUNT - 1, (maxY >> CHUNK_LENGTH_BITS) + 1);
-    const subLength = TILE_SIZE * CHUNK_LENGTH;
+    const subLength = Options.tileSize * CHUNK_LENGTH;
 
     const world = <CWorld>clientPlayer.world;
 
@@ -166,6 +189,7 @@ function animate() {
             (<CEntity>entity).render(dt);
         }
     }
+    clientPlayer.render(dt);
 
     const smoothDt = Math.min(dt, 0.015) * Options.cameraSpeed;
     Mouse._xSmooth += (Mouse._x - Mouse._xSmooth) * smoothDt;
@@ -179,30 +203,38 @@ function animate() {
         clientPlayer.world.getBlockDepth(Mouse.rx, Mouse.ry) >= 3 &&
         clientPlayer.distance(Mouse.rx, Mouse.ry) <= clientPlayer.blockReach
     ) {
+        ctx.save();
+        const p = 800;
+        ctx.globalAlpha = 1 - Math.abs((Date.now() % p) / p * 2 - 1);
         ctx.strokeStyle = "yellow";
+        ctx.lineWidth = 2;
         const blockPos = getClientPosition(Mouse.rx, Mouse.ry);
-        ctx.strokeRect(blockPos.x - TILE_SIZE / 2, blockPos.y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
+        ctx.strokeRect(blockPos.x - Options.tileSize / 2, blockPos.y - Options.tileSize / 2, Options.tileSize, Options.tileSize);
+        ctx.restore();
     }
+
+    animateContainers();
 }
 
 let updateAcc = 0;
 
 function update() {
-    if (!isFocused) return;
+    // if (!isFocused) return;
     const now = Date.now();
     const dt = (now - lastUpdate) / 1000;
     lastUpdate = now;
     updateAcc += dt;
 
-    if (updateAcc <= 1 / 60) return;
+    if (updateAcc <= 1 / UpdatesPerSecond) return;
+
     const chunkX = clientPlayer.x >> CHUNK_LENGTH_BITS;
     for (let cx = chunkX - 1; cx <= chunkX + 1; cx++) {
         const entities = clientPlayer.world.chunkEntities[cx] ??= [];
         for (const entity of [...entities]) {
-            (<CEntity>entity).update(1 / 60);
+            entity.update(1 / UpdatesPerSecond);
         }
     }
-    updateAcc %= 1 / 60;
+    updateAcc %= 1 / UpdatesPerSecond;
 
     clientNetwork.releaseBatch();
 
@@ -232,8 +264,6 @@ declare global {
 }
 
 export async function initClient() {
-    await ZstdInit();
-    makeZstd(v => ZstdSimple.compress(v), b => ZstdSimple.decompress(b));
     Error.stackTraceLimit = 50;
 
     const hash = location.hash.substring(1);
@@ -250,6 +280,8 @@ export async function initClient() {
     const chatHistory = [""];
     let chatIndex = 0;
 
+    const InventoryHandler = getInventoryHandler();
+
     /*
     // Client zooming, it works, but no reason to keep it
     let tileSizeShown = TILE_SIZE;
@@ -262,16 +294,18 @@ export async function initClient() {
     */
     addEventListener("resize", onResize);
     addEventListener("keydown", e => {
-        if (document.activeElement === document.body) Keyboard[e.key.toLowerCase()] = true;
+        if (document.activeElement === document.body && !ContainerToggler.isBlurOn()) Keyboard[e.key.toLowerCase()] = true;
         if (e.key === "t") chatInput.focus();
         if (e.key === "Escape") {
             if (document.activeElement === chatInput) chatInput.blur();
-            else openOptions();
+            else if (ContainerToggler.isBlurOn()) ContainerToggler.closeAll();
+            else optionsContainer.toggle();
         }
+        if (e.key === "e") getInventoryHandler().toggle();
     });
     addEventListener("keyup", e => Keyboard[e.key.toLowerCase()] = false);
     addEventListener("blur", () => {
-        Keyboard = {};
+        resetKeyboard();
         Mouse.left = false;
         Mouse.right = false;
         Mouse.middle = false;
@@ -282,12 +316,13 @@ export async function initClient() {
         lastUpdate = Date.now() - 1;
     });
     addEventListener("contextmenu", e => e.preventDefault());
+    canvas = <HTMLCanvasElement>document.getElementById("game");
     addEventListener("mousemove", e => {
         Mouse._x = e.pageX;
         Mouse._y = e.pageY;
         updateMouse();
     });
-    addEventListener("mousedown", e => {
+    canvas.addEventListener("mousedown", e => {
         if (e.button === 0) Mouse.left = true;
         if (e.button === 1) Mouse.middle = true;
         if (e.button === 2) Mouse.right = true;
@@ -298,9 +333,25 @@ export async function initClient() {
         if (e.button === 2) Mouse.right = false;
     });
 
-    initClientThings();
+    await initClientThings();
 
-    const openOptions = await OptionsContainer();
+    const optionsContainer = await OptionsContainer();
+
+    const saveAndQuit = <Div>document.querySelector(".save-and-quit");
+
+    saveAndQuit.hidden = false;
+
+    saveAndQuit.addEventListener("click", () => {
+        saveOptions();
+        if (!isMultiPlayer) {
+            clientNetwork.sendPacket(new Packets.CQuit(null));
+            const saveScreen = <Div>document.querySelector(".save-screen");
+            saveScreen.style.opacity = "1";
+            saveScreen.style.pointerEvents = "auto";
+        } else {
+            location.href = URLPrefix;
+        }
+    });
 
     clientServer = new CServer();
     clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set);
@@ -317,20 +368,20 @@ export async function initClient() {
         singlePlayerWorker = new ServerWorker();
         singlePlayerWorker.postMessage(WorldData.uuid);
         clientNetwork.worker = singlePlayerWorker;
+        await clientNetwork.sendAuth(true);
         singlePlayerWorker.onmessage = () => {
-            singlePlayerWorker.onmessage = ({data}) => {
-                clientNetwork.processPacketBuffer(data);
-            };
+            singlePlayerWorker.onmessage = e => clientNetwork.processPacketBuffer(e.data);
             clientNetwork.connected = true;
-            clientNetwork.sendAuth(true);
+            for (const pk of clientNetwork.immediate) {
+                clientNetwork.sendPacket(pk, true);
+            }
         };
     }
 
-    canvas = <HTMLCanvasElement>document.querySelector("canvas");
     ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
-    chatBox = <HTMLDivElement>document.querySelector(".chat-messages");
-    chatContainer = <HTMLDivElement>document.querySelector(".chat-container");
-    chatInput = <HTMLInputElement>document.querySelector(".chat-input");
+    chatBox = <Div>document.querySelector(".chat-messages");
+    chatContainer = <Div>document.querySelector(".chat-container");
+    chatInput = <Input>document.querySelector(".chat-input");
 
     for (const k in f3) {
         f3[k] = <HTMLSpanElement>document.querySelector(`.f3-${k}`);
@@ -371,11 +422,8 @@ export async function initClient() {
 
     onResize();
     setInterval(update);
+    initContainerDivs();
     animate();
-
-    setInterval(() => {
-        clientPlayer.inventory.add(new Item(I.STONE));
-    }, 1000);
 
     self.fsr = {};
     BrowserFS.install(self.fsr);
@@ -384,4 +432,16 @@ export async function initClient() {
         else r();
     }));
     self.bfs = self.fsr.require("fs");
+
+    window["$"] = x => {
+        if (Array.isArray(x)) x = x[0];
+        clientNetwork.sendMessage("/" + x);
+    };
+
+    setInterval(() => {
+        clientPlayer.addItem(new Item(I.STONE));
+        clientPlayer.armor.add(new Item(I.STONE));
+        clientPlayer.craftingSmall.add(new Item(I.STONE));
+        clientPlayer.craftingSmallResult.add(new Item(I.STONE));
+    }, 10);
 }

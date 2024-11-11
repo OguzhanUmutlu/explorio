@@ -1,20 +1,20 @@
-import {BoundingBox} from "../BoundingBox";
 import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
-import {Inventory} from "../../item/Inventory";
+import {Inventory} from "../../item/Inventory.js";
 import {CommandSender} from "../../command/CommandSender";
 import {
     CHUNK_LENGTH_BITS,
     EntitySaveStruct,
+    getServer,
     permissionCheck,
     zstdOptionalDecode,
     zstdOptionalEncode
 } from "../../utils/Utils";
 import {B} from "../../meta/ItemIds";
-import {SBlockBreakingUpdatePacket} from "../../packet/server/SBlockBreakingUpdatePacket";
-import {SBlockBreakingStopPacket} from "../../packet/server/SBlockBreakingStopPacket";
-import {PlayerNetwork} from "../../packet/PlayerNetwork";
+import {PlayerNetwork} from "../../network/PlayerNetwork";
 import {Entity} from "../Entity";
-import {server} from "../../Server.js";
+import {Packets} from "../../network/Packets";
+import {Inventories} from "../../meta/Inventories.js";
+import {Item} from "../../item/Item.js";
 
 export class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
@@ -24,21 +24,23 @@ export class Player extends Entity implements CommandSender {
     skin = null;
     network: PlayerNetwork;
 
-    bb: BoundingBox = EntityBoundingBoxes[Entities.PLAYER].copy();
+    bb = EntityBoundingBoxes[Entities.PLAYER].copy();
     permissions: Set<string> = new Set;
     breaking: [number, number] | null = null;
     breakingTime = 0;
     sentChunks: Set<number> = new Set;
     viewingChunks: number[] = [];
 
-    hotbar = new Inventory(9);
-    inventory = new Inventory(27);
-    armorInventory = new Inventory(4);
-    cursor = new Inventory(1);
-    chest = new Inventory(27);
-    doubleChest = new Inventory(54);
-    crafting2x2 = new Inventory(5);
-    crafting3x3 = new Inventory(10);
+    [Inventories.Hotbar] = new Inventory(9);
+    [Inventories.Player] = new Inventory(27);
+    [Inventories.Armor] = new Inventory(4);
+    [Inventories.Cursor] = new Inventory(1);
+    [Inventories.Chest] = new Inventory(27);
+    [Inventories.DoubleChest] = new Inventory(54);
+    [Inventories.CraftingSmall] = new Inventory(4);
+    [Inventories.CraftingSmallResult] = new Inventory(1);
+    [Inventories.CraftingBig] = new Inventory(9);
+    [Inventories.CraftingBigResult] = new Inventory(1);
 
     handIndex = 0;
 
@@ -73,7 +75,7 @@ export class Player extends Entity implements CommandSender {
         super.serverUpdate(dt);
         const chunkX = Math.round(this.x) >> CHUNK_LENGTH_BITS;
         const chunks = [];
-        const chunkDist = this.server.config["render-distance"];
+        const chunkDist = this.server.config.renderDistance;
         for (let x = chunkX - chunkDist; x <= chunkX + chunkDist; x++) {
             chunks.push(x);
             await this.world.ensureChunk(x);
@@ -121,13 +123,13 @@ export class Player extends Entity implements CommandSender {
     };
 
     broadcastBlockBreaking() {
-        if (this.breaking) this.world.broadcastPacketAt(this.breaking[0], this.breaking[1], new SBlockBreakingUpdatePacket({
+        if (this.breaking) this.world.broadcastPacketAt(this.breaking[0], this.breaking[1], new Packets.SBlockBreakingUpdate({
             entityId: this.id,
             x: this.breaking[0],
             y: this.breaking[1],
             time: this.breakingTime
         }), [this]);
-        else this.world.broadcastPacketAt(this.x, this.y, new SBlockBreakingStopPacket({
+        else this.world.broadcastPacketAt(this.x, this.y, new Packets.SBlockBreakingStop({
             entityId: this.id
         }), [this]);
     };
@@ -143,36 +145,62 @@ export class Player extends Entity implements CommandSender {
     };
 
     async save() {
-        if (!await this.server.fs.existsSync(`${this.server.path}/players`)) {
-            await this.server.fs.mkdirSync(`${this.server.path}/players`);
+        if (!await this.server.fileExists(`${this.server.path}/players`)) {
+            await this.server.createDirectory(`${this.server.path}/players`);
         }
 
         const buffer = this.getSaveBuffer();
         const encoded = zstdOptionalEncode(buffer);
-        await this.server.fs.writeFileSync(`${this.server.path}/players/${this.name}.dat`, encoded);
+        await this.server.writeFile(`${this.server.path}/players/${this.name}.dat`, encoded);
     };
 
-    onMovement() {
+    updateCollisionBox() {
+        super.updateCollisionBox();
         this.bb.x = this.x - 0.25;
         this.bb.y = this.y - 0.5;
-        super.onMovement();
+    };
+
+    addItem(item: Item) {
+        if (!this.hotbar.add(item)) return this.playerInventory.add(item);
+        return true;
+    };
+
+    removeItem(item: Item) {
+        if (!this.hotbar.remove(item)) return this.playerInventory.remove(item);
+        return true;
+    };
+
+    //
+
+    //
+
+    //
+
+    static new(name: string) {
+        const player = new Player;
+        player.name = name;
+        const world = player.world = getServer().defaultWorld;
+        player.x = 0;
+        player.y = world.getHighHeight(player.x);
+        return player;
     };
 
     static async loadPlayer(name: string) {
-        if (!await server.fs.existsSync(`${server.path}/players/${name}.dat`)) {
-            const player = new Player;
-            player.name = name;
-            const world = player.world = server.defaultWorld;
-            player.x = 0;
-            player.y = world.getHighHeight(player.x);
-            return player;
+        const server = getServer();
+        if (!await server.fileExists(`${server.path}/players/${name}.dat`)) {
+            return Player.new(name);
         }
 
-        let buffer = await server.fs.readFileSync(`${server.path}/players/${name}.dat`);
+        let buffer = await server.readFile(`${server.path}/players/${name}.dat`);
         buffer = zstdOptionalDecode(Buffer.from(buffer));
 
-        const player = <Player>EntitySaveStruct.deserialize(buffer);
-        player.name = name;
-        return player;
+        try {
+            const player = <Player>EntitySaveStruct.deserialize(buffer);
+            player.name = name;
+            return player;
+        } catch (e) {
+            printer.warn(`Player data corrupted, creating new player for ${name}`);
+            return Player.new(name);
+        }
     };
 }

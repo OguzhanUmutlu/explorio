@@ -1,8 +1,11 @@
 body {
-    cursor: crosshair;
     background-color: #79a4fa;
     margin: 0;
     overflow: hidden;
+}
+
+#game {
+    cursor: crosshair;
 }
 
 .cursor {
@@ -27,6 +30,28 @@ body {
 
 .inventory {
     display: flex;
+    flex-wrap: wrap;
+}
+
+.inventory-item {
+    position: relative;
+    cursor: grab !important;
+    aspect-ratio: 1 / 1;
+}
+
+.inventory-item > canvas {
+    width: 60%;
+    height: 60%;
+    translate: 30% 30%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.inventory-item > div {
+    position: absolute;
+    right: 8%;
+    bottom: 8%;
+    pointer-events: none;
 }
 
 .hotbar-inventory {
@@ -36,13 +61,27 @@ body {
     width: 37.5%;
     aspect-ratio: 9 / 1;
     translate: -50%;
+    pointer-events: none;
+    z-index: 1;
 }
 
-.hotbar-inventory > div {
+.hotbar-inventory > .inventory-item {
     background-image: url("../assets/textures/gui/inventory/hotbar.png");
     background-size: 100% 100%;
     width: calc(100% / 9);
     aspect-ratio: 1 / 1;
+}
+
+.hotbar-inventory > .inventory-item > canvas {
+    width: 50%;
+    height: 50%;
+    translate: 50% 50%;
+    box-shadow: none;
+}
+
+.hotbar-inventory > .inventory-item > div {
+    right: 5%;
+    bottom: 5%;
 }
 
 .chat-container {
@@ -114,4 +153,106 @@ body {
     aspect-ratio: 1 / 1;
     background-size: 100%;
     background-repeat: no-repeat;
+}
+
+.save-screen {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.background-blur {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.player-inventory-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+    width: 50vw;
+    height: calc(50vw * 166 / 176);
+    background: url("../assets/textures/gui/inventory/player_inventory.png") no-repeat 50% 50%;
+    transition: all 0.3s;
+    aspect-ratio: 176 / 166;
+    background-size: 100% 100%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.player-inventory-container > div {
+    position: absolute;
+    z-index: 1;
+}
+
+.inv-pp {
+    left: 4%;
+    top: 50%;
+    width: 92%;
+    height: 32.8%;
+}
+
+.inv-ph {
+    left: 4%;
+    top: 85%;
+    width: 92%;
+    height: 10.8%;
+}
+
+.inv-pa {
+    left: 4.1%;
+    top: 4.2%;
+    width: 10.1%;
+    height: 43.6%;
+}
+
+.inv-pcs {
+    left: 49.5%;
+    top: 15%;
+    width: 20.5%;
+    height: 22%;
+}
+
+.inv-pcr {
+    left: 81.2%;
+    top: 21.1%;
+    width: 10.3%;
+    height: 10.8%;
+}
+
+.inv-pp > .inventory-item,
+.inv-ph > .inventory-item {
+    width: calc(100% / 9);
+}
+
+.inv-pa > .inventory-item {
+    height: calc(100% / 4);
+}
+
+.inv-pcs > .inventory-item {
+    width: calc(100% / 2);
+}
+
+.inv-pcr > .inventory-item {
+    width: 100%;
 }

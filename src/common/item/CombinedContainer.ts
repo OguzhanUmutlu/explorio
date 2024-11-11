@@ -1,7 +1,7 @@
-import {Inventory} from "./Inventory";
+import {Inventory} from "./Inventory.js";
 
 // This is for double chests etc.
-export class CombinedInventory extends Inventory {
+export class CombinedContainer extends Inventory {
     inventories: Inventory[];
 
     constructor(inventories: Inventory[] = [], extra: any = null) {

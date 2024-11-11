@@ -1,11 +1,9 @@
 import {BoundingBox} from "./BoundingBox";
 import {World} from "../world/World";
-import {SEntityUpdatePacket} from "../packet/server/SEntityUpdatePacket";
-import {SEntityRemovePacket} from "../packet/server/SEntityRemovePacket";
-import {EntitySaveStruct, EntityStructs, zstdOptionalDecode, zstdOptionalEncode} from "../utils/Utils";
+import {EntitySaveStruct, EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
 import {Location} from "../utils/Location";
 import {ObjectStruct} from "stramp";
-import {server} from "../Server";
+import {Packets} from "../network/Packets";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -33,7 +31,6 @@ export abstract class Entity<
     onGround = true;
     bb: BoundingBox;
     cacheState;
-    server = server;
     tags: Set<string> = new Set;
 
     walkSpeed = DEFAULT_WALK_SPEED;
@@ -44,6 +41,8 @@ export abstract class Entity<
     gravity = 0;
     canPhase = false;
     immobile = false;
+
+    server = getServer();
 
     getRotationTowards(x: number, y: number) {
         return this.location.getRotationTowards(x, y, this.bb.width / 2, this.bb.height);
@@ -63,8 +62,8 @@ export abstract class Entity<
 
     init() {
         this.updateCacheState();
-        this.onMovement();
         this.world.entities[this.id] = this;
+        this.onMovement();
     };
 
     get x() {
@@ -119,8 +118,12 @@ export abstract class Entity<
         this.onGround = collisions.length === 0;
     };
 
-    collidesBlock() {
-        return this.world.getBlockCollisions(this.bb, 1).length > 0;
+    getCollidingBlock() {
+        return this.getCollidingBlocks(1)[0];
+    };
+
+    getCollidingBlocks(limit = 1) {
+        return this.world.getBlockCollisions(this.bb, limit);
     };
 
     teleport(x: number, y: number) {
@@ -129,17 +132,18 @@ export abstract class Entity<
         this.onMovement();
     };
 
-    tryToMove(x: number, y: number) {
+    tryToMove(x: number, y: number, dt: number) {
         if (this.immobile) return false;
-        let already = this.collidesBlock();
-        this.x += x;
-        if (already) { // if it was already in a block, stop here
+        let already = this.getCollidingBlock();
+        if (already) {
+            this.y += dt;
             this.onMovement();
             return false;
         }
+        this.x += x;
         this.y += y;
         this.onMovement();
-        if (this.collidesBlock()) {
+        if (this.getCollidingBlock()) {
             this.x -= x;
             this.y -= y;
             this.onMovement();
@@ -153,11 +157,10 @@ export abstract class Entity<
         this.vx *= 0.999;
         this.vy *= 0.999;
         this.vy -= this.gravity * dt;
-        const hitH = !this.tryToMove(this.vx * dt, 0);
-        const hitV = !this.tryToMove(0, this.vy * dt);
-        this.onGround = this.vy <= 0 && hitV;
-        if (hitH) this.vx = 0;
-        if (hitV) this.vy = 0;
+        const hitGround = !this.tryToMove(0, this.vy * dt, dt);
+        this.tryToMove(this.vx * dt, 0, dt);
+        this.onGround = this.vy <= 0 && hitGround;
+        if (hitGround) this.vy = 0;
         if (this.x !== x || this.y !== y) this.onMovement();
     };
 
@@ -174,6 +177,7 @@ export abstract class Entity<
             }
         }
         this.chunk = newChunk;
+        this.updateCollisionBox();
     };
 
     getMovementData(): any {
@@ -188,7 +192,7 @@ export abstract class Entity<
     };
 
     broadcastMovement() {
-        this.world.broadcastPacketAt(this.x, this.y, new SEntityUpdatePacket({
+        this.world.broadcastPacketAt(this.x, this.y, new Packets.SEntityUpdate({
             entityId: this.id,
             typeId: this.typeId,
             props: this.getMovementData()
@@ -196,7 +200,7 @@ export abstract class Entity<
     };
 
     broadcastSpawn() {
-        this.world.broadcastPacketAt(this.x, this.y, new SEntityUpdatePacket({
+        this.world.broadcastPacketAt(this.x, this.y, new Packets.SEntityUpdate({
             entityId: this.id,
             typeId: this.typeId,
             props: this.getSpawnData()
@@ -204,7 +208,7 @@ export abstract class Entity<
     };
 
     broadcastDespawn() {
-        this.world.broadcastPacketAt(this.x, this.y, new SEntityRemovePacket(this.id), [<any>this]);
+        this.world.broadcastPacketAt(this.x, this.y, new Packets.SEntityRemove(this.id), [<any>this]);
     };
 
     serverUpdate(dt: number): void {
@@ -225,6 +229,9 @@ export abstract class Entity<
         const index = entities.indexOf(this);
         if (index !== -1) entities.splice(index, 1);
         this.broadcastDespawn();
+    };
+
+    updateCollisionBox() {
     };
 
     toString() {

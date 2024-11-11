@@ -1,15 +1,10 @@
 import {WebSocketServer} from "ws";
 import Printer from "fancy-printer";
 import {initServerThings} from "./Utils";
-import Z from "@toondepauw/node-zstd";
-import {makeZstd} from "../common/utils/Utils";
-import {ConsoleCommandSender} from "../common/command/ConsoleCommandSender";
 import {Location} from "../common/utils/Location";
-import {PlayerNetwork} from "../common/packet/PlayerNetwork.js";
+import {PlayerNetwork} from "../common/network/PlayerNetwork";
 import * as fs from "fs";
-import {Server} from "../common/Server.js";
-
-makeZstd(v => new Z.Encoder(3).encodeSync(v), b => new Z.Decoder().decodeSync(b));
+import {Server} from "../common/Server";
 
 Error.stackTraceLimit = 50;
 
@@ -67,7 +62,7 @@ process.on("uncaughtException", onCrash);
 process.on("unhandledRejection", onCrash);
 process.on("SIGINT", exit);
 
-initServerThings();
+await initServerThings();
 
 const wss = new WebSocketServer({port: 1881});
 const server = new Server(fs, ".");
@@ -82,11 +77,10 @@ wss.on("connection", (ws, req) => {
 });
 
 const consoleLocation = new Location(0, 0, 0, server.defaultWorld);
-const consoleSender = ConsoleCommandSender.instance;
 
 async function listenForTerminal() {
     const cmd = await printer.readLine();
-    server.executeCommandLabel(consoleSender, consoleSender, consoleLocation, cmd);
+    server.executeCommandLabel(server.sender, server.sender, consoleLocation, cmd);
     setTimeout(listenForTerminal);
 }
 

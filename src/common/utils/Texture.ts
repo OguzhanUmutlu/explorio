@@ -1,7 +1,5 @@
 import {simplifyTexturePath} from "./Utils";
 
-const nodeCanvas = typeof global === "undefined" ? null : await import("canvas");
-
 export const imagePlaceholder = createCanvas(1, 1);
 export const invalidImage = createCanvas(2, 2);
 const invalidCtx = invalidImage.getContext("2d");
@@ -28,7 +26,7 @@ const SKIN_PARTS = {
     back_leg: [[16, 52, 4, 12], [8, 20, 4, 12]]
 };
 
-export type Canvas = HTMLCanvasElement | import("canvas").Canvas | CanvasImageSource & Record<any, any>;
+export type Canvas = HTMLCanvasElement | CanvasImageSource & Record<any, any>;
 export type Image = HTMLImageElement;
 
 export function createCanvas(width: number, height: number): Canvas {
@@ -43,7 +41,8 @@ export function createCanvas(width: number, height: number): Canvas {
         canvas.height = height;
         return canvas;
     }
-    return nodeCanvas.createCanvas(width, height);
+    return <any>{getContext: () => ({fillRect: r => r})};
+    // return nodeCanvas.createCanvas(width, height);
 }
 
 function cropImage(image: Canvas | Image, x: number, y: number, width: number, height: number) {
@@ -75,7 +74,7 @@ function loadImage(src: string): Promise<Image> {
             image.onerror = reject;
             image.src = src;
         } else {
-            nodeCanvas.loadImage(src).then(image => resolve(image)).catch(reject);
+            // nodeCanvas.loadImage(src).then(image => resolve(image)).catch(reject);
         }
     });
 }
@@ -96,7 +95,7 @@ export class Texture {
     _stairsBottomRight: Canvas | null = null;
 
     constructor(public actualSrc: string, known?: Promise<Canvas> | Canvas | null) {
-        if(this.actualSrc.endsWith("undefined.png")) throw new Error("sa")
+        if (this.actualSrc.endsWith("undefined.png")) throw new Error("sa")
         this.actualSrc = simplifyTexturePath(this.actualSrc);
 
         if (!known || known instanceof Promise) {

@@ -14,9 +14,9 @@ export class ItemEntity extends Entity {
         super.serverUpdate(dt);
     };
 
-    onMovement() {
+    updateCollisionBox() {
+        super.updateCollisionBox();
         this.bb.x = this.x - this.bb.width / 2;
         this.bb.y = this.y;
-        super.onMovement();
     };
 }

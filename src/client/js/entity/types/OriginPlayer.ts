@@ -1,10 +1,10 @@
-import {chatBox, clientNetwork, isMultiPlayer, Keyboard, Mouse} from "../../Client";
+import {chatBox, ChatLimit, clientNetwork, Keyboard, Mouse} from "../../Client";
 import {CPlayer} from "./CPlayer";
 import {I} from "../../../../common/meta/ItemIds";
-import {Containers} from "../../../../common/meta/Containers";
+import {Containers} from "../../../../common/meta/Inventories.js";
 
 export class OriginPlayer extends CPlayer {
-    containerId: Containers = Containers.CLOSED;
+    containerId = Containers.Closed;
     placeTime = 0;
     name = "";
 
@@ -22,34 +22,27 @@ export class OriginPlayer extends CPlayer {
         const speed = this.walkSpeed * dt * (Keyboard.shift ? 2 : 1);
         const walkMultiplier = this.onGround ? 1 : 0.8;
         if ((Keyboard.w || Keyboard[" "]) && this.onGround) this.vy = this.jumpVelocity;
-        if (Keyboard.a) this.tryToMove(-speed * walkMultiplier, 0);
-        if (Keyboard.d) this.tryToMove(speed * walkMultiplier, 0);
+        if (Keyboard.a) this.tryToMove(-speed * walkMultiplier, 0, dt);
+        if (Keyboard.d) this.tryToMove(speed * walkMultiplier, 0, dt);
 
         if (Mouse.left) {
             if (this.breaking) {
-                if (this.breaking[0] === Mouse.rx
-                    && this.breaking[1] === Mouse.ry
-                    && this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
-                    if (this.breakingTime === 0) {
-                        if (!isMultiPlayer) {
-                            this.breaking = null;
-                            this.world.tryToBreakBlockAt(this, Mouse.rx, Mouse.ry);
-                        }
-                    }
-                } else {
+                if (this.breaking[0] !== Mouse.rx
+                    || this.breaking[1] !== Mouse.ry
+                    || !this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
                     this.breaking = null;
                     this.breakingTime = 0;
-                    if (isMultiPlayer) clientNetwork.sendStopBreaking();
+                    clientNetwork.sendStopBreaking();
                 }
             } else if (this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
                 this.breaking = [Mouse.rx, Mouse.ry];
                 const block = this.world.getBlock(Mouse.rx, Mouse.ry);
                 // todo: handle tools
                 this.breakingTime = block.getHardness();
-                if (isMultiPlayer) clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
+                clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
             }
         } else {
-            if (this.breaking && isMultiPlayer) clientNetwork.sendStopBreaking();
+            if (this.breaking) clientNetwork.sendStopBreaking();
             this.breaking = null;
             this.breakingTime = 0;
         }
@@ -117,15 +110,11 @@ export class OriginPlayer extends CPlayer {
 
         chatBox.appendChild(div);
 
-        while (chatBox.children.length > 100) {
+        while (chatBox.children.length > ChatLimit) {
             chatBox.children.item(0).remove();
         }
 
         chatBox.scrollTop = chatBox.scrollHeight;
         requestAnimationFrame(() => div.style.translate = "0");
-    };
-
-    hasPermission(permission: string): boolean {
-        return !isMultiPlayer || super.hasPermission(permission);
     };
 }

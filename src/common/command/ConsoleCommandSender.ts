@@ -1,6 +1,6 @@
 import {CommandSender} from "./CommandSender";
-import {server} from "../Server";
 import {Location} from "../utils/Location";
+import {getServer} from "../utils/Utils.js";
 
 export class ConsoleCommandSender implements CommandSender {
     static instance: ConsoleCommandSender;
@@ -9,14 +9,11 @@ export class ConsoleCommandSender implements CommandSender {
 
     name = "CONSOLE";
     permissions = new Set;
-    location = new Location(0, 0, 0, server.defaultWorld);
+    server = getServer();
+    location = new Location(0, 0, 0, this.server.defaultWorld);
 
     constructor() {
         return ConsoleCommandSender.instance ??= this;
-    };
-
-    get server() {
-        return server;
     };
 
     get x() {

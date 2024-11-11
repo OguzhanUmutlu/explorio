@@ -21,31 +21,35 @@
     <br>
     VY: <span class="f3-vy">0</span>
 </div>
-<canvas></canvas>
+<canvas id="game"></canvas>
 <div class="chat-container">
     <div class="chat-messages">
     </div>
     <input class="chat-input">
 </div>
-<div class="hotbar-inventory inventory" data-inventory="hotbar">
-    <div class="item"></div>
-    <div class="item"></div>
-    <div class="item"></div>
-    <div class="item"></div>
-    <div class="item"></div>
-    <div class="item"></div>
-    <div class="item"></div>
-    <div class="item"></div>
-    <div class="item"></div>
+<div class="background-blur"></div>
+
+<div class="hotbar-inventory inventory" data-inventory="hotbar"></div>
+
+<div class="player-inventory-container">
+    <div class="inv-pp inventory" data-inventory="playerInventory"></div>
+    <div class="inv-ph inventory" data-inventory="hotbar"></div>
+    <div class="inv-pa inventory" data-inventory="armor"></div>
+    <div class="inv-pcs inventory" data-inventory="craftingSmall"></div>
+    <div class="inv-pcr inventory" data-inventory="craftingSmallResult"></div>
 </div>
+
 <div class="black-background"></div>
 <div class="options-container container"></div>
+<div class="save-screen">
+    Saving the world...
+</div>
 </body>
 
 <script type="module">
     import Buffer from "buffer";
 
-    window.Buffer = Buffer.Buffer;
+    window.Buffer = Buffer["Buffer"];
     import {initClient} from "./js/Client";
 
     initClient();

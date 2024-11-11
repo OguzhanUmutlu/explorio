@@ -1,5 +1,7 @@
-import {I, ItemsByAccess} from "../meta/ItemIds";
+import {BM, I, ItemsByAccess} from "../meta/ItemIds";
 import X from "stramp";
+import {im2f} from "../meta/Items.js";
+import {Canvas} from "../utils/Texture.js";
 
 export class Item {
     constructor(
@@ -8,6 +10,21 @@ export class Item {
         public count: number = 1,
         public nbt: Record<string, any> = {}
     ) {
+    };
+
+    toMetadata() {
+        return BM[im2f(this.id, this.meta)];
+    };
+
+    getTexture() {
+        return this.toMetadata().getTexture();
+    };
+
+    render(canvas: Canvas) {
+        const texture = this.getTexture();
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(texture.image, 0, 0, canvas.width, canvas.height);
     };
 
     toBuffer() {

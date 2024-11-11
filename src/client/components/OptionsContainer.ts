@@ -1,8 +1,8 @@
-import {Options, saveOptions} from "../js/Utils";
+import {Div, Options, saveOptions} from "../js/utils/Utils.js";
 
 export default async function () {
-    const root = <HTMLDivElement>document.querySelector(".options-container");
-    const blackBg = <HTMLDivElement>document.querySelector(".black-background");
+    const root = <Div>document.querySelector(".options-container");
+    const blackBg = <Div>document.querySelector(".black-background");
     await fetch(`${location.origin}/explorio/components/OptionsContainer.html`)
         .then(response => response.text())
         .then(html => {
@@ -29,16 +29,29 @@ export default async function () {
     }
 
     root.querySelector(".close-btn").addEventListener("click", () => {
-        root.style.scale = "0";
-        root.style.pointerEvents = "none";
-        blackBg.style.opacity = "0";
-        blackBg.style.pointerEvents = "none";
+        obj.close();
     });
 
-    return () => {
-        root.style.scale = "1";
-        root.style.pointerEvents = "auto";
-        blackBg.style.opacity = "1";
-        blackBg.style.pointerEvents = "auto";
+    const obj = {
+        isOpen() {
+            return root.style.scale === "1";
+        },
+        close() {
+            root.style.scale = "0";
+            root.style.pointerEvents = "none";
+            blackBg.style.opacity = "0";
+            blackBg.style.pointerEvents = "none";
+        },
+        open() {
+            root.style.scale = "1";
+            root.style.pointerEvents = "auto";
+            blackBg.style.opacity = "1";
+            blackBg.style.pointerEvents = "auto";
+        },
+        toggle() {
+            if (obj.isOpen()) obj.close();
+            else obj.open();
+        }
     };
+    return obj;
 }

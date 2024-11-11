@@ -1,7 +1,7 @@
 import {DefinitiveCommand} from "../DefinitiveCommand";
 import {CommandDefinition} from "../CommandDefinition";
-import {Player} from "../../entity/types/Player.js";
-import {CommandError} from "../Command.js";
+import {Player} from "../../entity/types/Player";
+import {CommandError} from "../Command";
 
 export class PermissionCommand extends DefinitiveCommand {
     constructor() {

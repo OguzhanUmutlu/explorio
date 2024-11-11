@@ -9,10 +9,10 @@ export class BoundingBox {
 
     contains(x: number, y: number) {
         return (
-            x >= this.x &&
-            x <= this.x + this.width &&
-            y >= this.y &&
-            y <= this.y + this.height
+            x > this.x &&
+            x < this.x + this.width &&
+            y > this.y &&
+            y < this.y + this.height
         );
     };
 

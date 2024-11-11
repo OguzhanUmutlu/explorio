@@ -1,7 +1,7 @@
 import {CommandArgument} from "../CommandArgument";
 import {SelectorToken} from "../CommandProcessor";
 import {Entity} from "../../entity/Entity";
-import {CommandError} from "../Command.js";
+import {CommandError} from "../Command";
 
 export class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
     default = <T>[];

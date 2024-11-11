@@ -1,16 +1,22 @@
 import X, {Bin} from "stramp";
 import {ItemStruct} from "../item/Item";
-import {Inventory} from "../item/Inventory";
-import {server} from "../Server";
+import {Inventory} from "../item/Inventory.js";
 import {Entities, EntityClasses} from "../meta/Entities";
 import {Entity} from "../entity/Entity";
 import {ChunkBlocksBin} from "./Bins";
+import {ZstdSimple} from "@oneidentity/zstd-js";
+import {Inventories} from "../meta/Inventories.js";
+import {World} from "../world/World.js";
+import {Server} from "../Server.js";
 
-export const zstd = {encode: _ => Buffer.alloc(1), decode: _ => Buffer.alloc(1)};
+let server: Server;
 
-export function makeZstd(encoder, decoder) {
-    zstd.encode = encoder;
-    zstd.decode = decoder;
+export function getServer() {
+    return server;
+}
+
+export function setServer(server_: Server) {
+    server = server_;
 }
 
 export function getUTCDate() {
@@ -77,9 +83,9 @@ export const ChunkStruct = X.object.struct({
 
 const ItemList = X.array.typed(ItemStruct.or(X.null));
 
-export const InventoryStruct = (size: number) => {
+export const ContainerStruct = (size: number) => {
     return X.makeBin({
-        name: `Inventory<${size}>`,
+        name: `Container<${size}>`,
         write: (buffer, index, inv) => ItemList.write(buffer, index, inv.serialize()),
         read: (buffer, index) => new Inventory(size).setContents(ItemList.read(buffer, index)),
         size: inv => ItemList.getSize(inv.contents),
@@ -88,13 +94,13 @@ export const InventoryStruct = (size: number) => {
     });
 };
 
-export const WorldFolder: Bin<(typeof server)["worlds"][number]> = X.makeBin({
+export const WorldFolder: Bin<World> = X.makeBin({
     name: "World",
     write: (buffer, index, value) => X.string8.write(buffer, index, value.folder),
-    read: (buffer, index) => server.worlds[X.string8.read(buffer, index)],
+    read: (buffer, index) => getServer().worlds[X.string8.read(buffer, index)],
     size: world => X.string8.getSize(world.folder),
     validate: world => X.string8.validate(world.folder),
-    sample: () => server.defaultWorld
+    sample: () => getServer().defaultWorld
 });
 
 export const EntityStruct = X.object.struct({
@@ -115,14 +121,16 @@ export const PlayerStruct = EntityStruct.extend({
     world: WorldFolder,
     permissions: X.set.typed(X.string16),
     handIndex: X.u8,
-    hotbar: InventoryStruct(9),
-    inventory: InventoryStruct(27),
-    armorInventory: InventoryStruct(4),
-    cursor: InventoryStruct(1),
-    chest: InventoryStruct(27),
-    doubleChest: InventoryStruct(54),
-    crafting2x2: InventoryStruct(5),
-    crafting3x3: InventoryStruct(10),
+    [Inventories.Hotbar]: ContainerStruct(9),
+    [Inventories.Player]: ContainerStruct(27),
+    [Inventories.Armor]: ContainerStruct(4),
+    [Inventories.Cursor]: ContainerStruct(1),
+    [Inventories.Chest]: ContainerStruct(27),
+    [Inventories.DoubleChest]: ContainerStruct(54),
+    [Inventories.CraftingSmall]: ContainerStruct(4),
+    [Inventories.CraftingSmallResult]: ContainerStruct(1),
+    [Inventories.CraftingBig]: ContainerStruct(9),
+    [Inventories.CraftingBigResult]: ContainerStruct(1),
     xp: X.u32,
     blockReach: X.f32,
     attackReach: X.f32,
@@ -237,15 +245,16 @@ export const SelectorSorters = {
 
 export function zstdOptionalEncode(buffer: Buffer) {
     if (buffer.length > 100) {
-        const compressed = zstd.encode(buffer);
+        const compressed = ZstdSimple.compress(buffer);
         const buffer2 = Buffer.alloc(compressed.length + 1);
-        buffer2[0] = buffer.length > 100 ? 1 : 0;
+        buffer2[0] = 1;
         buffer2.set(compressed, 1);
         return buffer2;
     }
 
     const buffer2 = Buffer.alloc(buffer.length + 1);
-    buffer2.set(buffer, 1);
+    buffer2[0] = 0; // just to be safe
+    buffer.copy(buffer2, 1);
     return buffer2;
 }
 
@@ -253,7 +262,7 @@ export function zstdOptionalDecode(buffer: Buffer) {
     const sliced = Buffer.alloc(buffer.length - 1);
     buffer.copy(sliced, 0, 1);
 
-    if (buffer[0] === 1) return Buffer.from(zstd.decode(sliced));
+    if (buffer[0] === 1) return Buffer.from(ZstdSimple.decompress(sliced));
 
     return sliced;
 }

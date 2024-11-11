@@ -1,7 +1,7 @@
 import {Item, ItemDescriptor} from "./Item";
 import {World} from "../world/World";
 import {IM} from "../meta/ItemIds";
-import {InventoryStruct} from "../utils/Utils";
+import {ContainerStruct} from "../utils/Utils";
 
 export class Inventory {
     cleanDirty = false;
@@ -9,11 +9,7 @@ export class Inventory {
     // _tile: ContainerTile | null = null;
     private contents: (Item | null)[] = [];
 
-    constructor(public size: number, public extra: any = null) {
-        this.init();
-    };
-
-    init() {
+    constructor(public readonly size: number, public extra: any = null) {
         this.contents = new Array(this.size).fill(null);
     };
 
@@ -31,9 +27,8 @@ export class Inventory {
     };
 
     setContents(items: Item[]) {
-        const length = this.contents.length;
         this.contents = items;
-        this.contents.length = length;
+        this.contents.length = this.size;
         return this;
     };
 
@@ -53,35 +48,42 @@ export class Inventory {
     };
 
     add(item: Item) {
-        if (!item) return;
+        if (!item || item.count === 0) return true;
+        let count = item.count;
         for (let i = 0; i < this.size; i++) {
-            if (item.count === 0) return;
-            this.addAt(i, item);
+            count -= this.addAt(i, item);
+            if (count === 0) return true;
         }
+        return false;
     };
 
     remove(item: Item) {
-        if (!item) return;
+        if (!item || item.count === 0) return true;
+        let count = item.count;
         for (let i = 0; i < this.size; i++) {
-            if (item.count === 0) return;
-            this.removeAt(i, item);
+            count -= this.removeAt(i, item);
+            if (count === 0) return true;
         }
+        return false;
     };
 
     addFromBack(item: Item) {
         if (!item) return;
+        let count = item.count;
         for (let i = this.size - 1; i >= 0; i--) {
-            if (item.count === 0) return;
-            this.addAt(i, item);
+            count -= this.addAt(i, item);
+            if (count === 0) return;
         }
     };
 
     removeFromBack(item: Item) {
-        if (!item) return;
+        if (!item) return true;
+        let count = item.count;
         for (let i = this.size - 1; i >= 0; i--) {
-            if (item.count === 0) return;
-            this.removeAt(i, item);
+            if (count === 0) return true;
+            count -= this.removeAt(i, item);
         }
+        return false;
     };
 
     removeDesc(desc: ItemDescriptor) {
@@ -100,17 +102,16 @@ export class Inventory {
         const it = this.get(index);
         if (!it) {
             const putting = Math.min(maxStack, item.count);
-            item.count -= putting;
             this.set(index, item.clone(putting));
-            return;
+            return putting;
         }
         if (it.equals(item, false, true) && it.count < maxStack) {
             const putting = Math.min(maxStack - it.count, item.count);
-            item.count -= putting;
             it.count += putting;
             this.dirtyIndexes.add(index);
-            return;
+            return putting;
         }
+        return 0;
     };
 
     removeAt(index: number, item: Item) {
@@ -119,13 +120,11 @@ export class Inventory {
         if (!it || !it.equals(item, false, true)) return;
         if (it.count <= item.count) {
             this.removeIndex(index);
-            item.count -= it.count;
-            return;
+            return it.count;
         }
         it.count -= item.count;
-        item.count = 0;
         this.dirtyIndexes.add(index);
-        return;
+        return item.count;
     };
 
     removeDescAt(index: number, desc: ItemDescriptor, count: number) {
@@ -154,13 +153,15 @@ export class Inventory {
         const item = this.get(index);
         if (item) {
             const durability = IM[item.id].durability;
-            item.nbt.damage ??= 0;
-            if ((item.nbt.damage += amount) >= durability) {
-                this.removeIndex(index);
-                if (world) {
-                    world.playSound("assets/sounds/random/break.ogg", x, y);
-                }
-            } else this.updateIndex(index);
+            if (durability > 0) {
+                item.nbt.damage ??= 0;
+                if ((item.nbt.damage += amount) >= durability) {
+                    this.removeIndex(index);
+                    if (world) {
+                        world.playSound("assets/sounds/random/break.ogg", x, y).then(r => r);
+                    }
+                } else this.updateIndex(index);
+            }
         }
     };
 
@@ -176,11 +177,11 @@ export class Inventory {
         return this.getContents().map(i => i ? i.serialize() : null);
     };
 
-    getSaveData(): (typeof InventoryStruct)["__TYPE__"] {
+    getSaveData(): (typeof ContainerStruct)["__TYPE__"] {
         return this.serialize();
     };
 
     getSaveBuffer(): Buffer {
-        return InventoryStruct(this.size).serialize(this.getSaveData());
+        return ContainerStruct(this.size).serialize(this.getSaveData());
     };
 }

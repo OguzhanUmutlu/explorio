@@ -1,7 +1,3 @@
-* {
-    transition: all 0.1s;
-}
-
 body {
     background-color: #79a4fa;
     user-select: none;
@@ -45,21 +41,6 @@ body {
     letter-spacing: -2px !important;
 }
 
-.btn {
-    text-align: center;
-    font-size: 25px;
-    padding: 10px 15px;
-    margin: 15px;
-    border-radius: 5px;
-    background-color: rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-}
-
-.btn:hover {
-    scale: 1.05;
-    background-color: rgba(0, 0, 0, 0.4);
-}
-
 .new-world, .new-server {
     margin: 10px;
     font-size: 15px;
@@ -98,4 +79,22 @@ body {
 
 .error {
     color: red;
+}
+
+.text-left, .text-right {
+    position: absolute;
+    bottom: 5px;
+    font-size: 18px;
+}
+
+.text-left {
+    left: 5px;
+}
+
+.text-right {
+    right: 5px;
+}
+
+a {
+    color: #6868ff;
 }

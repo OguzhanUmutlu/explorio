@@ -32,6 +32,7 @@
     -ms-interpolation-mode: nearest-neighbor;
     font-family: Minecraft, Calibri, serif;
     user-select: none;
+    transition: all 0.1s;
 }
 
 body {
@@ -145,6 +146,28 @@ body {
     background: #4A4E69;
     height: 8px;
     border-radius: 5px;
+}
+
+.save-and-quit {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    translate: -50%;
+}
+
+.btn {
+    text-align: center;
+    font-size: 25px;
+    padding: 10px 15px;
+    margin: 15px;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.btn:hover {
+    scale: 1.05;
+    background-color: rgba(0, 0, 0, 0.4);
 }
 
 .black-background {

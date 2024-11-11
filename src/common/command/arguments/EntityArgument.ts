@@ -1,5 +1,5 @@
 import {Entity} from "../../entity/Entity";
-import {EntitiesArgument} from "./EntitiesArgument.js";
+import {EntitiesArgument} from "./EntitiesArgument";
 
 export class EntityArgument<T = Entity> extends EntitiesArgument<Entity> {
     default = <T>null;

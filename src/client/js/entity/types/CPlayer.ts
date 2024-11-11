@@ -1,13 +1,13 @@
-import {ctx, getClientPosition, TILE_SIZE, TILE_SIZE as BLK} from "../../Client";
+import {ctx, getClientPosition} from "../../Client";
 import {Texture} from "../../../../common/utils/Texture";
-import {renderPlayerModel} from "../../Utils";
+import {Options, renderPlayerModel} from "../../utils/Utils.js";
 import {CEntity} from "../CEntity";
 import {Player} from "../../../../common/entity/types/Player";
 
 export function getCurrentSwing() {
     const p = 400;
     const mod = Date.now() % p;
-    return (mod > p / 2 ? -1 : 1) * Math.PI / 2.5;
+    return (mod > p / 2 ? -1 : 1) * Math.PI / 4;
 }
 
 export class CPlayer extends Player implements CEntity {
@@ -42,7 +42,11 @@ export class CPlayer extends Player implements CEntity {
             const hardness = this.world.getBlock(breaking[0], breaking[1]).getHardness();
             const ratio = 1 - this.breakingTime / hardness;
             const blockPos = getClientPosition(breaking[0], breaking[1]);
-            ctx.drawImage(Texture.get(`assets/textures/destroy/${Math.min(Math.floor(ratio * 10), 9)}.png`).image, blockPos.x - TILE_SIZE / 2, blockPos.y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(
+                Texture.get(`assets/textures/destroy/${Math.min(Math.floor(ratio * 10), 9)}.png`).image,
+                blockPos.x - Options.tileSize / 2, blockPos.y - Options.tileSize / 2,
+                Options.tileSize, Options.tileSize
+            );
             // todo: haven't tested but totally existing bug: when a player is breaking and if another entity is before
             //       the player, the entity would be behind the breaking animation.
         }
@@ -83,9 +87,9 @@ export class CPlayer extends Player implements CEntity {
                 this.leftArmRotation = f;
                 this.rightArmRotation = -f;
             }
-            const mul = this.onGround ? 0.7 : 0.5;
-            this.rightLegRotation = -f * mul;
-            this.leftLegRotation = f * mul;
+            const legMul = this.onGround ? 0.7 : 0.3;
+            this.rightLegRotation = -f * legMul;
+            this.leftLegRotation = f * legMul;
         } else {
             if (isSwinging) {
                 this.rightArmRotation = (bodyRotation ? -1 : 1) * Math.PI / 2.5;
@@ -100,7 +104,7 @@ export class CPlayer extends Player implements CEntity {
         if (!baseSkin) return;
 
         renderPlayerModel(ctx, {
-            SIZE: BLK,
+            SIZE: Options.tileSize,
             bbPos: getClientPosition(this.renderX - 0.25, this.renderY - 0.5),
             skin: baseSkin,
             bodyRotation,

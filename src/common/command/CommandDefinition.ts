@@ -10,7 +10,7 @@ import {ArrayArgument} from "./arguments/ArrayArgument";
 import {CommandAs, CommandSender} from "./CommandSender";
 import {Location} from "../utils/Location";
 import {EntityArgument} from "./arguments/EntityArgument";
-import {LabelArgument} from "./arguments/LabelArgument.js";
+import {LabelArgument} from "./arguments/LabelArgument";
 
 export type Append<T, V> = T extends [] ? [V] : [...T, V];
 

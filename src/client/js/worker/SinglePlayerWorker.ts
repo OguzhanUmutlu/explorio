@@ -1,13 +1,11 @@
 import * as BrowserFS from "browserfs";
-import {Player} from "../../../common/entity/types/Player.js";
-import {PlayerNetwork} from "../../../common/packet/PlayerNetwork.js";
-import {getRandomSeed} from "../../../common/world/World.js";
-import {Server} from "../../../common/Server.js";
+import "../../../common/network/Packet";
+import {PlayerNetwork} from "../../../common/network/PlayerNetwork";
+import {getRandomSeed} from "../../../common/world/World";
+import {Server} from "../../../common/Server";
 import "fancy-printer";
-import {ZstdInit, ZstdSimple} from "@oneidentity/zstd-js";
-import {makeZstd} from "../../../common/utils/Utils.js";
-import {initCommon} from "../../../common/utils/Inits.js";
-import {initServerThings} from "../../../server/Utils.js";
+import {initServerThings} from "../../../server/Utils";
+import {Packets} from "../../../common/network/Packets.js";
 
 onmessage = async ({data: uuid}) => {
     self.fsr = {};
@@ -25,9 +23,7 @@ onmessage = async ({data: uuid}) => {
     fixAsync("rm");
     fixAsync("exists", 0, 1);
     self.Buffer = self.fsr.require("buffer").Buffer;
-    await ZstdInit();
-    makeZstd(v => ZstdSimple.compress(v), b => ZstdSimple.decompress(b));
-    initServerThings();
+    await initServerThings();
     const printer = console;
     printer.pass = console.log;
     // noinspection TypeScriptUnresolvedReference
@@ -35,42 +31,50 @@ onmessage = async ({data: uuid}) => {
 
     const server = new Server(bfs, `singleplayer/${uuid}`);
 
-    if (!await server.fs.existsSync("singleplayer")) await server.fs.mkdirSync("singleplayer", null);
+    if (!await server.fileExists("singleplayer")) await server.createDirectory("singleplayer");
     server.config = {
         port: 0,
-        "render-distance": 3,
-        "default-world": "default",
-        "default-worlds": {
+        renderDistance: 3,
+        defaultWorld: "default",
+        defaultWorlds: {
             default: {
                 name: "default",
                 generator: "default",
                 generatorOptions: "",
                 seed: getRandomSeed()
             }
-        }
+        },
+        packetCompression: false
     };
     server.saveCounterMax = 3; // every 3 seconds because the player might F5 at any point in time
 
+    console.clear();
     await server.init();
 
-    const player = await Player.loadPlayer("singleplayer");
-    player.name = "singleplayer";
-    player.skin = "";
-    player.network = new PlayerNetwork({
+    const network = new PlayerNetwork({
         send(data: Buffer) {
             postMessage(data);
         },
         kick() {
-            console.log("got kicked for some reason? did you kick yourself?");
+            printer.warn("got kicked for some reason? did you kick yourself?");
         },
         close() {
-            console.log("Pseudo-closed the pseudo-socket. What a duo...");
+            printer.warn("Pseudo-closed the pseudo-socket. What a duo...");
         }
     }, {socket: {remoteAddress: "::ffff:127.0.0.1"}});
 
+    let first = true;
     onmessage = async ({data}) => {
-        console.log(data)
-        await player.network.processPacketBuffer(Buffer.from(data));
+        await network.processPacketBuffer(Buffer.from(data));
+        if (first && network.player) {
+            network.player.permissions.add("*");
+            first = false;
+        }
+    };
+
+    network.processCQuit = async () => {
+        await server.save();
+        network.sendPacket(new Packets.CQuit(null));
     };
 
     postMessage("hi"); // can be anything really

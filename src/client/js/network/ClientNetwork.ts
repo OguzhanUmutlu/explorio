@@ -1,38 +1,23 @@
-import {BatchPacket} from "../../common/packet/common/BatchPacket";
-import {Packet, PacketType,} from "../../common/packet/Packet";
-import {SHandshakePacket} from "../../common/packet/server/SHandshakePacket";
-import {getWSUrls, setServerOptions} from "./Utils";
-import {clientPlayer, ServerData} from "./Client";
-import {DEFAULT_GRAVITY} from "../../common/entity/Entity";
-import {CurrentGameProtocol, readPacket} from "../../common/packet/Packets";
-import {SChunkPacket} from "../../common/packet/server/SChunkPacket";
-import {SEntityUpdatePacket} from "../../common/packet/server/SEntityUpdatePacket";
-import {SEntityRemovePacket} from "../../common/packet/server/SEntityRemovePacket";
-import {EntityClasses} from "../../common/meta/Entities";
-import {PacketError} from "../../common/packet/PacketError";
-import {CHUNK_LENGTH_BITS} from "../../common/utils/Utils";
-import {SBlockUpdatePacket} from "../../common/packet/server/SBlockUpdatePacket";
-import {SBlockBreakingUpdatePacket} from "../../common/packet/server/SBlockBreakingUpdatePacket";
-import {SBlockBreakingStopPacket} from "../../common/packet/server/SBlockBreakingStopPacket";
-import {CPlayer} from "./entity/types/CPlayer";
-import {SendMessagePacket} from "../../common/packet/common/SendMessagePacket";
-import {CStopBreakingPacket} from "../../common/packet/client/CStopBreakingPacket";
-import {CStartBreakingPacket} from "../../common/packet/client/CStartBreakingPacket";
-import {CAuthPacket} from "../../common/packet/client/CAuthPacket";
-import {CMovementPacket} from "../../common/packet/client/CMovementPacket";
-import {SDisconnectPacket} from "../../common/packet/server/SDisconnectPacket";
-import {SPlaySoundPacket} from "../../common/packet/server/SPlaySoundPacket";
-import {Sound} from "../../common/utils/Sound";
-import {CWorld} from "./world/CWorld";
-import {PingPacket} from "../../common/packet/common/PingPacket";
+import {Packet,} from "../../../common/network/Packet.js";
+import {getWSUrls, setServerOptions, URLPrefix} from "../utils/Utils.js";
+import {clientPlayer, isMultiPlayer, ServerData} from "../Client.js";
+import {DEFAULT_GRAVITY} from "../../../common/entity/Entity.js";
+import {CurrentGameProtocol, PacketByName, Packets, readPacket} from "../../../common/network/Packets.js";
+import {EntityClasses} from "../../../common/meta/Entities.js";
+import {PacketError} from "../../../common/network/PacketError.js";
+import {CHUNK_LENGTH_BITS} from "../../../common/utils/Utils.js";
+import {CPlayer} from "../entity/types/CPlayer.js";
+import {Sound} from "../../../common/utils/Sound.js";
+import {CWorld} from "../world/CWorld.js";
+import {PacketIds} from "../../../common/meta/PacketIds.js";
 
 export class ClientNetwork {
     worker: Worker;
     connected = false;
     connectCb: Function;
     connectPromise = new Promise(r => this.connectCb = r);
-    batch: Packet<any>[] = [];
-    immediate: Packet<any>[] = [];
+    batch: Packet[] = [];
+    immediate: Packet[] = [];
     handshake = false;
     ping = 0;
 
@@ -55,11 +40,10 @@ export class ClientNetwork {
         const urls = getWSUrls(ServerData.ip, ServerData.port);
         if (!ServerData.preferSecure) urls.reverse();
         const worker = this.worker = new Worker(new URL("./worker/SocketWorker.ts", import.meta.url), {type: "module"});
-        worker.onmessage = e => {
+        worker.onmessage = async e => {
             if (e.data.event === "message") {
-                e.data.message.arrayBuffer().then(buf => {
-                    this.processPacketBuffer(buf);
-                });
+                const buf = await e.data.message.arrayBuffer();
+                this.processPacketBuffer(buf);
             } else if (e.data.event === "connect") {
                 this.connected = true;
                 this.connectCb();
@@ -81,48 +65,28 @@ export class ClientNetwork {
         worker.postMessage(urls);
     };
 
-    processPacket(pk: Packet<any>) {
-        if (pk instanceof BatchPacket) {
-            this.processBatch(pk);
-        } else if (pk instanceof PingPacket) {
-            this.processPing(pk);
-        } else if (pk instanceof SHandshakePacket) {
-            this.processHandshake(pk);
-        } else if (pk instanceof SChunkPacket) {
-            this.processChunk(pk);
-        } else if (pk instanceof SEntityUpdatePacket) {
-            this.processEntityUpdate(pk);
-        } else if (pk instanceof SEntityRemovePacket) {
-            this.processEntityRemove(pk);
-        } else if (pk instanceof SBlockUpdatePacket) {
-            this.processBlockUpdate(pk);
-        } else if (pk instanceof SBlockBreakingUpdatePacket) {
-            this.processBlockBreakingUpdate(pk);
-        } else if (pk instanceof SBlockBreakingStopPacket) {
-            this.processBlockBreakingStop(pk);
-        } else if (pk instanceof SendMessagePacket) {
-            this.processSendMessage(pk);
-        } else if (pk instanceof SDisconnectPacket) {
-            this.processDisconnect(pk);
-        } else if (pk instanceof SPlaySoundPacket) {
-            this.processSound(pk);
-        } else {
-            console.warn("Unhandled packet: ", pk);
-        }
+    processPacket(pk: Packet) {
+        const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
+        if (key in this) this[key](pk);
+        else console.warn("Unhandled packet: ", pk);
     };
 
-    processBatch({data}: BatchPacket) {
+    processBatch({data}: PacketByName["Batch"]) {
         for (const p of data) {
             this.processPacket(p);
         }
     };
 
-    processPing({data}: PacketType<PingPacket>) {
-        this.ping = Date.now() - data.time;
-        this.sendPacket(new PingPacket(new Date));
+    processPing({data}: PacketByName["Ping"]) {
+        this.ping = Date.now() - data;
+        this.sendPacket(new Packets.Ping(new Date));
     };
 
-    processHandshake({data}: PacketType<SHandshakePacket>) {
+    processCQuit() {
+        location.href = URLPrefix;
+    };
+
+    processSHandshake({data}: PacketByName["SHandshake"]) {
         this.handshake = true;
         clientPlayer.gravity = DEFAULT_GRAVITY;
         clientPlayer.immobile = false;
@@ -148,7 +112,7 @@ export class ClientNetwork {
         return entity;
     };
 
-    processChunk({data}: PacketType<SChunkPacket>) {
+    processSChunk({data}: PacketByName["SChunk"]) {
         const world = <CWorld>clientPlayer.world;
         world.chunks[data.x] = new Uint16Array(data.data);
         if (data.resetEntities) clientPlayer.world.chunkEntities[data.x] = [];
@@ -164,7 +128,7 @@ export class ClientNetwork {
         }
     };
 
-    processEntityUpdate({data}: PacketType<SEntityUpdatePacket>) {
+    processSEntityUpdate({data}: PacketByName["SEntityUpdate"]) {
         let entity = clientPlayer.world.entities[data.entityId];
         if (!entity) return this.spawnEntityFromData(data);
         delete data.entityId;
@@ -177,13 +141,13 @@ export class ClientNetwork {
         if (dist > 0) entity.onMovement();
     };
 
-    processEntityRemove({data}: PacketType<SEntityRemovePacket>) {
+    processSEntityRemove({data}: PacketByName["SEntityRemove"]) {
         const entity = clientPlayer.world.entities[data];
         if (!entity) return printer.error("Entity not found: ", data);
         entity.despawn();
     };
 
-    processBlockUpdate({data}: PacketType<SBlockUpdatePacket>) {
+    processSBlockUpdate({data}: PacketByName["SBlockUpdate"]) {
         clientPlayer.world.setFullBlock(data.x, data.y, data.fullId);
         for (const player: CPlayer of clientPlayer.world.getPlayers()) {
             if (player.breaking && player.breaking[0] === data.x && player.breaking[1] === data.y) {
@@ -193,42 +157,42 @@ export class ClientNetwork {
         }
     };
 
-    processBlockBreakingUpdate({data}: PacketType<SBlockBreakingUpdatePacket>) {
+    processSBlockBreakingUpdate({data}: PacketByName["SBlockBreakingUpdate"]) {
         const entity = clientPlayer.world.entities[data.entityId];
         if (!(entity instanceof CPlayer)) return;
         entity.breaking = [data.x, data.y];
         entity.breakingTime = entity.world.getBlock(data.x, data.y).getHardness();
     };
 
-    processBlockBreakingStop({data}: PacketType<SBlockBreakingStopPacket>) {
+    processSBlockBreakingStop({data}: PacketByName["SBlockBreakingStop"]) {
         const entity = clientPlayer.world.entities[data.entityId];
         if (!(entity instanceof CPlayer)) return;
         entity.breaking = null;
         entity.breakingTime = 0;
     };
 
-    processSendMessage({data}: PacketType<SendMessagePacket>) {
-        clientPlayer.sendMessage(data);
+    processSDisconnect({data: reason}: PacketByName["SDisconnect"]) {
+        printer.warn("Got kicked: ", reason);
     };
 
-    processDisconnect({data: reason}: PacketType<SDisconnectPacket>) {
-        console.log("Got kicked: ", reason);
-    };
-
-    processSound({data: {x, y, path}}: PacketType<SPlaySoundPacket>) {
+    processSSound({data: {x, y, path}}: PacketByName["SPlaySound"]) {
         const distance = clientPlayer.distance(x, y);
         if (distance > 20) return;
         const volume = 1 / distance;
         Sound.play(path, volume);
     };
 
+    processSendMessage({data}: PacketByName["SendMessage"]) {
+        clientPlayer.sendMessage(data);
+    };
+
 
     sendStopBreaking(immediate = false) {
-        this.sendPacket(new CStopBreakingPacket(null), immediate);
+        this.sendPacket(new Packets.CStopBreaking(null), immediate);
     };
 
     sendStartBreaking(x: number, y: number, immediate = false) {
-        this.sendPacket(new CStartBreakingPacket({x, y}), immediate);
+        this.sendPacket(new Packets.CStartBreaking({x, y}), immediate);
     };
 
     sendAuth(immediate = true) {
@@ -238,21 +202,21 @@ export class ClientNetwork {
         canvas.height = skin.height;
         canvas.getContext("2d").drawImage(skin, 0, 0);
 
-        this.sendPacket(new CAuthPacket({
+        this.sendPacket(new Packets.CAuth({
             name: clientPlayer.name, skin: canvas.toDataURL(), protocol: CurrentGameProtocol
         }), immediate);
     };
 
     sendMovement(x: number, y: number, rotation: number, immediate = true) {
-        this.sendPacket(new CMovementPacket({x, y, rotation}), immediate);
+        this.sendPacket(new Packets.CMovement({x, y, rotation}), immediate);
     };
 
     sendMessage(message: string) {
-        this.sendPacket(new SendMessagePacket(message.split("\n")[0]));
+        this.sendPacket(new Packets.SendMessage(message.split("\n")[0]));
     };
 
-    sendPacket(pk: Packet<any>, immediate = false) {
-        if (immediate) {
+    sendPacket(pk: Packet, immediate = false) {
+        if (immediate || !isMultiPlayer) {
             if (this.connected) pk.send(this.worker);
             else this.immediate.push(pk);
         } else {
@@ -266,7 +230,7 @@ export class ClientNetwork {
         if (this.batch.length === 1) {
             this.sendPacket(this.batch[0], true);
         } else {
-            this.sendPacket(new BatchPacket(this.batch), true);
+            this.sendPacket(new Packets.Batch(this.batch), true);
         }
 
         this.batch.length = 0;

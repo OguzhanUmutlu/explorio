@@ -1,54 +1,39 @@
 import {Packet} from "./Packet";
-import {BatchPacket} from "./common/BatchPacket";
-import {PacketError} from "./PacketError";
-import {CMovementPacket} from "./client/CMovementPacket";
-import {SEntityUpdatePacket} from "./server/SEntityUpdatePacket";
 import {Entities} from "../meta/Entities";
-import {SBlockUpdatePacket} from "./server/SBlockUpdatePacket";
-import {CStartBreakingPacket} from "./client/CStartBreakingPacket";
-import {CStopBreakingPacket} from "./client/CStopBreakingPacket";
-import {SendMessagePacket} from "./common/SendMessagePacket";
 import {Player} from "../entity/types/Player";
-import {SDisconnectPacket} from "./server/SDisconnectPacket.js";
-import {server} from "../Server.js";
-import {readPacket} from "./Packets.js";
-import {CAuthPacket} from "./client/CAuthPacket.js";
-import {SHandshakePacket} from "./server/SHandshakePacket.js";
+import {PacketByName, Packets, readPacket} from "./Packets";
+import {PacketIds} from "../meta/PacketIds";
+import {getServer} from "../utils/Utils.js";
 
 export class PlayerNetwork {
-    batch: Packet<any>[] = [];
+    batch: Packet[] = [];
     uuid = crypto.randomUUID();
     player: Player;
     ip: string;
     kickReason: string;
+    server = getServer();
 
     constructor(public ws, public req) {
         this.ip = req.socket.remoteAddress;
     };
 
-    processPacket(pk: Packet<any>) {
-        if (pk instanceof BatchPacket) {
-            this.processBatch(pk);
-        } else if (pk instanceof CMovementPacket) {
-            this.processMovement(pk);
-        } else if (pk instanceof CStartBreakingPacket) {
-            this.processStartBreaking(pk);
-        } else if (pk instanceof CStopBreakingPacket) {
-            this.processStopBreaking(pk);
-        } else if (pk instanceof SendMessagePacket) {
-            this.processSendMessage(pk);
-        } else {
-            throw new PacketError("Invalid packet", pk);
-        }
+    processPacket(pk: Packet) {
+        const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
+        if (key in this) this[key](pk);
+        else console.warn("Unhandled packet: ", pk);
     };
 
-    processBatch({data}: BatchPacket) {
+    processBatch({data}: PacketByName["Batch"]) {
         for (const p of data) {
             this.processPacket(p);
         }
     };
 
-    processMovement({data}: CMovementPacket) {
+    processCQuit() {
+        throw new Error("This is not singleplayer.");
+    };
+
+    processCMovement({data}: PacketByName["CMovement"]) {
         if (
             Math.abs(this.player.x - data.x) > 1.5
             || Math.abs(this.player.y - data.y) > 5
@@ -61,34 +46,34 @@ export class PlayerNetwork {
         this.player.onMovement();
     };
 
-    processStartBreaking({data}: CStartBreakingPacket) {
+    processCStartBreaking({data}: PacketByName["CStartBreaking"]) {
         if (!this.player.world.canBreakBlockAt(this.player, data.x, data.y)) return this.sendBlock(data.x, data.y);
         this.player.breaking = [data.x, data.y];
         this.player.breakingTime = this.player.world.getBlock(data.x, data.y).getHardness();
         this.player.broadcastBlockBreaking();
     };
 
-    processStopBreaking(_: CStopBreakingPacket) {
+    processCStopBreaking() {
         if (!this.player.breaking) return;
         this.player.breaking = null;
         this.player.breakingTime = 0;
         this.player.broadcastBlockBreaking();
     };
 
-    processSendMessage({data}: SendMessagePacket) {
+    processSendMessage({data}: PacketByName["SendMessage"]) {
         if (!data) return;
         this.player.server.processMessage(this.player, data);
     };
 
     sendBlock(x: number, y: number, fullId = null, immediate = false) {
-        this.sendPacket(new SBlockUpdatePacket({
+        this.sendPacket(new Packets.SBlockUpdate({
             x, y,
             fullId: fullId ?? this.player.world.getFullBlockAt(x, y)
         }), immediate);
     };
 
     sendPosition(immediate = false) {
-        this.sendPacket(new SEntityUpdatePacket({
+        this.sendPacket(new Packets.SEntityUpdate({
             typeId: Entities.PLAYER,
             entityId: this.player.id,
             props: {x: this.player.x, y: this.player.y}
@@ -96,10 +81,10 @@ export class PlayerNetwork {
     };
 
     sendMessage(message: string, immediate = false) {
-        this.sendPacket(new SendMessagePacket(message), immediate);
+        this.sendPacket(new Packets.SendMessage(message), immediate);
     };
 
-    sendPacket(pk: Packet<any>, immediate = false) {
+    sendPacket(pk: Packet, immediate = false) {
         if (immediate) {
             pk.send(this.ws);
         } else {
@@ -108,7 +93,7 @@ export class PlayerNetwork {
     };
 
     async processPacketBuffer(data: Buffer) {
-        let pk: Packet<any>;
+        let pk: Packet;
         try {
             pk = readPacket(data);
         } catch (e) {
@@ -118,11 +103,11 @@ export class PlayerNetwork {
         }
 
         if (!this.player) {
-            if (!(pk instanceof CAuthPacket)) {
+            if (!(pk instanceof Packets.CAuth)) {
                 return this.kick("Invalid auth");
             }
 
-            if (pk.data.name in server.players) {
+            if (pk.data.name in this.server.players) {
                 return this.kick("You are already in game");
             }
 
@@ -130,22 +115,22 @@ export class PlayerNetwork {
             player.network = this;
             player.skin = pk.data.skin;
             player.init();
-            server.players[player.name] = player;
-            player.network.sendPacket(new SHandshakePacket({
+            this.server.players[player.name] = player;
+            player.network.sendPacket(new Packets.SHandshake({
                 entityId: this.player.id,
                 x: player.x,
                 y: player.y
             }), true);
             player.broadcastSpawn();
             printer.info(`${this.player.name}(${this.ip}) connected`)
-            server.broadcastMessage(`§e${this.player.name} joined the server`);
+            await this.server.broadcastMessage(`§e${this.player.name} joined the server`);
         } else {
             try {
                 this.processPacket(pk);
             } catch (e) {
                 printer.error(pk);
                 printer.error(e);
-                this.kick("Invalid packet");
+                await this.kick("Invalid packet");
                 return;
             }
         }
@@ -154,19 +139,19 @@ export class PlayerNetwork {
     kick(reason = "Kicked by an operator") {
         this.kickReason = reason;
         if (this.player) {
-            delete server.players[this.player.name];
+            delete this.server.players[this.player.name];
         }
-        new SDisconnectPacket(reason).send(this.ws);
+        new Packets.SDisconnect(reason).send(this.ws);
         this.ws.close();
     };
 
     async onClose() {
         if (this.player) {
             await this.player.save();
-            delete server.players[this.player.name];
+            delete this.server.players[this.player.name];
             this.player.despawn();
             printer.info(`${this.player.name}(${this.ip}) disconnected: ${this.kickReason || "client disconnect"}`);
-            server.broadcastMessage(`§e${this.player.name} left the server`);
+            this.server.broadcastMessage(`§e${this.player.name} left the server`);
             this.player = null;
         }
     };
@@ -177,7 +162,7 @@ export class PlayerNetwork {
         if (this.batch.length === 1) {
             this.sendPacket(this.batch[0], true);
         } else {
-            this.sendPacket(new BatchPacket(this.batch), true);
+            this.sendPacket(new Packets.Batch(this.batch), true);
         }
 
         this.batch.length = 0;

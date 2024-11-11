@@ -1,4 +1,4 @@
-import {im2f} from "../meta/Items";
+import {im2f, ItemMetadata} from "../meta/Items";
 import {B, BM, I} from "../meta/ItemIds";
 import {BoundingBox} from "../entity/BoundingBox";
 import {Generator} from "./generators/Generator";
@@ -16,11 +16,10 @@ import {
     zstdOptionalEncode
 } from "../utils/Utils";
 import {Player} from "../entity/types/Player";
-import {SPlaySoundPacket} from "../packet/server/SPlaySoundPacket";
-import {Packet} from "../packet/Packet";
-import {SChunkPacket} from "../packet/server/SChunkPacket";
+import {Packet} from "../network/Packet";
 import {Entity} from "../entity/Entity";
 import {Server} from "../Server";
+import {Packets} from "../network/Packets";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -138,7 +137,7 @@ export class World {
         chunk[i] = fullId;
         const chunkX = x >> CHUNK_LENGTH_BITS;
         if (polluteChunk) this.dirtyChunks.add(chunkX);
-        if (broadcast) this.broadcastBlockAt(x, y, fullId);
+        if (broadcast) this.broadcastBlockAt(x, y, fullId); // the promise doesn't matter.
         return true;
     };
 
@@ -177,6 +176,9 @@ export class World {
             const chunk = ChunkStruct.deserialize(buffer);
             this.chunks[x] = chunk.data;
             this.chunksGenerated.add(x);
+            for (const viewer of this.getChunkViewers(x)) {
+                await this.sendChunk(viewer, x);
+            }
         } catch (e) {
             printer.warn(`Chunk ${x} is corrupted, regenerating...`, e);
             this.chunksGenerated.delete(x);
@@ -217,7 +219,7 @@ export class World {
         delete this.chunkEntities[x];
     };
 
-    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteChunk = true, broadcast = true) {
+    async tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteChunk = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
         if (
@@ -239,7 +241,7 @@ export class World {
         }
         const chunkX = x >> CHUNK_LENGTH_BITS;
         if (polluteChunk) this.dirtyChunks.add(chunkX);
-        if (broadcast) this.broadcastBlockAt(x, y, fullId);
+        if (broadcast) await this.broadcastBlockAt(x, y, fullId);
         return true;
     };
 
@@ -272,11 +274,12 @@ export class World {
     };
 
     getBlockCollisions(bb: BoundingBox, limit = Infinity) {
-        const collisions = [];
+        const collisions: { x: number, y: number, block: ItemMetadata }[] = [];
         for (let x = Math.floor(bb.x); x <= Math.ceil(bb.x + bb.width); x++) {
             for (let y = Math.floor(bb.y); y <= Math.ceil(bb.y + bb.height); y++) {
-                if (!this.getBlock(x, y).canBePhased && bb.collidesBlock(x, y)) { // TODO: check for collision after adding slabs etc.
-                    collisions.push({x, y});
+                const block = this.getBlock(x, y);
+                if (!block.canBePhased && bb.collidesBlock(x, y)) { // TODO: check for collision after adding slabs etc.
+                    collisions.push({x, y, block});
                     if (collisions.length >= limit) return collisions;
                 }
             }
@@ -308,23 +311,23 @@ export class World {
         return 0;
     };
 
-    playSound(path: string, x: number, y: number): void {
-        this.broadcastPacketAt(x, y, new SPlaySoundPacket({path, x, y}));
+    async playSound(path: string, x: number, y: number) {
+        await this.broadcastPacketAt(x, y, new Packets.SPlaySound({path, x, y}));
     };
 
     async getChunkBuffer(x: number): Promise<Buffer | null> {
         const path = this.path + "/chunks/" + x + ".dat";
-        if (!await this.server.fs.existsSync(path)) return null;
-        return await this.server.fs.readFileSync(path);
+        if (!await this.server.fileExists(path)) return null;
+        return await this.server.readFile(path);
     };
 
     async setChunkBuffer(x: number, buffer: Buffer) {
-        await this.server.fs.mkdirSync(this.path + "/chunks", {recursive: true, mode: 0o777});
-        await this.server.fs.writeFileSync(this.path + "/chunks/" + x + ".dat", buffer);
+        await this.server.createDirectory(this.path + "/chunks");
+        await this.server.writeFile(this.path + "/chunks/" + x + ".dat", buffer);
     };
 
     async removeChunkBuffer(x: number) {
-        await this.server.fs.rmSync(this.path + "/chunks/" + x + ".dat");
+        await this.server.deleteFile(this.path + "/chunks/" + x + ".dat");
     };
 
     getChunkViewers(chunkX: number) {
@@ -338,7 +341,7 @@ export class World {
         return players;
     };
 
-    broadcastPacketAt(x: number, y: number, pk: Packet<any>, exclude: Player[] = [], immediate = false) {
+    broadcastPacketAt(x: number, y: number, pk: Packet, exclude: Player[] = [], immediate = false) {
         const chunkX = x >> CHUNK_LENGTH_BITS;
         for (const player of this.getChunkViewers(chunkX)) {
             if (!exclude.includes(player)) player.network.sendPacket(pk, immediate);
@@ -360,7 +363,7 @@ export class World {
         const entities = this.chunkEntities[chunkX].filter(i => i !== player).map(i => ({
             entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
         }));
-        player.network.sendPacket(new SChunkPacket({
+        player.network.sendPacket(new Packets.SChunk({
             x: chunkX, data: chunk, entities, resetEntities: true
         }), true);
     };

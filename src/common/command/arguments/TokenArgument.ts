@@ -1,5 +1,5 @@
 import {CommandArgument} from "../CommandArgument";
-import {AnyToken} from "../CommandProcessor.js";
+import {AnyToken} from "../CommandProcessor";
 
 export class TokenArgument extends CommandArgument<AnyToken> {
     default = null;
