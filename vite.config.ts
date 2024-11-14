@@ -13,22 +13,31 @@ export default defineConfig({
     build: {
         target: "ES2022",
         assetsDir: ".",
+        outDir: path.resolve(__dirname, "client-dist"),
+        emptyOutDir: true,
         rollupOptions: {
-            input: path.resolve(__dirname, "src/client/main.tsx"),
+            input: path.resolve(__dirname, "src/client/index.html"),
             external: ["src/server/**"],
             output: {
                 entryFileNames: "[name].js",
                 chunkFileNames: "[name].js",
-                assetFileNames: "[name].[ext]"
+                assetFileNames: "[name].[ext]",
+                format: "es"
+            },
+            onwarn(warning, warn) {
+                if (warning.code !== "EVAL") warn(warning);
             }
         },
-        chunkSizeWarningLimit: 2000
+        chunkSizeWarningLimit: 4096
+    },
+    worker: {
+        format: "es"
     },
     plugins: [
         copy([
             {
                 src: path.resolve(__dirname, "src/client/assets/*").replaceAll("\\", "/"),
-                dest: path.resolve(__dirname, "src/client/dist/assets").replaceAll("\\", "/")
+                dest: path.resolve(__dirname, "client-dist/assets").replaceAll("\\", "/")
             }
         ], {
             hook: "writeBundle"

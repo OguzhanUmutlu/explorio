@@ -40,8 +40,9 @@ export function simpleTypeChecker(sample: any, any: any) {
 
 let assetsBase = "./";
 if (typeof global !== "undefined") {
-    // @ts-ignore
-    assetsBase = (await import("path")).dirname((await import("url")).fileURLToPath(import.meta.url)) + "/../client/";
+    assetsBase = (await import(/* @vite-ignore */ eval("'path'")))
+        .dirname((await import(/* @vite-ignore */ eval("'url'")))
+            .fileURLToPath(import.meta.url)) + "/../client/";
 }
 
 export function simplifyTexturePath(path: string) {

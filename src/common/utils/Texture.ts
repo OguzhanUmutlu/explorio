@@ -6,7 +6,7 @@ const pseudoCanvas = <any>{getContext: () => ({fillRect: (r: any) => r})};
 // @ts-ignore
 let nodeCanvas: import("canvas") = null;
 try {
-    nodeCanvas = await import(/* @vite-ignore */ "canva" + String.fromCharCode(115));
+    nodeCanvas = await import(/* @vite-ignore */ eval("'canvas'"));
 } catch (e) {
 }
 
