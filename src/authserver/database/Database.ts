@@ -5,7 +5,7 @@ export type User = {
 };
 
 export abstract class Database {
-    abstract async getUserByToken(token: string): Promise<User | null>;
-    abstract async getUserByCredentials(name: string, password: string): Promise<User | null>;
-    abstract async init(): Promise<void>;
+    abstract getUserByToken(token: string): Promise<User | null>;
+    abstract getUserByCredentials(name: string, password: string): Promise<User | null>;
+    abstract init(): Promise<void>;
 }

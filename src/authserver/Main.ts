@@ -35,8 +35,8 @@ await db.init();
 
 app.get("/login", async (req, res) => {
     const user = await db.getUserByCredentials(
-        req.query.name,
-        req.query.password
+        req.query.name.toString(),
+        req.query.password.toString()
     );
 
     if (!user) {

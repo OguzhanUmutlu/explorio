@@ -6,13 +6,13 @@ export default class TestDB extends Database {
     async init() {
     };
 
-    async getUserByToken(token) {
+    async getUserByToken(token: string) {
         if (token !== root.token) return null;
 
         return root;
     };
 
-    async getUserByCredentials(name, password) {
+    async getUserByCredentials(name: string, password: string) {
         if (name !== root.name || password !== root.password) return null;
 
         return root;
