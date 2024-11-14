@@ -157,7 +157,6 @@ export const EntitySaveStruct: Bin<Entity> = X.makeBin({
         const typeId = buffer[index[0]++];
         const struct = EntityStructs[typeId];
         const obj = struct.read(buffer, index);
-        console.log(obj);
         const entity = new (EntityClasses[typeId])(null);
 
         for (const k in obj) {

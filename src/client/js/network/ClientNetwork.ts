@@ -33,7 +33,7 @@ export class ClientNetwork {
             this.processPacket(packet);
         } catch (err) {
             if (err instanceof PacketError) throw err;
-            console.error(err);
+            printer.error(err);
             throw new PacketError(err.message, buf);
         }
     };
@@ -70,7 +70,7 @@ export class ClientNetwork {
     processPacket(pk: Packet) {
         const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
         if (key in this) this[key](pk);
-        else console.warn("Unhandled packet: ", pk);
+        else printer.warn("Unhandled packet: ", pk);
     };
 
     processBatch({data}: PacketByName<"Batch">) {

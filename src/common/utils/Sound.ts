@@ -48,12 +48,12 @@ export class Sound {
     };
 
     static play(src: string, volume = 1) {
-        if (!this.canCreateContext) return console.warn("Audio context creation failed.");
+        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
         this.get(src).play(volume);
     };
 
     static async loadAmbientAsync(src: string, volume = 1) {
-        if (!this.canCreateContext) return console.warn("Audio context creation failed.");
+        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
         if (this.ambients[src]) return this.ambients[src].gain.gain.value = volume;
         const sound = Sound.get(src);
         await sound.wait();
@@ -63,14 +63,14 @@ export class Sound {
     };
 
     static async playAmbientAsync(src: string, volume = 1) {
-        if (!this.canCreateContext) return console.warn("Audio context creation failed.");
+        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
         await Sound.stopAmbientAsync(src, volume);
         await this.loadAmbientAsync(src, volume);
         this.ambients[src].start();
     };
 
     static async stopAmbientAsync(src: string, volume = 1) {
-        if (!this.canCreateContext) return console.warn("Audio context creation failed.");
+        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
         await this.loadAmbientAsync(src, volume);
         if (this.ambients[src]) this.ambients[src].stop();
         delete this.ambients[src];
@@ -85,7 +85,7 @@ export class Sound {
     };
 
     async playAsync(volume = 1, play = true): Promise<SoundContext> {
-        if (!Sound.canCreateContext) return new Promise(() => console.warn("Audio context creation failed."));
+        if (!Sound.canCreateContext) return new Promise(() => printer.warn("Audio context creation failed."));
         if (!this.loaded) await this.wait();
         let extraVol = 1;
         if (this.actualSrc.startsWith("assets/sounds/"))

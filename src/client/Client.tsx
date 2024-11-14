@@ -160,7 +160,6 @@ function animate() {
     const world = clientPlayer.world as CWorld;
 
     // 0.1ms
-    console.time();
     for (let x = minSubX; x <= maxSubX; x++) {
         for (let y = minSubY; y <= maxSubY; y++) {
             world.renderSubChunk(x, y);
@@ -171,7 +170,6 @@ function animate() {
             ctx.drawImage(render.canvas, pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
         }
     }
-    console.timeEnd();
 
     // 0.01ms
     const chunkX = clientPlayer.x >> CHUNK_LENGTH_BITS;
@@ -390,7 +388,7 @@ export async function initClient() {
         self.fsr = {};
         BrowserFS.install(self.fsr);
         await new Promise(r => BrowserFS.configure({fs: "IndexedDB", options: {}}, e => {
-            if (e) console.error(e);
+            if (e) printer.error(e);
             else r(null);
         }));
         self.bfs = self.fsr.require("fs");

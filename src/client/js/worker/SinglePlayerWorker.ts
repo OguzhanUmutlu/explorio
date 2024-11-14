@@ -11,7 +11,7 @@ onmessage = async ({data: uuid}) => {
     self.fsr = {};
     BrowserFS.install(self.fsr);
     await new Promise(r => BrowserFS.configure({fs: "IndexedDB", options: {}}, e => {
-        if (e) console.error(e);
+        if (e) printer.error(e);
         else r(null);
     }));
     self.bfs = self.fsr.require("fs");
@@ -19,7 +19,7 @@ onmessage = async ({data: uuid}) => {
     await initServerThings();
     const printer = console;
     // @ts-ignore
-    printer.pass = console.log;
+    printer.pass = printer.log;
     // @ts-ignore
     self.printer = printer;
 

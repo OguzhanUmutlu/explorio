@@ -20,7 +20,7 @@ export class PlayerNetwork {
     processPacket(pk: Packet) {
         const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
         if (key in this) this[key](pk);
-        else console.warn("Unhandled packet: ", pk);
+        else printer.warn("Unhandled packet: ", pk);
     };
 
     processBatch({data}: PacketByName<"Batch">) {
