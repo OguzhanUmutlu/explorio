@@ -1,19 +1,20 @@
-import {chatBox, ChatLimit, clientNetwork, Keyboard, Mouse} from "../../Client";
 import {CPlayer} from "./CPlayer";
 import {I} from "../../../../common/meta/ItemIds";
-import {Containers} from "../../../../common/meta/Inventories.js";
+import {Containers} from "../../../../common/meta/Inventories";
+import {chatBox, clientNetwork, Keyboard, Mouse} from "../../../Client";
+import {Options} from "../../utils/Utils";
 
 export class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
     placeTime = 0;
     name = "";
 
-    render(dt) {
+    render(ctx: CanvasRenderingContext2D, dt: number) {
         this.placeTime = Math.max(0, this.placeTime - dt);
         this.renderX = this.x;
         this.renderY = this.y;
         this.renderHeadRotation = this.rotation = this.getRotationTowards(Mouse.x, Mouse.y);
-        super.render(dt);
+        super.render(ctx, dt);
     };
 
     update(dt: number) {
@@ -110,7 +111,7 @@ export class OriginPlayer extends CPlayer {
 
         chatBox.appendChild(div);
 
-        while (chatBox.children.length > ChatLimit) {
+        while (chatBox.children.length > Options.chatLimit) {
             chatBox.children.item(0).remove();
         }
 

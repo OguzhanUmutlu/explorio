@@ -1,13 +1,16 @@
 import {CommandArgument} from "../CommandArgument";
+import {CommandAs} from "../CommandSender";
+import {Location} from "../../utils/Location";
+import {AnyToken} from "../CommandProcessor";
 
 export class RangeArgument extends CommandArgument<[number, number]> {
-    default = [0, 0];
+    default = <[number, number]>[0, 0];
 
-    read(as, at, args, index) {
-        return args[index].value;
+    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
+        return <[number, number]>args[index].value;
     };
 
-    blindCheck(args, index) {
+    blindCheck(args: AnyToken[], index: number) {
         return {pass: args[index] && args[index].type === "range", index: index + 1};
     };
 

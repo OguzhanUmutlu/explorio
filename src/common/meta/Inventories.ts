@@ -10,7 +10,7 @@ export enum Containers {
 
 export enum Inventories {
     Hotbar = "hotbar",
-    Player = "playerInventory",
+    Player = "player",
     Armor = "armor",
     Cursor = "cursor",
     Chest = "chest",
@@ -19,6 +19,19 @@ export enum Inventories {
     CraftingSmallResult = "craftingSmallResult",
     CraftingBig = "craftingBig",
     CraftingBigResult = "craftingBigResult"
+}
+
+export enum InventorySizes {
+    hotbar = 9,
+    player = 27,
+    armor = 4,
+    cursor = 1,
+    chest = 27,
+    doubleChest = 54,
+    craftingSmall = 4,
+    craftingSmallResult = 1,
+    craftingBig = 9,
+    craftingBigResult = 1
 }
 
 export const ContainerNameBin = <Bin<Inventories>>X.any.of(Object.values(Inventories).map(X.makeLiteral));

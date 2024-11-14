@@ -60,7 +60,7 @@ app.get("/generate/:token", async (req, res) => {
         return;
     }
 
-    const ip = req.query.ip;
+    const ip = <string>req.query.ip;
 
     if (ip === "::1") {
         if (req.ip !== ip) {

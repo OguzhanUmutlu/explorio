@@ -1,7 +1,10 @@
 import {Entity} from "../../entity/Entity";
 import {EntitiesArgument} from "./EntitiesArgument";
+import {CommandAs} from "../CommandSender";
+import {Location} from "../../utils/Location";
+import {AnyToken} from "../CommandProcessor";
 
-export class EntityArgument<T = Entity> extends EntitiesArgument<Entity> {
+export class EntityArgument<T extends Entity = Entity> extends EntitiesArgument<T> {
     default = <T>null;
 
     getDefault() {
@@ -9,7 +12,7 @@ export class EntityArgument<T = Entity> extends EntitiesArgument<Entity> {
         return this.default;
     };
 
-    read(as, at, args, index) {
+    read(as: CommandAs, at: Location, args: AnyToken[], index: number) {
         return super.read(as, at, args, index)[0];
     };
 

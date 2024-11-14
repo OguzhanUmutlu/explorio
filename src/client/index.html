@@ -4,60 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/index.css">
-    <title>Block Game</title>
+    <title>Explorio</title>
 </head>
 
 <body>
-<div class="panorama"></div>
-<div class="main-menu">
-    <div class="title">Explorio</div>
-    <div class="buttons">
-        <div class="singleplayer btn">Singleplayer</div>
-        <div class="multiplayer btn">Multiplayer</div>
-        <div class="options btn">Options</div>
-    </div>
-</div>
-<div class="black-background"></div>
-<div class="singleplayer-container container">
-    <div class="close-btn">x</div>
-    <div class="flex">
-        <div class="search"><input placeholder="Search..."></div>
-        <div class="new-world btn">New world</div>
-    </div>
-    <div class="world-list"></div>
-</div>
-<div class="multiplayer-container container">
-    <div class="close-btn">x</div>
-    <div class="flex">
-        <div class="search"><input placeholder="Search..."></div>
-        <div class="new-server btn">New server</div>
-    </div>
-    <div class="server-list"></div>
-</div>
-<div class="new-world-container container">
-    <div class="close-btn">x</div>
-    <div class="mid-title">Create a world</div>
-    <div class="error"></div>
-    <div class="world-name"><input placeholder="World name..."></div>
-    <div class="world-seed"><input type="number" placeholder="World seed..."></div>
-    <div class="create-world btn">Create</div>
-</div>
-<div class="new-server-container container">
-    <div class="close-btn">x</div>
-    <div class="mid-title">Add a server</div>
-    <div class="error"></div>
-    <div class="server-name"><input placeholder="Server name..."></div>
-    <div class="server-ip"><input placeholder="Server IP..."></div>
-    <div class="server-port"><input placeholder="Server port..."></div>
-    <div class="create-server btn">Create</div>
-</div>
-<div class="options-container container"></div>
-<div class="text-left">Explorio 1.0.0</div>
-<div class="text-right">No copyright. Do distribute! <a href="https://github.com/OguzhanUmutlu/explorio">Click for the source code!</a></div>
+<div id="root"></div>
 </body>
-<script type="module">
-    import "./js/Index";
-</script>
+<script type="module" src="./renderer.tsx"></script>
 </html>

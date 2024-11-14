@@ -1,13 +1,14 @@
 import X, {Bin} from "stramp";
 import {ItemStruct} from "../item/Item";
-import {Inventory} from "../item/Inventory.js";
+import {Inventory} from "../item/Inventory";
 import {Entities, EntityClasses} from "../meta/Entities";
 import {Entity} from "../entity/Entity";
 import {ChunkBlocksBin} from "./Bins";
 import {ZstdSimple} from "@oneidentity/zstd-js";
-import {Inventories} from "../meta/Inventories.js";
-import {World} from "../world/World.js";
-import {Server} from "../Server.js";
+import {Inventories, InventorySizes} from "../meta/Inventories";
+import {World} from "../world/World";
+import {Server} from "../Server";
+import {Location} from "./Location";
 
 let server: Server;
 
@@ -23,7 +24,7 @@ export function getUTCDate() {
     return Date.now() + new Date().getTimezoneOffset() * 60 * 1000;
 }
 
-export function simpleTypeChecker(sample, any) {
+export function simpleTypeChecker(sample: any, any: any) {
     if ((sample === null) !== (any === null)) return false;
     if (sample === null) return true;
     const t = typeof sample;
@@ -37,8 +38,9 @@ export function simpleTypeChecker(sample, any) {
     return true;
 }
 
-let assetsBase = "";
+let assetsBase = "./";
 if (typeof global !== "undefined") {
+    // @ts-ignore
     assetsBase = (await import("path")).dirname((await import("url")).fileURLToPath(import.meta.url)) + "/../client/";
 }
 
@@ -86,10 +88,10 @@ const ItemList = X.array.typed(ItemStruct.or(X.null));
 export const ContainerStruct = (size: number) => {
     return X.makeBin({
         name: `Container<${size}>`,
-        write: (buffer, index, inv) => ItemList.write(buffer, index, inv.serialize()),
+        write: (buffer, index, inv) => ItemList.write(buffer, index, inv.getContents()),
         read: (buffer, index) => new Inventory(size).setContents(ItemList.read(buffer, index)),
-        size: inv => ItemList.getSize(inv.contents),
-        validate: inv => ItemList.validate(inv.contents),
+        size: inv => ItemList.getSize(inv.getContents()),
+        validate: inv => ItemList.validate(inv.getContents()),
         sample: () => new Inventory(size)
     });
 };
@@ -121,16 +123,16 @@ export const PlayerStruct = EntityStruct.extend({
     world: WorldFolder,
     permissions: X.set.typed(X.string16),
     handIndex: X.u8,
-    [Inventories.Hotbar]: ContainerStruct(9),
-    [Inventories.Player]: ContainerStruct(27),
-    [Inventories.Armor]: ContainerStruct(4),
-    [Inventories.Cursor]: ContainerStruct(1),
-    [Inventories.Chest]: ContainerStruct(27),
-    [Inventories.DoubleChest]: ContainerStruct(54),
-    [Inventories.CraftingSmall]: ContainerStruct(4),
-    [Inventories.CraftingSmallResult]: ContainerStruct(1),
-    [Inventories.CraftingBig]: ContainerStruct(9),
-    [Inventories.CraftingBigResult]: ContainerStruct(1),
+    [Inventories.Hotbar]: ContainerStruct(InventorySizes.hotbar),
+    [Inventories.Player]: ContainerStruct(InventorySizes.player),
+    [Inventories.Armor]: ContainerStruct(InventorySizes.armor),
+    [Inventories.Cursor]: ContainerStruct(InventorySizes.cursor),
+    [Inventories.Chest]: ContainerStruct(InventorySizes.chest),
+    [Inventories.DoubleChest]: ContainerStruct(InventorySizes.doubleChest),
+    [Inventories.CraftingSmall]: ContainerStruct(InventorySizes.craftingSmall),
+    [Inventories.CraftingSmallResult]: ContainerStruct(InventorySizes.craftingSmallResult),
+    [Inventories.CraftingBig]: ContainerStruct(InventorySizes.craftingBig),
+    [Inventories.CraftingBigResult]: ContainerStruct(InventorySizes.craftingBigResult),
     xp: X.u32,
     blockReach: X.f32,
     attackReach: X.f32,
@@ -154,6 +156,7 @@ export const EntitySaveStruct: Bin<Entity> = X.makeBin({
         const typeId = buffer[index[0]++];
         const struct = EntityStructs[typeId];
         const obj = struct.read(buffer, index);
+        console.log(obj);
         const entity = new (EntityClasses[typeId])(null);
 
         for (const k in obj) {
@@ -166,7 +169,7 @@ export const EntitySaveStruct: Bin<Entity> = X.makeBin({
     validate: entity => {
         if (!(entity instanceof Entity) || !entity.struct) return "Not an entity";
     },
-    sample: () => <Entity<any>>null
+    sample: () => <Entity>null
 });
 
 export function permissionCheck(permissions: Set<string>, wanted: string) {
@@ -234,7 +237,7 @@ export function levelsToXP(levels: number): number {
     else return 4.5 * levels * levels - 162.5 * levels + 2220;
 }
 
-export const SelectorSorters = {
+export const SelectorSorters: Record<string, (a: Entity, b: Entity, at: Location) => number> = {
     nearest: (a, b, at) => a.distance(at.x, at.y) - b.distance(at.x, at.y),
     furthest: (a, b, at) => b.distance(at.x, at.y) - a.distance(at.x, at.y),
     type: (a, b) => a.typeName.localeCompare(b.typeName),

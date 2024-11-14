@@ -9,28 +9,24 @@ import {checkArray, checkObject} from "../utils/Utils";
 
 export const SelectorTags = ["a", "p", "s", "e", "c"] as const;
 export type SelectorTagName = typeof SelectorTags[number];
-export type TokenType =
-    "text"
-    | "number"
-    | "range"
-    | "bool"
-    | "selector"
-    | "object"
-    | "array"
-    | "rawObject"
-    | "rawArray";
 type TokenTypeMap = {
     text: string;
     number: number;
     bool: boolean;
     selector: SelectorTagName;
-    object: Record<string, TokenValue>;
-    array: TokenValue[];
+    range: [number, number];
+    object: { [k: string]: TokenValue };
+    array: TokenValueArray;
     rawObject: Record<string, AnyToken>;
     rawArray: AnyToken[];
 };
+export type TokenType = keyof TokenTypeMap;
 
-export type TokenValue<T extends keyof TokenTypeMap = keyof TokenTypeMap> = TokenTypeMap[T];
+type TokenValueArray = TokenValue[];
+
+export type TokenValue<T extends keyof TokenTypeMap = keyof TokenTypeMap> = T extends "array"
+    ? TokenValueArray
+    : TokenTypeMap[T];
 
 export const WordRegex = /^[a-zA-Z~_^!][a-zA-Z~_^!\d]*/;
 
@@ -44,7 +40,7 @@ export class Token<T extends TokenType = TokenType> {
     constructor(public text: string, public start: number, public end: number, public type: T, public value: TokenValue<T>) {
         this.raw = text.substring(start, end);
         this.rawText = this.raw;
-        if (this.type === "text") this.rawText = this.value;
+        if (this.type === "text") this.rawText = <string>this.value;
     };
 
     toJSON() {
@@ -84,9 +80,9 @@ export class Token<T extends TokenType = TokenType> {
                     && value >= this.value[0]
                     && value <= this.value[1];
             case "object":
-                return checkObject(this.value, value);
+                return checkObject(<Object>this.value, value);
             case "array":
-                return checkArray(this.value, value);
+                return checkArray(<any[]>this.value, value);
             case "rawArray":
                 const arr = <TokenValue<"rawArray">>this.value;
                 for (let i = 0; i < arr.length; i++) {
@@ -135,7 +131,7 @@ export class Token<T extends TokenType = TokenType> {
     };
 }
 
-export class SelectorToken extends Token<SelectorTagName> {
+export class SelectorToken extends Token<"selector"> {
     constructor(text: string, start: number, end: number, value: SelectorTagName, public filters: TokenValue<"rawObject">) {
         super(text, start, end, "selector", value);
     };
@@ -149,13 +145,14 @@ export function readBool(text: string, index: number): Token<"bool"> | null {
 }
 
 export function readSelector(text: string, index: number): SelectorToken {
-    if (text[index] !== "@" || !SelectorTags.includes(text[index + 1])) return null;
+    const selName = <SelectorTagName>text[index + 1];
+    if (text[index] !== "@" || !SelectorTags.includes(selName)) return null;
 
     if (text[index + 2] === "{") {
         const args = readObject(text, index + 2, false, true);
-        return new SelectorToken(text, index, args.end, text[index + 1], args.value);
+        return new SelectorToken(text, index, args.end, selName, args.value);
     } else if (text[index + 2] && text[index + 2] !== " ") return null;
-    return new SelectorToken(text, index, index + 1, text[index + 1], {});
+    return new SelectorToken(text, index, index + 1, selName, {});
 }
 
 export function readString(text: string, index: number): Token<"text"> | null {
@@ -205,7 +202,7 @@ export function readWordOrString(text: string, index: number, regex: RegExp = Wo
 }
 
 export function readNumber(text: string, index: number) {
-    if (isNaN(text[index] * 1)) return null; // Only allowing X and X.X syntax for numbers.
+    if (isNaN(+text[index])) return null; // Only allowing X and X.X syntax for numbers.
     const word = readWord(text, index, /^-?(\d+)|-?(\d+\.\d+)/);
     return Token.number(text, word.start, word.end, parseFloat(word.value));
 }

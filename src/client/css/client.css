@@ -8,24 +8,16 @@ body {
     cursor: crosshair;
 }
 
-.cursor {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 24px;
-    height: 24px;
-    background-image: url("../assets/textures/gui/cursor.png");
-    background-size: 100% 100%;
-    z-index: 100;
-    translate: -50% -50%;
-}
-
 .f3-menu {
     position: absolute;
     padding: 5px;
     background: rgba(0, 0, 0, 0.5);
     border-bottom-right-radius: 10px;
     font-size: 26px;
+}
+
+.f3-menu > span {
+    margin-left: 5px;
 }
 
 .inventory {
@@ -163,7 +155,7 @@ body {
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
-    z-index: 3;
+    z-index: 4;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -195,14 +187,13 @@ body {
     transition: all 0.3s;
     aspect-ratio: 176 / 166;
     background-size: 100% 100%;
-    opacity: 0;
-    pointer-events: none;
-    z-index: 2;
+    scale: 0;
+    z-index: 3;
 }
 
 .player-inventory-container > div {
     position: absolute;
-    z-index: 1;
+    z-index: 3;
 }
 
 .inv-pp {
@@ -255,4 +246,8 @@ body {
 
 .inv-pcr > .inventory-item {
     width: 100%;
+}
+
+.options-menu {
+    z-index: 3;
 }

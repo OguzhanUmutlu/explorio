@@ -2,7 +2,7 @@ import {Generator} from "./Generator";
 import {B, I} from "../../meta/ItemIds";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
-import {Chunk, World} from "../World";
+import {ChunkData, World} from "../World";
 import {CAVE_SCALE, CHUNK_LENGTH, SURFACE_HEIGHT} from "../../utils/Utils";
 
 export class DefaultGenerator extends Generator {
@@ -14,7 +14,7 @@ export class DefaultGenerator extends Generator {
     noiseRedstone: NoiseFunction2D;
     noiseDiamond: NoiseFunction2D;
 
-    setWorld(world) {
+    setWorld(world: World) {
         super.setWorld(world);
 
         this.noise = createNoise2D(alea(world.seed));
@@ -26,7 +26,7 @@ export class DefaultGenerator extends Generator {
         this.noiseDiamond = createNoise2D(alea(world.seed + 6));
     };
 
-    static plantTree(world: World, chunk: Chunk, noi: number, x: number, y: number, worldX: number) {
+    static plantTree(world: World, chunk: ChunkData, noi: number, x: number, y: number, worldX: number) {
         const treeLength = Math.floor(noi + 5);
         for (let i = 0; i < treeLength; i++) {
             chunk[x + (i + y) * CHUNK_LENGTH] = B.NATURAL_LOG;
@@ -51,7 +51,7 @@ export class DefaultGenerator extends Generator {
         return treeLength;
     };
 
-    generate(chunkX): void {
+    generate(chunkX: number): void {
         const world = this.world;
         const chunk = world.chunks[chunkX];
         const chunkXM = chunkX * CHUNK_LENGTH;

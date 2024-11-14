@@ -1,10 +1,10 @@
 import {Entity} from "../../../common/entity/Entity";
-import {CWorld} from "../world/CWorld";
 
-export interface CEntity extends Entity<CWorld> {
+export interface CEntity extends Entity {
     typeId: number;
     typeName: string;
     name: string;
 
+    render(ctx: CanvasRenderingContext2D, dt: number): void;
     serverUpdate(dt: number): void;
 }

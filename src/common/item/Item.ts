@@ -1,7 +1,7 @@
 import {BM, I, ItemsByAccess} from "../meta/ItemIds";
 import X from "stramp";
-import {im2f} from "../meta/Items.js";
-import {Canvas} from "../utils/Texture.js";
+import {im2f} from "../meta/Items";
+import {Canvas} from "../utils/Texture";
 
 export class Item {
     constructor(
@@ -45,10 +45,6 @@ export class Item {
 
     clone(count: number) {
         return new Item(this.id, this.meta, count ?? this.count, JSON.parse(JSON.stringify(this.nbt)))
-    };
-
-    serialize() {
-        return {id: this.id, meta: this.meta, count: this.count, nbt: JSON.parse(JSON.stringify(this.nbt))};
     };
 
     static deserialize(data: any) {
@@ -121,7 +117,7 @@ export class ItemPool {
         return select.evaluate();
     };
 
-    static fromidentifier(name: string) {
+    static fromIdentifier(name: string) {
         return ItemsByAccess[name] || null;
     };
 }
@@ -131,4 +127,4 @@ export const ItemStruct = X.object.struct({
     meta: X.u8,
     count: X.u8,
     nbt: X.object
-}).class(Item, ({id, meta, count, nbt}) => new Item(id, meta, count, nbt));
+}).class(new Item(0), ({id, meta, count, nbt}) => new Item(id, meta, count, nbt));

@@ -1,15 +1,17 @@
-import {Packet,} from "../../../common/network/Packet.js";
-import {getWSUrls, setServerOptions, URLPrefix} from "../utils/Utils.js";
-import {clientPlayer, isMultiPlayer, ServerData} from "../Client.js";
-import {DEFAULT_GRAVITY} from "../../../common/entity/Entity.js";
-import {CurrentGameProtocol, PacketByName, Packets, readPacket} from "../../../common/network/Packets.js";
-import {EntityClasses} from "../../../common/meta/Entities.js";
-import {PacketError} from "../../../common/network/PacketError.js";
-import {CHUNK_LENGTH_BITS} from "../../../common/utils/Utils.js";
-import {CPlayer} from "../entity/types/CPlayer.js";
-import {Sound} from "../../../common/utils/Sound.js";
-import {CWorld} from "../world/CWorld.js";
-import {PacketIds} from "../../../common/meta/PacketIds.js";
+import {Packet,} from "../../../common/network/Packet";
+import {getWSUrls, setServerOptions} from "../utils/Utils";
+import {DEFAULT_GRAVITY} from "../../../common/entity/Entity";
+import {CurrentGameProtocol, PacketByName, Packets, readPacket} from "../../../common/network/Packets";
+import {EntityClasses} from "../../../common/meta/Entities";
+import {PacketError} from "../../../common/network/PacketError";
+import {CHUNK_LENGTH_BITS} from "../../../common/utils/Utils";
+import {CPlayer} from "../entity/types/CPlayer";
+import {Sound} from "../../../common/utils/Sound";
+import {CWorld} from "../world/CWorld";
+import {PacketIds} from "../../../common/meta/PacketIds";
+import {clientPlayer, clientUUID, isMultiPlayer, ServerInfo} from "../../Client";
+// @ts-ignore
+import SocketWorker from "../worker/SocketWorker?worker";
 
 export class ClientNetwork {
     worker: Worker;
@@ -37,17 +39,17 @@ export class ClientNetwork {
     };
 
     async _connect() {
-        const urls = getWSUrls(ServerData.ip, ServerData.port);
-        if (!ServerData.preferSecure) urls.reverse();
-        const worker = this.worker = new Worker(new URL("./worker/SocketWorker.ts", import.meta.url), {type: "module"});
-        worker.onmessage = async e => {
+        const urls = getWSUrls(ServerInfo.ip, ServerInfo.port);
+        if (!ServerInfo.preferSecure) urls.reverse();
+        const worker = this.worker = new SocketWorker();
+        worker.onmessage = async (e: MessageEvent) => {
             if (e.data.event === "message") {
                 const buf = await e.data.message.arrayBuffer();
                 this.processPacketBuffer(buf);
             } else if (e.data.event === "connect") {
                 this.connected = true;
                 this.connectCb();
-                if (e.data.url === urls[1]) setServerOptions(ServerData.uuid, {preferSecure: !ServerData.preferSecure});
+                if (e.data.url === urls[1]) setServerOptions(ServerInfo.uuid, {preferSecure: !ServerInfo.preferSecure});
                 printer.info("Connected to server");
                 for (const pk of this.immediate) {
                     this.sendPacket(pk, true);
@@ -71,22 +73,26 @@ export class ClientNetwork {
         else console.warn("Unhandled packet: ", pk);
     };
 
-    processBatch({data}: PacketByName["Batch"]) {
+    processBatch({data}: PacketByName<"Batch">) {
         for (const p of data) {
             this.processPacket(p);
         }
     };
 
-    processPing({data}: PacketByName["Ping"]) {
-        this.ping = Date.now() - data;
+    processPing({data}: PacketByName<"Ping">) {
+        this.ping = Date.now() - data.getTime();
         this.sendPacket(new Packets.Ping(new Date));
     };
 
     processCQuit() {
-        location.href = URLPrefix;
+        this.connected = false;
+        this.worker.terminate();
+        this.worker = null;
+        location.hash = "";
+        clientUUID[1]("");
     };
 
-    processSHandshake({data}: PacketByName["SHandshake"]) {
+    processSHandshake({data}: PacketByName<"SHandshake">) {
         this.handshake = true;
         clientPlayer.gravity = DEFAULT_GRAVITY;
         clientPlayer.immobile = false;
@@ -96,7 +102,7 @@ export class ClientNetwork {
         clientPlayer.init();
     };
 
-    spawnEntityFromData(data) {
+    spawnEntityFromData(data: any) {
         const entity = new EntityClasses[data.typeId](clientPlayer.world);
         entity.id = data.entityId;
         for (const k in data.props) {
@@ -112,13 +118,13 @@ export class ClientNetwork {
         return entity;
     };
 
-    processSChunk({data}: PacketByName["SChunk"]) {
+    processSChunk({data}: PacketByName<"SChunk">) {
         const world = <CWorld>clientPlayer.world;
         world.chunks[data.x] = new Uint16Array(data.data);
         if (data.resetEntities) clientPlayer.world.chunkEntities[data.x] = [];
-        world.renderedSubChunks[data.x] = [];
-        world.renderedSubChunks[data.x - 1] = [];
-        world.renderedSubChunks[data.x + 1] = [];
+        world.prepareChunkRenders(data.x - 1);
+        world.prepareChunkRenders(data.x);
+        world.prepareChunkRenders(data.x + 1);
         for (const entity of data.entities) {
             this.spawnEntityFromData(entity);
         }
@@ -128,7 +134,7 @@ export class ClientNetwork {
         }
     };
 
-    processSEntityUpdate({data}: PacketByName["SEntityUpdate"]) {
+    processSEntityUpdate({data}: PacketByName<"SEntityUpdate">) {
         let entity = clientPlayer.world.entities[data.entityId];
         if (!entity) return this.spawnEntityFromData(data);
         delete data.entityId;
@@ -141,15 +147,15 @@ export class ClientNetwork {
         if (dist > 0) entity.onMovement();
     };
 
-    processSEntityRemove({data}: PacketByName["SEntityRemove"]) {
+    processSEntityRemove({data}: PacketByName<"SEntityRemove">) {
         const entity = clientPlayer.world.entities[data];
         if (!entity) return printer.error("Entity not found: ", data);
         entity.despawn();
     };
 
-    processSBlockUpdate({data}: PacketByName["SBlockUpdate"]) {
+    processSBlockUpdate({data}: PacketByName<"SBlockUpdate">) {
         clientPlayer.world.setFullBlock(data.x, data.y, data.fullId);
-        for (const player: CPlayer of clientPlayer.world.getPlayers()) {
+        for (const player of clientPlayer.world.getPlayers()) {
             if (player.breaking && player.breaking[0] === data.x && player.breaking[1] === data.y) {
                 player.breaking = null;
                 player.breakingTime = 0;
@@ -157,32 +163,32 @@ export class ClientNetwork {
         }
     };
 
-    processSBlockBreakingUpdate({data}: PacketByName["SBlockBreakingUpdate"]) {
+    processSBlockBreakingUpdate({data}: PacketByName<"SBlockBreakingUpdate">) {
         const entity = clientPlayer.world.entities[data.entityId];
         if (!(entity instanceof CPlayer)) return;
         entity.breaking = [data.x, data.y];
         entity.breakingTime = entity.world.getBlock(data.x, data.y).getHardness();
     };
 
-    processSBlockBreakingStop({data}: PacketByName["SBlockBreakingStop"]) {
+    processSBlockBreakingStop({data}: PacketByName<"SBlockBreakingStop">) {
         const entity = clientPlayer.world.entities[data.entityId];
         if (!(entity instanceof CPlayer)) return;
         entity.breaking = null;
         entity.breakingTime = 0;
     };
 
-    processSDisconnect({data: reason}: PacketByName["SDisconnect"]) {
+    processSDisconnect({data: reason}: PacketByName<"SDisconnect">) {
         printer.warn("Got kicked: ", reason);
     };
 
-    processSSound({data: {x, y, path}}: PacketByName["SPlaySound"]) {
+    processSSound({data: {x, y, path}}: PacketByName<"SPlaySound">) {
         const distance = clientPlayer.distance(x, y);
         if (distance > 20) return;
         const volume = 1 / distance;
         Sound.play(path, volume);
     };
 
-    processSendMessage({data}: PacketByName["SendMessage"]) {
+    processSendMessage({data}: PacketByName<"SendMessage">) {
         clientPlayer.sendMessage(data);
     };
 

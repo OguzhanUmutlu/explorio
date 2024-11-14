@@ -1,5 +1,8 @@
 import {CommandArgument} from "../CommandArgument";
 import {CommandError} from "../Command";
+import {CommandAs} from "../CommandSender";
+import {Location} from "../../utils/Location";
+import {AnyToken} from "../CommandProcessor";
 
 export class TextArgument extends CommandArgument<string> {
     default = "";
@@ -13,7 +16,7 @@ export class TextArgument extends CommandArgument<string> {
         return this;
     };
 
-    read(as, at, args, index) {
+    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
         const arg = args[index];
 
         if (this.choices.length === 0) return arg.rawText;
@@ -27,7 +30,7 @@ export class TextArgument extends CommandArgument<string> {
         throw new CommandError(`Expected one of these options: ${this.choices.join(", ")}`)
     };
 
-    blindCheck(args, index) {
+    blindCheck(args: AnyToken[], index: number) {
         return {pass: !!args[index], index: index + 1};
     };
 

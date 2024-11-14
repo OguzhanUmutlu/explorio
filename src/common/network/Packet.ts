@@ -1,16 +1,20 @@
 import {Bin} from "stramp";
 import {getServer, zstdOptionalEncode} from "../utils/Utils";
+import {PacketStructs} from "./Packets";
 
 export const CompressPackets = true;
 
 export class Packet<T extends Bin = Bin> {
-    static send;
+    constructor(public packetId: number, public data: T["__TYPE__"]) {
+    };
 
-    constructor(public packetId: number, public data: T["__TYPE__"], public struct) {
+    get struct(): T {
+        return PacketStructs[this.packetId];
     };
 
     static read(buffer: Buffer, index: [number]) {
-        const pk = <this>new this();
+        // @ts-ignore
+        const pk = <this>new this(0, null);
         pk.data = pk.struct.read(buffer, index);
         return pk;
     };
@@ -38,7 +42,7 @@ export class Packet<T extends Bin = Bin> {
         return getServer().config.packetCompression ? zstdOptionalEncode(buffer) : buffer;
     };
 
-    send(ws) {
+    send(ws: any) {
         const buf = this.serialize();
         if ("send" in ws) ws.send(buf);
         else ws.postMessage(buf);

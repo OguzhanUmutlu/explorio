@@ -2,6 +2,8 @@ import {Command} from "./Command";
 import {CommandDefinitionType} from "./CommandDefinition";
 import {AnyToken, splitParameters} from "./CommandProcessor";
 import {CommandArgument} from "./CommandArgument";
+import {CommandAs, CommandSender} from "./CommandSender";
+import {Location} from "../utils/Location";
 
 export abstract class DefinitiveCommand extends Command {
     abstract definitions: CommandDefinitionType[];
@@ -21,7 +23,7 @@ export abstract class DefinitiveCommand extends Command {
             .sort((a, b) => b.arguments.length - a.arguments.length);
     };
 
-    execute(sender, as, at, _, label) {
+    execute(sender: CommandSender, as: CommandAs, at: Location, _: string[], label: string) {
         const labelSpl = label.split(" ");
         const labelCmd = labelSpl[0];
         const params = labelSpl.slice(1).join(" ");
@@ -86,7 +88,7 @@ export abstract class DefinitiveCommand extends Command {
             if (maxPassArg && maxPassToken) {
                 sender.sendMessage(`§c${maxPassArg.name} argument failed at ${maxPassToken.start + 1}th character. `
                     + `Preview of 10 characters after the error: ${
-                        maxPassToken.value.substring(maxPassToken.start, maxPassToken.start + 10)
+                        maxPassToken.text.substring(maxPassToken.start, maxPassToken.start + 10)
                     }`);
             } else {
                 sender.sendMessage(

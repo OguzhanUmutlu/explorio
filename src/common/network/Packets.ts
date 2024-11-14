@@ -1,7 +1,7 @@
 import {PacketError} from "./PacketError";
 import {Packet} from "./Packet";
 import {getServer, zstdOptionalDecode} from "../utils/Utils";
-import {PacketIds, PacketNames} from "../meta/PacketIds";
+import {PacketIds} from "../meta/PacketIds";
 import X from "stramp";
 import {ChunkBlocksBin} from "../utils/Bins";
 
@@ -11,7 +11,7 @@ const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
     entityId: X.u32,
     props: X.object
-}) as const;
+});
 
 const BatchStruct = X.makeBin({
     name: "BatchPacket",
@@ -47,88 +47,79 @@ const BatchStruct = X.makeBin({
     }
 });
 
-export type PacketId = PacketIds[keyof typeof PacketIds];
+export type PkStr<T extends keyof typeof PacketIds> = typeof PacketStructs[typeof PacketIds[T]];
+export type PacketByName<T extends keyof typeof PacketIds> = Packet<PkStr<T>>;
 
-export type PacketIdToName<T extends PacketIds> = keyof typeof PacketIds;
-export type PacketNameToId<T extends keyof typeof PacketIds> = PacketIds[T];
-export type PacketIdToStruct<T extends PacketIds> = PacketNameToStruct<PacketIdToName<T>>;
-export type PacketNameToStruct<T extends keyof typeof PacketIds> = typeof PacketStructs[T];
-export type PacketByName = {
-    [T in keyof typeof PacketIds]: Packet<PacketNameToStruct<T>>
+export type PacketNameToPacket<N extends keyof typeof PacketIds> = {
+    new(data: PkStr<N>["__TYPE__"]): Packet<PkStr<N>>;
+    read(buffer: Buffer, index: number[]): Packet<PkStr<N>>;
+    __STRUCT__: PkStr<N>; // for typings
 };
 
-export type PacketIdToPacket<Id extends PacketIds> = {
-    new(data: PacketIdToStruct<Id>["__TYPE__"]): Packet<PacketIdToStruct<Id>> & {
-        send(ws, data: PacketIdToStruct<Id>["__TYPE__"]): Promise<void>;
-    };
-    __T__: Packet<PacketIdToStruct<Id>>
-
-};
-
-export const Packets: { [Name in keyof typeof PacketIds]: PacketIdToPacket<PacketNameToId<Name>> }
-    & { [Id in PacketIds]: PacketIdToPacket<Id> } = <any>{};
+export const Packets: { [Name in keyof typeof PacketIds]: PacketNameToPacket<Name> } = <any>{};
 
 export type AnyPacketConstructor = typeof Packets[keyof typeof Packets];
 
 export const PacketStructs = {
-    [PacketNames.Batch]: BatchStruct,
-    [PacketNames.Ping]: X.date,
-    [PacketNames.SendMessage]: X.string16,
+    [PacketIds.Batch]: BatchStruct,
+    [PacketIds.Ping]: X.date,
+    [PacketIds.SendMessage]: X.string16,
 
-    [PacketNames.CAuth]: X.object.struct({
-        name: X.string8,
-        skin: X.string16,
-        protocol: X.u16
-    }),
-    [PacketNames.CQuit]: X.null,
-    [PacketNames.CMovement]: X.object.struct({
-        x: X.f32,
-        y: X.f32,
-        rotation: X.f32
-    }),
-    [PacketNames.CStartBreaking]: X.object.struct({
-        x: X.i32,
-        y: X.u32
-    }),
-    [PacketNames.CStopBreaking]: X.null,
-
-    [PacketNames.SBlockBreakingStop]: X.object.struct({
-        entityId: X.u32
-    }),
-    [PacketNames.SBlockBreakingUpdate]: X.object.struct({
+    [PacketIds.SHandshake]: X.object.struct({
         entityId: X.u32,
-        time: X.f32,
-        x: X.i32,
-        y: X.u32
+        x: X.f32, y: X.f32
     }),
-    [PacketNames.SBlockUpdate]: X.object.struct({
-        x: X.i32,
-        y: X.u32,
-        fullId: X.u16
-    }),
-    [PacketNames.SChunk]: X.object.struct({
+    [PacketIds.SChunk]: X.object.struct({
         x: X.i32,
         data: ChunkBlocksBin,
         entities: X.array.typed(EntityUpdateStruct),
         resetEntities: X.bool
     }),
-    [PacketNames.SDisconnect]: X.string16,
-    [PacketNames.SEntityRemove]: X.u32,
-    [PacketNames.SEntityUpdate]: EntityUpdateStruct,
-    [PacketNames.SHandshake]: X.object.struct({
-        entityId: X.u32,
-        x: X.f32, y: X.f32
+    [PacketIds.SEntityUpdate]: EntityUpdateStruct,
+    [PacketIds.SEntityRemove]: X.u32,
+    [PacketIds.SBlockUpdate]: X.object.struct({
+        x: X.i32,
+        y: X.u32,
+        fullId: X.u16
     }),
-    [PacketNames.SPlaySound]: X.object.struct({
+    [PacketIds.SBlockBreakingUpdate]: X.object.struct({
+        entityId: X.u32,
+        time: X.f32,
+        x: X.i32,
+        y: X.u32
+    }),
+    [PacketIds.SBlockBreakingStop]: X.object.struct({
+        entityId: X.u32
+    }),
+    [PacketIds.SDisconnect]: X.string16,
+
+    [PacketIds.SPlaySound]: X.object.struct({
         x: X.f32,
         y: X.f32,
         path: X.string16
-    })
+    }),
+
+    [PacketIds.CAuth]: X.object.struct({
+        name: X.string8,
+        skin: X.string16,
+        protocol: X.u16
+    }),
+    [PacketIds.CQuit]: X.null,
+    [PacketIds.CMovement]: X.object.struct({
+        x: X.f32,
+        y: X.f32,
+        rotation: X.f32
+    }),
+    [PacketIds.CStartBreaking]: X.object.struct({
+        x: X.i32,
+        y: X.u32
+    }),
+    [PacketIds.CStopBreaking]: X.null
 } as const;
 
-export function readPacket(buffer: Buffer): Packet {
+export function readPacket(buffer: Buffer) {
     buffer = getServer().config.packetCompression ? zstdOptionalDecode(buffer) : buffer;
-    const clas = Packets[buffer[0]];
-    if (!clas) throw new PacketError("Invalid packet", buffer);
-    return clas.read(buffer, [1]);
+    const clazz = Packets[buffer[0]];
+    if (!clazz) throw new PacketError("Invalid packet", buffer);
+    return <Packet>clazz.read(buffer, [1]);
 }

@@ -12,7 +12,7 @@ Printer.brackets.makeGlobal();
 
 printer.options.disabledTags.push("debug");
 
-function addStyles(printer) {
+function addStyles(printer: typeof Printer) {
     printer.options.styleSubstitutionsEnabled = true;
     printer.setStyleCharacter("§");
     printer.styles = {};
@@ -43,19 +43,19 @@ addStyles(printer);
 
 printer.info("Starting server...");
 
-function exit() {
+async function exit() {
     wss.close();
     try {
-        server.close();
+        await server.close();
     } catch (e) {
     }
-    process.exit(1)
+    process.exit(1);
 }
 
-function onCrash(error) {
+async function onCrash(error: Error) {
     printer.error("Server crashed.");
     printer.error(error);
-    exit();
+    await exit();
 }
 
 process.on("uncaughtException", onCrash);
@@ -72,7 +72,7 @@ await server.init();
 
 wss.on("connection", (ws, req) => {
     const network = new PlayerNetwork(ws, req);
-    ws.on("message", data => network.processPacketBuffer(data));
+    ws.on("message", data => network.processPacketBuffer(<Buffer>data));
     ws.on("close", () => network.onClose());
 });
 

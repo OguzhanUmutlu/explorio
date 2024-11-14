@@ -3,7 +3,7 @@ import {Entities} from "../meta/Entities";
 import {Player} from "../entity/types/Player";
 import {PacketByName, Packets, readPacket} from "./Packets";
 import {PacketIds} from "../meta/PacketIds";
-import {getServer} from "../utils/Utils.js";
+import {getServer} from "../utils/Utils";
 
 export class PlayerNetwork {
     batch: Packet[] = [];
@@ -13,7 +13,7 @@ export class PlayerNetwork {
     kickReason: string;
     server = getServer();
 
-    constructor(public ws, public req) {
+    constructor(public ws: any, public req: any) {
         this.ip = req.socket.remoteAddress;
     };
 
@@ -23,7 +23,7 @@ export class PlayerNetwork {
         else console.warn("Unhandled packet: ", pk);
     };
 
-    processBatch({data}: PacketByName["Batch"]) {
+    processBatch({data}: PacketByName<"Batch">) {
         for (const p of data) {
             this.processPacket(p);
         }
@@ -33,7 +33,7 @@ export class PlayerNetwork {
         throw new Error("This is not singleplayer.");
     };
 
-    processCMovement({data}: PacketByName["CMovement"]) {
+    processCMovement({data}: PacketByName<"CMovement">) {
         if (
             Math.abs(this.player.x - data.x) > 1.5
             || Math.abs(this.player.y - data.y) > 5
@@ -46,7 +46,7 @@ export class PlayerNetwork {
         this.player.onMovement();
     };
 
-    processCStartBreaking({data}: PacketByName["CStartBreaking"]) {
+    processCStartBreaking({data}: PacketByName<"CStartBreaking">) {
         if (!this.player.world.canBreakBlockAt(this.player, data.x, data.y)) return this.sendBlock(data.x, data.y);
         this.player.breaking = [data.x, data.y];
         this.player.breakingTime = this.player.world.getBlock(data.x, data.y).getHardness();
@@ -60,7 +60,7 @@ export class PlayerNetwork {
         this.player.broadcastBlockBreaking();
     };
 
-    processSendMessage({data}: PacketByName["SendMessage"]) {
+    processSendMessage({data}: PacketByName<"SendMessage">) {
         if (!data) return;
         this.player.server.processMessage(this.player, data);
     };
@@ -123,14 +123,14 @@ export class PlayerNetwork {
             }), true);
             player.broadcastSpawn();
             printer.info(`${this.player.name}(${this.ip}) connected`)
-            await this.server.broadcastMessage(`§e${this.player.name} joined the server`);
+            this.server.broadcastMessage(`§e${this.player.name} joined the server`);
         } else {
             try {
                 this.processPacket(pk);
             } catch (e) {
                 printer.error(pk);
                 printer.error(e);
-                await this.kick("Invalid packet");
+                this.kick("Invalid packet");
                 return;
             }
         }

@@ -1,5 +1,5 @@
 import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
-import {Inventory} from "../../item/Inventory.js";
+import {Inventory} from "../../item/Inventory";
 import {CommandSender} from "../../command/CommandSender";
 import {
     CHUNK_LENGTH_BITS,
@@ -13,8 +13,8 @@ import {B} from "../../meta/ItemIds";
 import {PlayerNetwork} from "../../network/PlayerNetwork";
 import {Entity} from "../Entity";
 import {Packets} from "../../network/Packets";
-import {Inventories} from "../../meta/Inventories.js";
-import {Item} from "../../item/Item.js";
+import {Inventories, InventorySizes} from "../../meta/Inventories";
+import {Item} from "../../item/Item";
 
 export class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
@@ -31,17 +31,6 @@ export class Player extends Entity implements CommandSender {
     sentChunks: Set<number> = new Set;
     viewingChunks: number[] = [];
 
-    [Inventories.Hotbar] = new Inventory(9);
-    [Inventories.Player] = new Inventory(27);
-    [Inventories.Armor] = new Inventory(4);
-    [Inventories.Cursor] = new Inventory(1);
-    [Inventories.Chest] = new Inventory(27);
-    [Inventories.DoubleChest] = new Inventory(54);
-    [Inventories.CraftingSmall] = new Inventory(4);
-    [Inventories.CraftingSmallResult] = new Inventory(1);
-    [Inventories.CraftingBig] = new Inventory(9);
-    [Inventories.CraftingBigResult] = new Inventory(1);
-
     handIndex = 0;
 
     xp = 0;
@@ -52,6 +41,14 @@ export class Player extends Entity implements CommandSender {
     food = 20;
     maxFood = 20;
 
+    init() {
+        for (const k in Inventories) {
+            const v = Inventories[<keyof typeof Inventories>k];
+            this[v] ??= new Inventory(InventorySizes[v]);
+        }
+        super.init();
+    };
+
     getMovementData(): any {
         return {
             ...super.getMovementData(),
@@ -60,7 +57,7 @@ export class Player extends Entity implements CommandSender {
     };
 
     get handItem() {
-        return this.hotbar.get(this.handIndex);
+        return this[Inventories.Hotbar].get(this.handIndex);
     };
 
     hasPermission(permission: string): boolean {
@@ -78,7 +75,7 @@ export class Player extends Entity implements CommandSender {
         const chunkDist = this.server.config.renderDistance;
         for (let x = chunkX - chunkDist; x <= chunkX + chunkDist; x++) {
             chunks.push(x);
-            await this.world.ensureChunk(x);
+            this.world.ensureChunk(x);
             if (!this.sentChunks.has(x)) {
                 this.sentChunks.add(x);
                 await (<any>this.world).sendChunk(<any>this, x);
@@ -161,12 +158,12 @@ export class Player extends Entity implements CommandSender {
     };
 
     addItem(item: Item) {
-        if (!this.hotbar.add(item)) return this.playerInventory.add(item);
+        if (!this[Inventories.Hotbar].add(item)) return this[Inventories.Player].add(item);
         return true;
     };
 
     removeItem(item: Item) {
-        if (!this.hotbar.remove(item)) return this.playerInventory.remove(item);
+        if (!this[Inventories.Hotbar].remove(item)) return this[Inventories.Player].remove(item);
         return true;
     };
 

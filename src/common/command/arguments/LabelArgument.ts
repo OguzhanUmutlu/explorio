@@ -1,13 +1,16 @@
 import {CommandArgument} from "../CommandArgument";
+import {CommandAs} from "../CommandSender";
+import {Location} from "../../utils/Location";
+import {AnyToken} from "../CommandProcessor";
 
 export class LabelArgument extends CommandArgument<undefined> {
     default = undefined;
 
-    read(as, at, args, index) {
+    read(_: CommandAs, __: Location, ___: AnyToken[], ____: number) {
         return undefined;
     };
 
-    blindCheck(args, index) {
+    blindCheck(args: AnyToken[], index: number) {
         return {pass: args[index] && args[index].rawText === this.name, index: index + 1};
     };
 

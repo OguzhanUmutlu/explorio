@@ -1,10 +1,12 @@
-import "../Client.js"; // gives error if I don't add this for the Index page
-import {Entities, EntityBoundingBoxes, EntityClasses} from "../../../common/meta/Entities.js";
-import {CPlayer} from "../entity/types/CPlayer.js";
-import {WorldData} from "../Client.js";
-import {initCommon} from "../../../common/utils/Inits.js";
+import {Entities, EntityBoundingBoxes, EntityClasses} from "../../../common/meta/Entities";
+import {CPlayer} from "../entity/types/CPlayer";
+import {initCommon} from "../../../common/utils/Inits";
+import {Canvas} from "../../../common/utils/Texture";
+import {BoundingBox} from "../../../common/entity/BoundingBox";
+import {camera, canvas, ctx} from "../../Client";
 
 export type Div = HTMLDivElement;
+export type Span = HTMLSpanElement;
 export type Input = HTMLInputElement;
 
 export const URLPrefix = "/explorio/";
@@ -70,8 +72,13 @@ export function saveOptions() {
     localStorage.setItem("explorio.options", JSON.stringify(Options));
 }
 
+export function isValidUUID(uuid: string) {
+    return getWorldList().some(i => i.uuid === uuid) || getServerList().some(i => i.uuid === uuid);
+}
+
 export function getWorldList(): WorldData[] {
-    return JSON.parse(localStorage.getItem("explorio.worlds")) || [];
+    return (<WorldData[]>JSON.parse(localStorage.getItem("explorio.worlds")) || [])
+        .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
 }
 
 export function addWorld(name: string, seed: number) {
@@ -88,14 +95,15 @@ export function setWorldOptions(uuid: string, options: Partial<WorldData>) {
     localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
 }
 
-export function removeWorld(index: number) {
-    const worlds = getWorldList();
-    worlds.splice(index, 1);
+export function removeWorld(uuid: string) {
+    const worlds = getWorldList()
+        .filter(w => w.uuid !== uuid);
     localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
 }
 
 export function getServerList(): ServerData[] {
-    return JSON.parse(localStorage.getItem("explorio.servers") || "[]");
+    return (<ServerData[]>JSON.parse(localStorage.getItem("explorio.servers") || "[]"))
+        .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
 }
 
 export function addServer(name: string, ip: string, port: number) {
@@ -111,25 +119,26 @@ export function setServerOptions(uuid: string, options: Partial<ServerData>) {
     localStorage.setItem("explorio.servers", JSON.stringify(servers));
 }
 
-export function removeServer(index: number) {
-    const servers = getServerList();
-    servers.splice(index, 1);
+export function removeServer(uuid: string) {
+    const servers = getServerList()
+        .filter(s => s.uuid !== uuid);
+
     localStorage.setItem("explorio.servers", JSON.stringify(servers));
 }
 
-export function pingServer(ip: string, port: number): Promise<string> {
-    return fetch(`http://${ip}:${port}/ws-ping`).then(res => res.statusText);
+export async function pingServer(ip: string, port: number): Promise<string> {
+    const res = await fetch(`http://${ip}:${port}/ws-ping`);
+    return res.statusText;
 }
 
 export function renderPlayerModel(
-    ctx, {
+    ctx: any, {
         SIZE, bbPos, skin, bodyRotation,
         leftArmRotation, leftLegRotation, rightLegRotation, rightArmRotation,
         headRotation, handItem
     }
 ) {
-    /*** @type {Record<string, HTMLCanvasElement>} */
-    const side = skin[bodyRotation ? 0 : 1];
+    const side: Record<string, Canvas> = skin[bodyRotation ? 0 : 1];
     const bb = EntityBoundingBoxes[Entities.PLAYER];
 
     const head = [
@@ -199,4 +208,22 @@ export function renderPlayerModel(
     head[3] = head[2] += 0.03 * SIZE;
     ctx.drawImage(side.head_topping, -head[2] / 2, -head[3] / 2, head[2], head[3]);
     ctx.restore();
+}
+
+export function getClientPosition(x: number, y: number) {
+    return {
+        x: (x - camera.x) * Options.tileSize + canvas.width / 2,
+        y: (-y + camera.y) * Options.tileSize + canvas.height / 2
+    };
+}
+
+export function renderBoundingBox(bb: BoundingBox) {
+    const {x: cx, y: cy} = getClientPosition(bb.x, bb.y);
+    ctx.strokeRect(cx, cy, bb.width * Options.tileSize, -bb.height * Options.tileSize);
+}
+
+export function drawDotTo(x: number, y: number) {
+    const pos = getClientPosition(x, y);
+    ctx.fillStyle = "red";
+    ctx.fillRect(pos.x - 4, pos.y - 4, 8, 8);
 }

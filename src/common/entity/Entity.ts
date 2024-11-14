@@ -2,7 +2,6 @@ import {BoundingBox} from "./BoundingBox";
 import {World} from "../world/World";
 import {EntitySaveStruct, EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
 import {Location} from "../utils/Location";
-import {ObjectStruct} from "stramp";
 import {Packets} from "../network/Packets";
 
 export const DEFAULT_WALK_SPEED = 5;
@@ -12,10 +11,7 @@ export const DEFAULT_GRAVITY = 18;
 
 let _entity_id = 0;
 
-export abstract class Entity<
-    Struct extends ObjectStruct = ObjectStruct,
-    V extends any = Struct["__TYPE__"]
-> {
+export abstract class Entity {
     abstract typeId: number;
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes
@@ -30,7 +26,7 @@ export abstract class Entity<
     vy = 0;
     onGround = true;
     bb: BoundingBox;
-    cacheState;
+    cacheState: any;
     tags: Set<string> = new Set;
 
     walkSpeed = DEFAULT_WALK_SPEED;
@@ -43,6 +39,10 @@ export abstract class Entity<
     immobile = false;
 
     server = getServer();
+
+    getBlockReach() {
+        return "blockReach" in this && typeof this.blockReach === "number" ? this.blockReach : Infinity;
+    };
 
     getRotationTowards(x: number, y: number) {
         return this.location.getRotationTowards(x, y, this.bb.width / 2, this.bb.height);
@@ -106,7 +106,7 @@ export abstract class Entity<
         this.cacheState = this.calcCacheState();
     };
 
-    render(dt: number) {
+    render(ctx: CanvasRenderingContext2D, dt: number) {
         this.renderX += (this.x - this.renderX) / 5;
         this.renderY += (this.y - this.renderY) / 5;
     };
@@ -239,6 +239,7 @@ export abstract class Entity<
     };
 
     static spawn(world: World) {
+        // @ts-ignore
         const entity = <this>new (<any>this);
         entity.world = world;
         entity.init();

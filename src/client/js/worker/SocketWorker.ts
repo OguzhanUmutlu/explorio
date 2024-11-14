@@ -22,7 +22,7 @@ onmessage = async e => {
                     postMessage({event: "connect", url});
                 };
                 ws.onclose = () => {
-                    if (!works) r(); // keep checking
+                    if (!works) r(null); // keep checking
                     else {
                         postMessage({event: "disconnect"});
                         setTimeout(makeWS, 1000);

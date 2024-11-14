@@ -1,5 +1,15 @@
 import {simplifyTexturePath} from "./Utils";
 
+const pseudoCanvas = <any>{getContext: () => ({fillRect: (r: any) => r})};
+
+// You can optionally install canvas to be able to process assets in the server-side.
+// @ts-ignore
+let nodeCanvas: import("canvas") = null;
+try {
+    nodeCanvas = await import(/* @vite-ignore */ "canva" + String.fromCharCode(115));
+} catch (e) {
+}
+
 export const imagePlaceholder = createCanvas(1, 1);
 export const invalidImage = createCanvas(2, 2);
 const invalidCtx = invalidImage.getContext("2d");
@@ -30,19 +40,14 @@ export type Canvas = HTMLCanvasElement | CanvasImageSource & Record<any, any>;
 export type Image = HTMLImageElement;
 
 export function createCanvas(width: number, height: number): Canvas {
-    if (typeof global === "undefined") {
-        if (typeof document === "undefined") {
-            return <any>{
-                getContext: () => ({fillRect: r => r})
-            }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        return canvas;
+    if (typeof document === "undefined") {
+        return nodeCanvas ? nodeCanvas.createCanvas(width, height) : pseudoCanvas;
     }
-    return <any>{getContext: () => ({fillRect: r => r})};
-    // return nodeCanvas.createCanvas(width, height);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
 }
 
 function cropImage(image: Canvas | Image, x: number, y: number, width: number, height: number) {
@@ -74,7 +79,7 @@ function loadImage(src: string): Promise<Image> {
             image.onerror = reject;
             image.src = src;
         } else {
-            // nodeCanvas.loadImage(src).then(image => resolve(image)).catch(reject);
+            nodeCanvas.loadImage(src).then((image: any) => resolve(image)).catch(reject);
         }
     });
 }
@@ -82,11 +87,11 @@ function loadImage(src: string): Promise<Image> {
 export class Texture {
     static textures: Record<string, Texture> = {};
 
-    image: any = imagePlaceholder;
+    image: Canvas = imagePlaceholder;
     _flipped: [Canvas, Canvas] = [null, null];
     _rotated: Record<number, Canvas> = {};
     _skin: Record<keyof typeof SKIN_PARTS, Canvas>[];
-    _promise: Promise<Image>;
+    _promise: Promise<Canvas>;
     _slabTop: Canvas | null = null;
     _slabBottom: Canvas | null = null;
     _stairsTopLeft: Canvas | null = null; // removes top left part of the block

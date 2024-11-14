@@ -29,7 +29,7 @@ export class CustomGenerator extends Generator {
                 }
                 let times = 1;
                 if (name.includes("*")) {
-                    times = name.substring(0, name.indexOf("*")) * 1;
+                    times = +name.substring(0, name.indexOf("*"));
                     name = name.substring(name.indexOf("*") + 1);
                 }
 

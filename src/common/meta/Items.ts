@@ -183,7 +183,7 @@ export class ItemMetadata {
     };
 }
 
-export const DefaultItemOptions = (identifier: string, name: string, id, t) => <ItemMetaDataConfig>({
+export const DefaultItemOptions = (identifier: string, name: string, t: string) => <ItemMetaDataConfig>({
     metas: [{
         identifier,
         name,
@@ -232,7 +232,7 @@ export function introduceItemId(id: number, key: string, isBlock: boolean) {
 }
 
 export function registerItem(identifier: string, id: number, O: ItemMetaDataConfig) {
-    O = {...DefaultItemOptions(identifier, O.name, id, O.isBlock === false ? "items" : "blocks"), ...O};
+    O = {...DefaultItemOptions(identifier, O.name, O.isBlock === false ? "items" : "blocks"), ...O};
     const key = Object.keys(I).find(i => I[i] === id);
     if (!key) throw new Error("First define item id: " + id + ", using introduceItemId(id, key, isBlock)");
     BM[im2f(id, 0)] = ItemMetadata.fromOptions(id, 0, O);
@@ -250,7 +250,7 @@ export function registerItem(identifier: string, id: number, O: ItemMetaDataConf
             ["_slab_top", "slabTop"],
             ["_slab_bottom", "slabBottom"]
         ])) for (let i = 0; i < O.metas.length; i++) {
-            const meta = index * O.metas.length + i;
+            const meta = +index * O.metas.length + i;
             const dat = O.metas[i];
             slabMeta.metas.push({
                 identifier: dat.identifier + opt[0],
@@ -270,7 +270,7 @@ export function registerItem(identifier: string, id: number, O: ItemMetaDataConf
             ["_stairs_bottom_left", "stairsBottomLeft"],
             ["_stairs_bottom_right", "stairsBottomRight"]
         ])) for (let i = 0; i < O.metas.length; i++) {
-            const meta = index * O.metas.length + i;
+            const meta = +index * O.metas.length + i;
             const dat = O.metas[i];
             stairsMeta.metas.push({
                 identifier: dat.identifier + opt[0],

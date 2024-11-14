@@ -1,6 +1,5 @@
-import {ctx, getClientPosition} from "../../Client";
 import {Texture} from "../../../../common/utils/Texture";
-import {Options, renderPlayerModel} from "../../utils/Utils.js";
+import {getClientPosition, Options, renderPlayerModel} from "../../utils/Utils";
 import {CEntity} from "../CEntity";
 import {Player} from "../../../../common/entity/types/Player";
 
@@ -33,8 +32,8 @@ export class CPlayer extends Player implements CEntity {
 
     lastX = 0;
 
-    render(dt) {
-        super.render(dt);
+    render(ctx: CanvasRenderingContext2D, dt: number) {
+        super.render(ctx, dt);
         // this.renderHeadRotation += (this.rotation - this.renderHeadRotation) / 20;
 
         const breaking = this.breaking;

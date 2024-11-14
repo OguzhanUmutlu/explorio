@@ -8,7 +8,7 @@ export abstract class CommandArgument<T extends any = any> {
     spread = false;
     abstract default: T;
 
-    protected constructor(public name: string) {
+    constructor(public name: string) {
     };
 
     getName() {

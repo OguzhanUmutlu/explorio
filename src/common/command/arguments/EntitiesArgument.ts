@@ -1,7 +1,9 @@
 import {CommandArgument} from "../CommandArgument";
-import {SelectorToken} from "../CommandProcessor";
+import {AnyToken, SelectorToken} from "../CommandProcessor";
 import {Entity} from "../../entity/Entity";
 import {CommandError} from "../Command";
+import {CommandAs} from "../CommandSender";
+import {Location} from "../../utils/Location";
 
 export class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
     default = <T>[];
@@ -12,7 +14,7 @@ export class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
         return this;
     };
 
-    read(as, at, args, index) {
+    read(as: CommandAs, at: Location, args: AnyToken[], index: number) {
         const arg = <SelectorToken>args[index];
 
         const entities = as.server.executeSelector(as, at, arg);
@@ -24,7 +26,7 @@ export class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
         return <T>filtered;
     };
 
-    blindCheck(args, index) {
+    blindCheck(args: AnyToken[], index: number) {
         return {pass: args[index] instanceof SelectorToken, index: index + 1};
     };
 

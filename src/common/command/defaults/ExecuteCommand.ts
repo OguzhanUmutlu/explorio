@@ -1,7 +1,7 @@
 import {Command, CommandError} from "../Command";
 import {SelectorToken, skipWhitespace, splitParameters} from "../CommandProcessor";
 import {PositionArgument} from "../arguments/PositionArgument";
-import {CommandAs} from "../CommandSender";
+import {CommandAs, CommandSender} from "../CommandSender";
 import {Location} from "../../utils/Location";
 
 export class ExecuteCommand extends Command {
@@ -11,17 +11,17 @@ export class ExecuteCommand extends Command {
         super("execute", "Executes a given command.", "", [], "command.execute");
     };
 
-    execute(sender, as, at, _, label) {
+    execute(sender: CommandSender, as: CommandAs, at: Location, __: string[], label: string) {
         const tokens = splitParameters(label.split(" ").slice(1).join(" "));
-        let entities: CommandAs<any>[] = [as];
+        let entities: CommandAs[] = [as];
         let locations: Record<number, Location> = {};
-        for (const a of as) locations[a.id] = a.location.copy();
+        locations[as.id] = at.copy();
 
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
             i++;
             if (token.rawText === "run") {
-                let last;
+                let last: any;
                 for (const entity of entities) {
                     last = sender.server.executeCommandLabel(sender, entity, locations[entity.id], token.text.substring(skipWhitespace(token.text, token.end)));
                 }
@@ -114,7 +114,8 @@ export class ExecuteCommand extends Command {
                     }
                 }
             } else if (token.rawText === "summon") {
-                const nameToken = tokens[i];
+                // todo: implement this
+                /*const nameToken = tokens[i];
                 if (!nameToken) {
                     throw new CommandError("Expected an entity name after the 'summon' keyword.");
                 }
@@ -125,12 +126,12 @@ export class ExecuteCommand extends Command {
                 locations = {};
                 for (const entity of oldEntities) {
                     const loc = oldLocations[entity.id];
-                    const newEntity = sender.server.spawnEntityByName(loc, name); // todo: implement this
+                     const newEntity = sender.server.spawnEntityByName(loc, name);
                     entities.push(newEntity);
                     locations[newEntity.id] = newEntity.location.copy();
-                }
+                }*/
             } else if (token.rawText === "if" || token.rawText === "unless") {
-                const b = 1 - (token.rawText === "if");
+                const b = 1 - +(token.rawText === "if");
                 if (!tokens[i]) {
                     throw new CommandError(`Expected a condition type after the '${token.rawText}' keyword.`);
                 }
@@ -152,7 +153,7 @@ export class ExecuteCommand extends Command {
                         const loc = locations[entity.id];
                         const blockPos = this.posArg.read(entity, loc, tokens, posIndex);
                         const block = entity.world.getBlock(blockPos.x, blockPos.y);
-                        if (b - (block.getIdentifier() === blockName)) {
+                        if (b - +(block.getIdentifier() === blockName)) {
                             entities.push(entity);
                             locations[entity.id] ??= loc.copy();
                         } else delete locations[entity.id];
@@ -190,7 +191,7 @@ export class ExecuteCommand extends Command {
                             for (let y = minY; y <= maxY; y++) {
                                 const block = entity.world.getBlock(x, y);
                                 const target = entity.world.getBlock(pos3.x + x - minX, pos3.y + y - minY);
-                                if (b - (block !== target)) {
+                                if (b - +(block !== target)) {
                                     fail = true;
                                     break;
                                 }
@@ -215,7 +216,7 @@ export class ExecuteCommand extends Command {
                     for (const entity of oldEntities) {
                         const loc = locations[entity.id];
                         const hasMatch = !!sender.server.executeSelector(entity, loc, selector)[0];
-                        if (b - hasMatch) {
+                        if (b - +hasMatch) {
                             entities.push(entity);
                             locations[entity.id] ??= loc.copy();
                         } else {
@@ -232,7 +233,7 @@ export class ExecuteCommand extends Command {
                     entities = [];
                     for (const entity of oldEntities) {
                         const loc = locations[entity.id];
-                        if (b - !!loc.world.chunks[x]) {
+                        if (b + +!loc.world.chunks[x]) {
                             entities.push(entity);
                             locations[entity.id] ??= loc.copy();
                         } else delete locations[entity.id];
@@ -248,7 +249,7 @@ export class ExecuteCommand extends Command {
                     entities = [];
                     for (const entity of oldEntities) {
                         const loc = locations[entity.id];
-                        if (b - (loc.world.folder === folder)) {
+                        if (b - +(loc.world.folder === folder)) {
                             entities.push(entity);
                             locations[entity.id] ??= loc.copy();
                         } else delete locations[entity.id];

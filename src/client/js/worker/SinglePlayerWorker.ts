@@ -5,28 +5,22 @@ import {getRandomSeed} from "../../../common/world/World";
 import {Server} from "../../../common/Server";
 import "fancy-printer";
 import {initServerThings} from "../../../server/Utils";
-import {Packets} from "../../../common/network/Packets.js";
+import {Packets} from "../../../common/network/Packets";
 
 onmessage = async ({data: uuid}) => {
     self.fsr = {};
     BrowserFS.install(self.fsr);
     await new Promise(r => BrowserFS.configure({fs: "IndexedDB", options: {}}, e => {
         if (e) console.error(e);
-        else r();
+        else r(null);
     }));
     self.bfs = self.fsr.require("fs");
-    const fixAsync = (fn, i = 1, j = 0) => bfs[fn + "Sync"] = (...args) => <any>new Promise(r => bfs[fn](...args, (...e) => r(e[j] ? null : e[i])));
-    fixAsync("mkdir");
-    fixAsync("readdir");
-    fixAsync("readFile");
-    fixAsync("writeFile");
-    fixAsync("rm");
-    fixAsync("exists", 0, 1);
     self.Buffer = self.fsr.require("buffer").Buffer;
     await initServerThings();
     const printer = console;
+    // @ts-ignore
     printer.pass = console.log;
-    // noinspection TypeScriptUnresolvedReference
+    // @ts-ignore
     self.printer = printer;
 
     const server = new Server(bfs, `singleplayer/${uuid}`);
@@ -48,7 +42,6 @@ onmessage = async ({data: uuid}) => {
     };
     server.saveCounterMax = 3; // every 3 seconds because the player might F5 at any point in time
 
-    console.clear();
     await server.init();
 
     const network = new PlayerNetwork({

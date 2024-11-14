@@ -5,6 +5,6 @@ export class CServer extends Server {
         super(null, "");
     };
 
-    close() {
+    async close() {
     };
 }

@@ -13,7 +13,7 @@ export class PermissionCommand extends DefinitiveCommand {
             .addLabelArgument("grant")
             .addEntityArgument("player", o => o.setFilter(i => i instanceof Player))
             .addTextArgument("permission")
-            .then((sender, as, at, player: Player, permission) => {
+            .then((sender, _, __, player: Player, permission) => {
                 if (!sender.hasPermission(permission)) {
                     throw new CommandError("You can't grant someone with a permission you don't have!");
                 }
@@ -32,7 +32,7 @@ export class PermissionCommand extends DefinitiveCommand {
             .addLabelArgument("revoke")
             .addEntityArgument("player", o => o.setFilter(i => i instanceof Player))
             .addTextArgument("permission")
-            .then((sender, as, at, player: Player, permission) => {
+            .then((sender, _, __, player: Player, permission) => {
                 if (!sender.hasPermission(permission)) {
                     throw new CommandError("You can't revoke someone with a permission you don't have!");
                 }
@@ -49,7 +49,7 @@ export class PermissionCommand extends DefinitiveCommand {
             .addLabelArgument("check")
             .addEntityArgument("player", o => o.setFilter(i => i instanceof Player))
             .addTextArgument("permission")
-            .then((sender, as, at, player: Player, permission) => {
+            .then((sender, _, __, player: Player, permission) => {
                 if (player.permissions.has(permission)) {
                     sender.sendMessage("§aThe player " + player.name + " has the permission '" + permission + "'!");
                 } else {

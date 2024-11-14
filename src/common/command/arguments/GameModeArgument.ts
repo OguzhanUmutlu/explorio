@@ -1,4 +1,7 @@
 import {CommandArgument} from "../CommandArgument";
+import {CommandAs} from "../CommandSender";
+import {Location} from "../../utils/Location";
+import {AnyToken} from "../CommandProcessor";
 
 export enum GameMode {
     Survival,
@@ -13,7 +16,7 @@ const GameModeValues = [GameMode.Survival, GameMode.Creative, GameMode.Adventure
 export class GameModeArgument extends CommandArgument<GameMode> {
     default = GameMode.Survival;
 
-    read(as, at, args, index) {
+    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
         const arg = args[index];
         const raw = arg.rawText;
 
@@ -21,14 +24,14 @@ export class GameModeArgument extends CommandArgument<GameMode> {
             return GameModeValues[raw];
         }
 
-        return raw * 1;
+        return +raw;
     };
 
-    blindCheck(args, index) {
+    blindCheck(args: AnyToken[], index: number) {
         const arg = args[index];
         if (!arg) return {pass: false, index: index + 1};
         const raw = arg.rawText;
-        const num = raw * 1;
+        const num = +raw;
 
         return {pass: GameModeNames.includes(raw) || !isNaN(num) && num >= 0 && num <= 3, index: index + 1};
     };

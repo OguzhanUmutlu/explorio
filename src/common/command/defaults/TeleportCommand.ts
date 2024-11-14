@@ -10,7 +10,7 @@ export class TeleportCommand extends DefinitiveCommand {
         new CommandDefinition()
             .addEntitiesArgument("entities")
             .addPositionArgument("position")
-            .then((sender, as, at, entities, pos) => {
+            .then((sender, _, __, entities, pos) => {
                 entities.forEach(e => {
                     e.teleport(pos.x, pos.y);
                 });

@@ -37,7 +37,7 @@ export const SPREAD3 = [
     [3, 0], [2, 1], [1, 2], [0, 3], [-1, 2], [-2, 1], [-3, 0], [-2, -1], [-1, -2], [0, -3], [1, -2], [2, -1]
 ];
 
-export type Chunk = Uint16Array;
+export type ChunkData = Uint16Array;
 export type WorldMetaData = {
     name: string,
     seed: number,
@@ -54,10 +54,9 @@ export const Generators = {
 
 export class World {
     path: string;
-    chunks: Record<number, Chunk> = {};
+    chunks: Record<number, ChunkData> = {};
     chunkEntities: Record<number, Entity[]> = {};
     chunkReferees: Record<number, number> = {};
-    server: Server;
     entities: Record<number, Entity> = {};
     dirtyChunks: Set<number> = new Set;
 
@@ -177,7 +176,7 @@ export class World {
             this.chunks[x] = chunk.data;
             this.chunksGenerated.add(x);
             for (const viewer of this.getChunkViewers(x)) {
-                await this.sendChunk(viewer, x);
+                this.sendChunk(viewer, x);
             }
         } catch (e) {
             printer.warn(`Chunk ${x} is corrupted, regenerating...`, e);
@@ -219,12 +218,12 @@ export class World {
         delete this.chunkEntities[x];
     };
 
-    async tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteChunk = true, broadcast = true) {
+    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteChunk = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
         if (
             !this.inWorld(x, y)
-            || ("blockReach" in entity && entity.distance(x, y) > entity.blockReach)
+            || entity.distance(x, y) > entity.getBlockReach()
             || !this.hasSurroundingBlock(x, y)
         ) return false;
         const target = this.getBlock(x, y);
@@ -241,7 +240,7 @@ export class World {
         }
         const chunkX = x >> CHUNK_LENGTH_BITS;
         if (polluteChunk) this.dirtyChunks.add(chunkX);
-        if (broadcast) await this.broadcastBlockAt(x, y, fullId);
+        if (broadcast) this.broadcastBlockAt(x, y, fullId);
         return true;
     };
 
@@ -250,7 +249,7 @@ export class World {
         y = Math.round(y);
         const target = this.getBlock(x, y);
         return this.inWorld(x, y)
-            && (!("blockReach" in entity) || entity.distance(x, y) <= entity.blockReach)
+            && entity.distance(x, y) <= entity.getBlockReach()
             && this.getBlockDepth(x, y) >= 3
             && target.getHardness() !== -1
             && target.solid;
@@ -311,8 +310,8 @@ export class World {
         return 0;
     };
 
-    async playSound(path: string, x: number, y: number) {
-        await this.broadcastPacketAt(x, y, new Packets.SPlaySound({path, x, y}));
+    playSound(path: string, x: number, y: number) {
+        this.broadcastPacketAt(x, y, new Packets.SPlaySound({path, x, y}));
     };
 
     async getChunkBuffer(x: number): Promise<Buffer | null> {

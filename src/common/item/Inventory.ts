@@ -158,7 +158,7 @@ export class Inventory {
                 if ((item.nbt.damage += amount) >= durability) {
                     this.removeIndex(index);
                     if (world) {
-                        world.playSound("assets/sounds/random/break.ogg", x, y).then(r => r);
+                        world.playSound("assets/sounds/random/break.ogg", x, y);
                     }
                 } else this.updateIndex(index);
             }
@@ -173,15 +173,7 @@ export class Inventory {
         }
     };
 
-    serialize() {
-        return this.getContents().map(i => i ? i.serialize() : null);
-    };
-
-    getSaveData(): (typeof ContainerStruct)["__TYPE__"] {
-        return this.serialize();
-    };
-
     getSaveBuffer(): Buffer {
-        return ContainerStruct(this.size).serialize(this.getSaveData());
+        return ContainerStruct(this.size).serialize(this);
     };
 }

@@ -48,18 +48,16 @@ export class Server {
     sender: ConsoleCommandSender;
     config: ServerConfig = DefaultServerConfig;
 
-    constructor(public fs, public path: string) {
+    constructor(public fs: typeof import("fs"), public path: string) {
         setServer(this);
     };
 
     deleteFile(path: string) {
-        return new Promise(r => {
-            this.fs.rm(path, r);
-        });
+        return new Promise(r => this.fs.rm(path, r));
     };
 
     fileExists(path: string): Promise<boolean> {
-        return new Promise(r => this.fs.exists(path, r));
+        return new Promise(r => (<any>this.fs).exists(path, r));
     };
 
     createDirectory(path: string) {
@@ -180,7 +178,7 @@ export class Server {
 
         if ("sort" in selector.filters) {
             const token = selector.filters.sort;
-            const val = token.value;
+            const val = <string>token.value;
 
             if (token.type !== "text") throw new CommandError(`Invalid 'sort' attribute for the selector`);
             if (val in SelectorSorters) {
@@ -190,24 +188,24 @@ export class Server {
 
         for (const k in selector.filters) {
             const token = selector.filters[k];
-            const val = token.value;
+            const val = <any>token.value;
             const bm = 1 - token.yes;
             switch (k) {
                 case "x":
                 case "y":
                     if (token.type === "range") {
-                        entities.filter(entity => bm - (entity[k] <= val[1] && entity[k] >= val[0]));
+                        entities.filter(entity => bm - +(entity[k] <= val[1] && entity[k] >= val[0]));
                     } else if (token.type === "number") {
-                        entities.filter(entity => bm - (entity[k] === val));
+                        entities.filter(entity => bm - +(entity[k] === val));
                     } else throw new CommandError(`Invalid '${k}' attribute for the selector`);
                     break;
                 case "distance":
                     if (token.type === "range") entities = entities.filter(i => {
                         const dist = i.distance(at.x, at.y);
-                        return bm - (dist <= val[1] && dist >= val[0]);
+                        return bm - +(dist <= val[1] && dist >= val[0]);
                     }); else if (token.type === "number") {
                         entities = entities.filter(entity => {
-                            return bm - (entity.distance(at.x, at.y) === val);
+                            return bm - +(entity.distance(at.x, at.y) === val);
                         });
                     } else throw new CommandError("Invalid 'distance' attribute for the selector");
                     break;
@@ -215,22 +213,22 @@ export class Server {
                 case "dy":
                     if (token.type === "range") {
                         entities = entities.filter(entity => {
-                            return bm - (entity[k] - at[k] <= val[1] && entity[k] - at[k] >= val[0]);
+                            return bm - +(entity[k] - at[k] <= val[1] && entity[k] - at[k] >= val[0]);
                         });
                     } else if (token.type === "number") {
                         entities = entities.filter(entity => {
-                            return bm - (entity[k] - at[k] === val);
+                            return bm - +(entity[k] - at[k] === val);
                         });
                     } else throw new CommandError(`Invalid '${k}' attribute for the selector`);
                     break;
                 case "rotation":
                     if (token.type === "range") {
                         entities = entities.filter(entity => {
-                            return bm - (entity.rotation - at.rotation <= val[1] && entity.rotation - at.rotation >= val[0]);
+                            return bm - +(entity.rotation - at.rotation <= val[1] && entity.rotation - at.rotation >= val[0]);
                         });
                     } else if (token.type === "number") {
                         entities = entities.filter(entity => {
-                            return bm - (entity.rotation - at.rotation === val);
+                            return bm - +(entity.rotation - at.rotation === val);
                         });
                     } else throw new CommandError(`Invalid 'rotation' attribute for the selector`);
                     break;
@@ -240,7 +238,7 @@ export class Server {
                     }
 
                     entities = entities.filter(entity => {
-                        return bm - (entity.tags.has(val));
+                        return bm - +(entity.tags.has(val));
                     });
                     break;
                 case "nbt":
@@ -251,37 +249,37 @@ export class Server {
                             if (!entity.struct.keys().includes(k)) return false;
                             if (!val[k].equalsValue(entity[k])) return false;
                         }
-                        return bm - token.equalsValue(entity);
+                        return bm - +token.equalsValue(entity);
                     });
                     break;
                 case "type":
                     if (token.type !== "text") throw new CommandError(`Invalid 'type' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        return bm - (entity.typeName === val);
+                        return bm - +(entity.typeName === val);
                     });
                     break;
                 case "name":
                     if (token.type !== "text") throw new CommandError(`Invalid 'name' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        return bm - (entity.name === val);
+                        return bm - +(entity.name === val);
                     });
                     break;
                 case "world":
                     if (token.type !== "text") throw new CommandError(`Invalid 'world' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        return bm - (entity.world.folder === val);
+                        return bm - +(entity.world.folder === val);
                     });
                     break;
                 case "permissions":
-                    if (token.type !== "array" || val.some(i => typeof i !== "string")) {
+                    if (token.type !== "array" || val.some((i: any) => typeof i !== "string")) {
                         throw new CommandError(`Invalid 'permissions' attribute for the selector`);
                     }
 
                     entities = entities.filter(entity => {
-                        return bm - (entity instanceof Player && val.every(perm => entity.hasPermission(perm)));
+                        return bm - +(entity instanceof Player && val.every((perm: string) => entity.hasPermission(perm)));
                     });
                     break;
                 case "limit":
@@ -295,7 +293,7 @@ export class Server {
         if ("limit" in selector.filters) {
             const token = selector.filters.limit;
             if (token.type !== "number") throw new CommandError(`Invalid 'limit' attribute for the selector`);
-            const val = Math.floor(token.value);
+            const val = Math.floor(+token.value);
             if (val < 0) throw new CommandError(`Invalid 'limit' attribute for the selector`);
             entities = entities.slice(0, val);
         }
@@ -413,7 +411,7 @@ export class Server {
             this.executeCommandLabel(
                 sender,
                 sender,
-                sender instanceof Entity ? sender.location : new Location(0, 0, 0, this.defaultWorld),
+                sender instanceof Entity ? (<any>sender).location : new Location(0, 0, 0, this.defaultWorld),
                 message.substring(1)
             );
         } else this.processChat(sender, message);
