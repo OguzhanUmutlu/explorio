@@ -4,7 +4,7 @@ Explorio is a 2D block game
 
 ## How to play?
 
-1. Open up the client
+1. Open up the client ([Click to learn more](#whats-a-client-and-where-to-find-it))
 2. Press Singleplayer
 3. Press New World
 4. Name your world
