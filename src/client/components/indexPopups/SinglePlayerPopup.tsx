@@ -3,7 +3,6 @@ import {removeWorld, WorldData} from "../../js/utils/Utils";
 import {MainMenuPopup} from "../MainMenuPopup";
 import React, {useState} from "react";
 import {ReactState} from "../../Main";
-import {RequiresClientInit} from "../../Client";
 
 export function SinglePlayerPopup(O: {
     sp: ReactState<boolean>,
@@ -30,7 +29,6 @@ export function SinglePlayerPopup(O: {
                 .filter(w => w.name.toLowerCase().includes(worldSearch[0].toLowerCase()))
                 .map(w => <div className="world" key={w.uuid} onClick={e => {
                     if (e.target !== e.currentTarget) return;
-                    RequiresClientInit.value = true;
                     location.hash = w.uuid;
                     O.clientUUID[1](w.uuid);
                 }}>

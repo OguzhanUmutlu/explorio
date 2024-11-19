@@ -43,6 +43,7 @@ export class Packet<T extends Bin = Bin> {
     };
 
     send(ws: any) {
+        if ("sendImmediate" in ws) return ws.sendImmediate(this);
         const buf = this.serialize();
         if ("send" in ws) ws.send(buf);
         else ws.postMessage(buf);

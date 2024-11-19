@@ -3,7 +3,7 @@ import {B, I} from "../../meta/ItemIds";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
 import {ChunkData, World} from "../World";
-import {CAVE_SCALE, CHUNK_LENGTH, SURFACE_HEIGHT} from "../../utils/Utils";
+import {CaveScale, ChunkLength, SurfaceHeight} from "../../utils/Utils";
 
 export class DefaultGenerator extends Generator {
     noise: NoiseFunction2D;
@@ -29,7 +29,7 @@ export class DefaultGenerator extends Generator {
     static plantTree(world: World, chunk: ChunkData, noi: number, x: number, y: number, worldX: number) {
         const treeLength = Math.floor(noi + 5);
         for (let i = 0; i < treeLength; i++) {
-            chunk[x + (i + y) * CHUNK_LENGTH] = B.NATURAL_LOG;
+            chunk[x + (i + y) * ChunkLength] = B.NATURAL_LOG;
         }
         for (let [X, Y] of [
             [0, 0],
@@ -54,26 +54,26 @@ export class DefaultGenerator extends Generator {
     generate(chunkX: number): void {
         const world = this.world;
         const chunk = world.chunks[chunkX];
-        const chunkXM = chunkX * CHUNK_LENGTH;
+        const chunkXM = chunkX * ChunkLength;
         let treeX = 0;
 
-        for (let x = 0; x < CHUNK_LENGTH; x++) {
+        for (let x = 0; x < ChunkLength; x++) {
             const worldX = x + chunkXM;
             chunk[x] = B.BEDROCK;
-            const height = Math.floor(this.noise(worldX / 50, 0) * 12 + SURFACE_HEIGHT);
-            const heightNoise = this.noise(worldX / CAVE_SCALE, height / CAVE_SCALE);
+            const height = Math.floor(this.noise(worldX / 50, 0) * 12 + SurfaceHeight);
+            const heightNoise = this.noise(worldX / CaveScale, height / CaveScale);
             if (x === treeX && heightNoise < 0.4) {
                 const noi = this.noise(worldX / 5, 10);
                 treeX += Math.floor(Math.abs(noi) * 3 + 3);
-                if (x != CHUNK_LENGTH - 1) {
+                if (x != ChunkLength - 1) {
                     DefaultGenerator.plantTree(world, chunk, noi, x, height + 1, worldX);
                 }
             }
             for (let y = height; y >= 1; y--) {
-                const noi = this.noise(worldX / CAVE_SCALE, y / CAVE_SCALE);
+                const noi = this.noise(worldX / CaveScale, y / CaveScale);
                 if (noi >= 0.4 && y < height - 6) {
                     if (y < 11) {
-                        chunk[x + y * CHUNK_LENGTH] = B.LAVA;
+                        chunk[x + y * ChunkLength] = B.LAVA;
                     }
                     continue;
                 }
@@ -101,7 +101,7 @@ export class DefaultGenerator extends Generator {
                         if (noiDiamond >= 0.9) id = deepslate ? B.DEEPSLATE_DIAMOND_ORE : B.DIAMOND_ORE;
                     }
                 }
-                chunk[x + y * CHUNK_LENGTH] = id;
+                chunk[x + y * ChunkLength] = id;
             }
         }
     };

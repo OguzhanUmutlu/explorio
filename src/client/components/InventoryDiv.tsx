@@ -48,6 +48,7 @@ export default React.memo(function InventoryDiv(O: {
     const props = {...O};
     delete props.inventoryType;
     delete props.ikey;
+
     return <div className="inventory" key={O.ikey} {...props}>
         {...new Array(size).fill(null).map((_, i) => <div key={O.ikey + " " + i} className="inventory-item">
             <canvas ref={el => canvases[i] = el}></canvas>

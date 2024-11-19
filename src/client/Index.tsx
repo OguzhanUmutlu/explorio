@@ -1,6 +1,6 @@
 import {getServerList, getWorldList} from "./js/utils/Utils";
 import React, {useState} from "react";
-import {ReactState, useGroupState} from "./Main";
+import {isMobileByAgent, ReactState, useGroupState} from "./Main";
 import {SinglePlayerPopup} from "./components/indexPopups/SinglePlayerPopup";
 import {MultiPlayerPopup} from "./components/indexPopups/MultiPlayerPopup";
 import {NewWorldPopup} from "./components/indexPopups/NewWorldPopup";
@@ -27,6 +27,8 @@ export function Index(O: {
         servers[1](getServerList());
     }
 
+    const isMobile = isMobileByAgent();
+
     return <>
         <div className="panorama"></div>
         <div className="black-background"></div>
@@ -48,8 +50,8 @@ export function Index(O: {
         <NewServerPopup ns={toggles.ns} mp={toggles.mp} refresh={refreshServers}/>
         <OptionsPopup opt={toggles.opt} showSaveAndQuit={false}/>
 
-        <div className="text-left">Explorio 1.0.0</div>
-        <div className="text-right">
+        <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio 1.0.0 Alpha</div>
+        <div className="text-right" style={isMobile ? {fontSize: "15px"} : {}}>
             No copyright. Do distribute! <a href="https://github.com/OguzhanUmutlu/explorio" target="_blank">Click for
             the source
             code!</a>

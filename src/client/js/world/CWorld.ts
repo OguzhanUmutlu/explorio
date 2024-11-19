@@ -1,62 +1,72 @@
 import {World} from "../../../common/world/World";
-import {CHUNK_LENGTH_BITS, SUB_CHUNK_AMOUNT} from "../../../common/utils/Utils";
+import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "../../../common/utils/Utils";
 import {CSubChunk} from "./CSubChunk";
 
 export class CWorld extends World {
     subChunkRenders: Record<number, CSubChunk[]> = {};
 
-    ensureChunk(x: number, generate = true) {
-        super.ensureChunk(x, generate);
-        this.subChunkRenders[x] ??= [];
-        for (let y = 0; y < SUB_CHUNK_AMOUNT; y++) this.subChunkRenders[x][y] ??= new CSubChunk(this, x, y);
+    ensureChunk(chunkX: number, generate = true) {
+        super.ensureChunk(chunkX, generate);
+        this.subChunkRenders[chunkX] ??= [];
+        for (let y = 0; y < SubChunkAmount; y++) this.subChunkRenders[chunkX][y] ??= new CSubChunk(this, chunkX, y);
     };
 
-    async loadChunk(x: number) {
+    loadChunk() {
         return false;
     };
 
-    renderSubChunk(x: number, y: number) {
-        this.ensureChunk(x);
-        this.subChunkRenders[x][y].render();
+    renderSubChunk(chunkX: number, chunkY: number) {
+        this.ensureChunk(chunkX);
+        this.subChunkRenders[chunkX][chunkY].render();
     };
 
-    _setBlock(x: number, y: number, fullId: number, generate = true, polluteChunk = true, broadcast = true) {
-        const b = super._setBlock(x, y, fullId, generate, polluteChunk, broadcast);
-        if (b) {
-            x = x >> CHUNK_LENGTH_BITS;
-            y = y >> CHUNK_LENGTH_BITS;
-            if (this.subChunkRenders[x]) this.prepareSubChunkSurroundingRenders(x, y);
-        }
-        return b;
+    _polluteBlockAt(x: number, y: number) {
+        super._polluteBlockAt(x, y);
+
+        const chunkX = x >> ChunkLengthBits;
+        const chunkY = y >> ChunkLengthBits;
+        this.prepareSubChunkSurroundingRenders(chunkX, chunkY, false, true);
+        this.renderBlockAt(x, y);
     };
 
-    prepareChunkRenders(x: number) {
-        const chunkRender = this.subChunkRenders[x];
-        if (chunkRender) for (let y = 0; y < SUB_CHUNK_AMOUNT; y++) {
-            const subChunkRender = chunkRender[y];
-            subChunkRender.rendered = false;
-        }
+    getSubChunk(chunkX: number, chunkY: number) {
+        return this.subChunkRenders[chunkX]?.[chunkY];
     };
 
-    prepareSubChunkRenders(x: number, y: number) {
-        const chunk = this.subChunkRenders[x];
-        if (chunk) {
-            chunk[y].rendered = false;
-        }
+    getSubChunkAt(x: number, y: number) {
+        return this.getSubChunk(x >> ChunkLengthBits, y >> ChunkLengthBits);
     };
 
-    prepareSubChunkUpDownRenders(x: number, y: number) {
-        const chunkRender = this.subChunkRenders[x];
-        if (chunkRender) {
-            chunkRender[y].rendered = false;
-            if (y >= 1) chunkRender[y - 1].rendered = false;
-            if (y < SUB_CHUNK_AMOUNT - 1) chunkRender[y + 1].rendered = false;
+    prepareChunkRenders(chunkX: number, blocks = true, shadows = true) {
+        const chunkRender = this.subChunkRenders[chunkX];
+        if (chunkRender) for (let cy = 0; cy < SubChunkAmount; cy++) {
+            const subChunkRender = chunkRender[cy];
+            subChunkRender.prepare(blocks, shadows);
         }
     };
 
-    prepareSubChunkSurroundingRenders(x: number, y: number) {
-        this.prepareSubChunkUpDownRenders(x - 1, y);
-        this.prepareSubChunkUpDownRenders(x, y);
-        this.prepareSubChunkUpDownRenders(x + 1, y);
+    prepareSubChunkRenders(chunkX: number, chunkY: number, blocks = true, shadows = true) {
+        this.subChunkRenders[chunkX]?.[chunkY]?.prepare(blocks, shadows);
+    };
+
+    prepareSubChunkUpDownRenders(chunkX: number, chunkY: number, blocks = true, shadows = true) {
+        const chunkRender = this.subChunkRenders[chunkX];
+        chunkRender?.[chunkY]?.prepare(blocks, shadows);
+        chunkRender?.[chunkY - 1]?.prepare(blocks, shadows);
+        chunkRender?.[chunkY + 1]?.prepare(blocks, shadows);
+    };
+
+    prepareSubChunkSurroundingRenders(chunkX: number, chunkY: number, blocks = true, shadows = true) {
+        this.prepareSubChunkUpDownRenders(chunkX - 1, chunkY, blocks, shadows);
+        this.prepareSubChunkUpDownRenders(chunkX, chunkY, blocks, shadows);
+        this.prepareSubChunkUpDownRenders(chunkX + 1, chunkY, blocks, shadows);
+    };
+
+    renderBlockAt(x: number, y: number) {
+        this.getSubChunkAt(x, y)?.renderBlock(x & ChunkLengthN, y & ChunkLengthN);
+    };
+
+    renderShadowAt(x: number, y: number) {
+        this.getSubChunkAt(x, y)?.renderShadow(x & ChunkLengthN, y & ChunkLengthN);
     };
 }

@@ -20,8 +20,6 @@ invalidCtx.fillStyle = "#d000d2";
 invalidCtx.fillRect(0, 1, 1, 1);
 invalidCtx.fillRect(1, 0, 1, 1);
 
-// TODO: Resize the textures to TILE_SIZE x TILE_SIZE when created? It may break item rendering though.
-
 // BASED ON 64x64
 const SKIN_PARTS = {
     head: [[0, 8, 8, 8], [16, 8, 8, 8]],
@@ -104,14 +102,15 @@ export class Texture {
         this.actualSrc = simplifyTexturePath(this.actualSrc);
 
         if (!known || known instanceof Promise) {
-            this._promise = <Promise<Canvas>>known || loadImage(this.actualSrc);
-            this._promise.then(image => {
-                this.image = image;
-                printer.debug("%cLoaded " + this.actualSrc, "color: #00ff00");
-            }).catch(() => {
-                printer.error("%cFailed to load " + this.actualSrc, "color: #ff0000");
-                return this.image = invalidImage;
-            });
+            this._promise = (<Promise<Canvas>>known || loadImage(this.actualSrc))
+                .then((image: Image) => {
+                    this.image = image;
+                    printer.debug("%cLoaded " + this.actualSrc, "color: #00ff00");
+                    return image;
+                }).catch(() => {
+                    printer.error("%cFailed to load " + this.actualSrc, "color: #ff0000");
+                    return this.image = invalidImage;
+                });
         } else {
             this.image = known;
         }

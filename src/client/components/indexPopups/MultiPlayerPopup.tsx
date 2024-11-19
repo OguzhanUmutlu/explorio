@@ -3,7 +3,6 @@ import {removeServer, ServerData} from "../../js/utils/Utils";
 import {MainMenuPopup} from "../MainMenuPopup";
 import React, {useState} from "react";
 import {ReactState} from "../../Main";
-import {RequiresClientInit} from "../../Client";
 
 export function MultiPlayerPopup(O: {
     mp: ReactState<boolean>,
@@ -30,7 +29,6 @@ export function MultiPlayerPopup(O: {
                 .filter(s => s.name.toLowerCase().includes(serverSearch[0].toLowerCase()))
                 .map(s => <div className="server" key={s.uuid} onClick={e => {
                     if (e.target !== e.currentTarget) return;
-                    RequiresClientInit.value = true;
                     location.hash = s.uuid;
                     O.clientUUID[1](s.uuid);
                 }}>

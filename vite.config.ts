@@ -7,7 +7,7 @@ export default defineConfig({
     root: path.resolve(__dirname, "src/client"),
     base: "/explorio/",
     server: {
-        host: "127.0.0.1",
+        host: true,
         port: 1923
     },
     build: {

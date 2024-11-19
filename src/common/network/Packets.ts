@@ -114,7 +114,8 @@ export const PacketStructs = {
         x: X.i32,
         y: X.u32
     }),
-    [PacketIds.CStopBreaking]: X.null
+    [PacketIds.CStopBreaking]: X.null,
+    [PacketIds.CCloseContainer]: X.null
 } as const;
 
 export function readPacket(buffer: Buffer) {

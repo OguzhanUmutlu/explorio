@@ -1,20 +1,14 @@
 import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
 import {Inventory} from "../../item/Inventory";
 import {CommandSender} from "../../command/CommandSender";
-import {
-    CHUNK_LENGTH_BITS,
-    EntitySaveStruct,
-    getServer,
-    permissionCheck,
-    zstdOptionalDecode,
-    zstdOptionalEncode
-} from "../../utils/Utils";
+import {ChunkLengthBits, getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "../../utils/Utils";
 import {B} from "../../meta/ItemIds";
 import {PlayerNetwork} from "../../network/PlayerNetwork";
 import {Entity} from "../Entity";
 import {Packets} from "../../network/Packets";
 import {Inventories, InventorySizes} from "../../meta/Inventories";
 import {Item} from "../../item/Item";
+import EntitySaveStruct from "../../structs/EntitySaveStruct";
 
 export class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
@@ -25,10 +19,10 @@ export class Player extends Entity implements CommandSender {
     network: PlayerNetwork;
 
     bb = EntityBoundingBoxes[Entities.PLAYER].copy();
-    permissions: Set<string> = new Set;
+    permissions = new Set<string>;
     breaking: [number, number] | null = null;
     breakingTime = 0;
-    sentChunks: Set<number> = new Set;
+    sentChunks = new Set<number>;
     viewingChunks: number[] = [];
 
     handIndex = 0;
@@ -40,6 +34,8 @@ export class Player extends Entity implements CommandSender {
     canToggleFly = false;
     food = 20;
     maxFood = 20;
+
+    messageTimes: number[] = [];
 
     init() {
         for (const k in Inventories) {
@@ -68,9 +64,9 @@ export class Player extends Entity implements CommandSender {
         return `${this.rotation.toFixed(1)};${super.calcCacheState()}`;
     };
 
-    async serverUpdate(dt: number) {
+    serverUpdate(dt: number) {
         super.serverUpdate(dt);
-        const chunkX = Math.round(this.x) >> CHUNK_LENGTH_BITS;
+        const chunkX = Math.round(this.x) >> ChunkLengthBits;
         const chunks = [];
         const chunkDist = this.server.config.renderDistance;
         for (let x = chunkX - chunkDist; x <= chunkX + chunkDist; x++) {
@@ -78,7 +74,7 @@ export class Player extends Entity implements CommandSender {
             this.world.ensureChunk(x);
             if (!this.sentChunks.has(x)) {
                 this.sentChunks.add(x);
-                await (<any>this.world).sendChunk(<any>this, x);
+                this.world.sendChunk(<any>this, x);
             }
             ++this.world.chunkReferees[x];
         }
@@ -101,7 +97,7 @@ export class Player extends Entity implements CommandSender {
                 return;
             }
 
-            for (const p of this.world.getChunkViewers(bx >> CHUNK_LENGTH_BITS)) {
+            for (const p of this.world.getChunkViewers(bx >> ChunkLengthBits)) {
                 p.network.sendBlock(bx, by, B.AIR);
             }
         }
@@ -120,13 +116,13 @@ export class Player extends Entity implements CommandSender {
     };
 
     broadcastBlockBreaking() {
-        if (this.breaking) this.world.broadcastPacketAt(this.breaking[0], this.breaking[1], new Packets.SBlockBreakingUpdate({
+        if (this.breaking) this.world.broadcastPacketAt(this.breaking[0], new Packets.SBlockBreakingUpdate({
             entityId: this.id,
             x: this.breaking[0],
             y: this.breaking[1],
             time: this.breakingTime
         }), [this]);
-        else this.world.broadcastPacketAt(this.x, this.y, new Packets.SBlockBreakingStop({
+        else this.world.broadcastPacketAt(this.x, new Packets.SBlockBreakingStop({
             entityId: this.id
         }), [this]);
     };
@@ -141,14 +137,14 @@ export class Player extends Entity implements CommandSender {
         this.network.kick(reason);
     };
 
-    async save() {
-        if (!await this.server.fileExists(`${this.server.path}/players`)) {
-            await this.server.createDirectory(`${this.server.path}/players`);
+    save() {
+        if (!this.server.fileExists(`${this.server.path}/players`)) {
+            this.server.createDirectory(`${this.server.path}/players`);
         }
 
         const buffer = this.getSaveBuffer();
         const encoded = zstdOptionalEncode(buffer);
-        await this.server.writeFile(`${this.server.path}/players/${this.name}.dat`, encoded);
+        this.server.writeFile(`${this.server.path}/players/${this.name}.dat`, encoded);
     };
 
     updateCollisionBox() {
@@ -182,13 +178,13 @@ export class Player extends Entity implements CommandSender {
         return player;
     };
 
-    static async loadPlayer(name: string) {
+    static loadPlayer(name: string) {
         const server = getServer();
-        if (!await server.fileExists(`${server.path}/players/${name}.dat`)) {
+        if (!server.fileExists(`${server.path}/players/${name}.dat`)) {
             return Player.new(name);
         }
 
-        let buffer = await server.readFile(`${server.path}/players/${name}.dat`);
+        let buffer = server.readFile(`${server.path}/players/${name}.dat`);
         buffer = zstdOptionalDecode(Buffer.from(buffer));
 
         try {

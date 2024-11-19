@@ -5,7 +5,7 @@ import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
 import {DefaultGenerator} from "./DefaultGenerator";
 import {im2f} from "../../meta/Items";
-import {CHUNK_LENGTH} from "../../utils/Utils";
+import {ChunkLength} from "../../utils/Utils";
 
 export class CustomGenerator extends Generator {
     processedPattern: [number, number | string][][];
@@ -49,9 +49,9 @@ export class CustomGenerator extends Generator {
     generate(chunkX: number): void {
         const world = this.world;
         const chunk = world.chunks[chunkX];
-        const chunkXM = chunkX * CHUNK_LENGTH;
+        const chunkXM = chunkX * ChunkLength;
 
-        for (let x = 0; x < CHUNK_LENGTH; x++) {
+        for (let x = 0; x < ChunkLength; x++) {
             const worldX = chunkXM + x;
             let y = 0;
             for (const possible of this.processedPattern) {
@@ -66,7 +66,7 @@ export class CustomGenerator extends Generator {
                             x, y, worldX
                         ) + 2;
                     } else if (typeof block === "number") {
-                        chunk[x + y++ * CHUNK_LENGTH] = im2f(block);
+                        chunk[x + y++ * ChunkLength] = im2f(block);
                     }
                 }
             }

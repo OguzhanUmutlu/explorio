@@ -4,7 +4,7 @@ import {DEFAULT_GRAVITY} from "../../../common/entity/Entity";
 import {CurrentGameProtocol, PacketByName, Packets, readPacket} from "../../../common/network/Packets";
 import {EntityClasses} from "../../../common/meta/Entities";
 import {PacketError} from "../../../common/network/PacketError";
-import {CHUNK_LENGTH_BITS} from "../../../common/utils/Utils";
+import {ChunkLengthBits} from "../../../common/utils/Utils";
 import {CPlayer} from "../entity/types/CPlayer";
 import {Sound} from "../../../common/utils/Sound";
 import {CWorld} from "../world/CWorld";
@@ -85,6 +85,7 @@ export class ClientNetwork {
     };
 
     processCQuit() {
+        if (!isMultiPlayer) return;
         this.connected = false;
         this.worker.terminate();
         this.worker = null;
@@ -122,14 +123,14 @@ export class ClientNetwork {
         const world = <CWorld>clientPlayer.world;
         world.chunks[data.x] = new Uint16Array(data.data);
         if (data.resetEntities) clientPlayer.world.chunkEntities[data.x] = [];
-        world.prepareChunkRenders(data.x - 1);
+        world.prepareChunkRenders(data.x - 1, false, true);
         world.prepareChunkRenders(data.x);
-        world.prepareChunkRenders(data.x + 1);
+        world.prepareChunkRenders(data.x + 1, false, true);
         for (const entity of data.entities) {
             this.spawnEntityFromData(entity);
         }
 
-        if (clientPlayer.x >> CHUNK_LENGTH_BITS === data.x) {
+        if (clientPlayer.x >> ChunkLengthBits === data.x) {
             clientPlayer.onMovement();
         }
     };

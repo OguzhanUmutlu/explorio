@@ -49,7 +49,7 @@ export class OriginPlayer extends CPlayer {
         }
         if (Mouse.right) {
             if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GLASS, 0)) {
-                this.placeTime = 0.3;
+                //this.placeTime = 0.3;
             }
         } else this.placeTime = 0;
     };

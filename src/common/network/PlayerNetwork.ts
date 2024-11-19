@@ -60,6 +60,26 @@ export class PlayerNetwork {
         this.player.broadcastBlockBreaking();
     };
 
+    processCAuth({data}: PacketByName<"CAuth">) {
+        if (this.player || data.name in this.server.players) {
+            return this.kick("You are already in game");
+        }
+
+        const player = this.player = Player.loadPlayer(data.name);
+        player.network = this;
+        player.skin = data.skin;
+        player.init();
+        this.server.players[player.name] = player;
+        player.network.sendPacket(new Packets.SHandshake({
+            entityId: this.player.id,
+            x: player.x,
+            y: player.y
+        }), true);
+        player.broadcastSpawn();
+        printer.info(`${this.player.name}(${this.ip}) connected`)
+        this.server.broadcastMessage(`§e${this.player.name} joined the server`);
+    };
+
     processSendMessage({data}: PacketByName<"SendMessage">) {
         if (!data) return;
         this.player.server.processMessage(this.player, data);
@@ -107,29 +127,12 @@ export class PlayerNetwork {
                 return this.kick("Invalid auth");
             }
 
-            if (pk.data.name in this.server.players) {
-                return this.kick("You are already in game");
-            }
-
-            const player = this.player = await Player.loadPlayer(pk.data.name);
-            player.network = this;
-            player.skin = pk.data.skin;
-            player.init();
-            this.server.players[player.name] = player;
-            player.network.sendPacket(new Packets.SHandshake({
-                entityId: this.player.id,
-                x: player.x,
-                y: player.y
-            }), true);
-            player.broadcastSpawn();
-            printer.info(`${this.player.name}(${this.ip}) connected`)
-            this.server.broadcastMessage(`§e${this.player.name} joined the server`);
+            this.processCAuth(<any>pk);
         } else {
             try {
                 this.processPacket(pk);
             } catch (e) {
-                printer.error(pk);
-                printer.error(e);
+                printer.error(pk, e);
                 this.kick("Invalid packet");
                 return;
             }

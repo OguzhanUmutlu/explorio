@@ -4,6 +4,7 @@ import {initCommon} from "../../../common/utils/Inits";
 import {Canvas} from "../../../common/utils/Texture";
 import {BoundingBox} from "../../../common/entity/BoundingBox";
 import {camera, canvas, ctx} from "../../Client";
+import {initBrowserFS} from "../../../common/utils/Utils";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
@@ -25,6 +26,7 @@ export async function initClientThings() {
     loadOptions();
     initClientEntities();
     await initCommon();
+    await initBrowserFS();
 }
 
 export function initClientEntities() {
@@ -218,8 +220,8 @@ export function getClientPosition(x: number, y: number) {
 }
 
 export function renderBoundingBox(bb: BoundingBox) {
-    const {x: cx, y: cy} = getClientPosition(bb.x, bb.y);
-    ctx.strokeRect(cx, cy, bb.width * Options.tileSize, -bb.height * Options.tileSize);
+    const {x, y} = getClientPosition(bb.x, bb.y);
+    ctx.strokeRect(x, y, bb.width * Options.tileSize, -bb.height * Options.tileSize);
 }
 
 export function drawDotTo(x: number, y: number) {

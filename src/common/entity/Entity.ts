@@ -1,8 +1,9 @@
 import {BoundingBox} from "./BoundingBox";
 import {World} from "../world/World";
-import {EntitySaveStruct, EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
+import {EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
 import {Location} from "../utils/Location";
 import {Packets} from "../network/Packets";
+import EntitySaveStruct from "../structs/EntitySaveStruct";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -27,7 +28,7 @@ export abstract class Entity {
     onGround = true;
     bb: BoundingBox;
     cacheState: any;
-    tags: Set<string> = new Set;
+    tags = new Set<string>;
 
     walkSpeed = DEFAULT_WALK_SPEED;
     flySpeed = DEFAULT_FLY_SPEED;
@@ -106,7 +107,7 @@ export abstract class Entity {
         this.cacheState = this.calcCacheState();
     };
 
-    render(ctx: CanvasRenderingContext2D, dt: number) {
+    render(_ctx: CanvasRenderingContext2D, _dt: number) {
         this.renderX += (this.x - this.renderX) / 5;
         this.renderY += (this.y - this.renderY) / 5;
     };
@@ -192,7 +193,7 @@ export abstract class Entity {
     };
 
     broadcastMovement() {
-        this.world.broadcastPacketAt(this.x, this.y, new Packets.SEntityUpdate({
+        this.world.broadcastPacketAt(this.x, new Packets.SEntityUpdate({
             entityId: this.id,
             typeId: this.typeId,
             props: this.getMovementData()
@@ -200,7 +201,7 @@ export abstract class Entity {
     };
 
     broadcastSpawn() {
-        this.world.broadcastPacketAt(this.x, this.y, new Packets.SEntityUpdate({
+        this.world.broadcastPacketAt(this.x, new Packets.SEntityUpdate({
             entityId: this.id,
             typeId: this.typeId,
             props: this.getSpawnData()
@@ -208,10 +209,10 @@ export abstract class Entity {
     };
 
     broadcastDespawn() {
-        this.world.broadcastPacketAt(this.x, this.y, new Packets.SEntityRemove(this.id), [<any>this]);
+        this.world.broadcastPacketAt(this.x, new Packets.SEntityRemove(this.id), [<any>this]);
     };
 
-    serverUpdate(dt: number): void {
+    serverUpdate(_dt: number): void {
         if (this.calcCacheState() !== this.cacheState) {
             this.updateCacheState();
             this.broadcastMovement();

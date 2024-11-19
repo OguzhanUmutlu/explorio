@@ -6,7 +6,7 @@ import {cleanText, SelectorToken} from "./command/CommandProcessor";
 import {Location} from "./utils/Location";
 import {Entity} from "./entity/Entity";
 import {TeleportCommand} from "./command/defaults/TeleportCommand";
-import {SelectorSorters, setServer} from "./utils/Utils";
+import {checkLag, SelectorSorters, setServer} from "./utils/Utils";
 import {ListCommand} from "./command/defaults/ListCommand";
 import {ConsoleCommandSender} from "./command/ConsoleCommandSender";
 import {ExecuteCommand} from "./command/defaults/ExecuteCommand";
@@ -19,7 +19,13 @@ export type ServerConfig = {
     renderDistance: number,
     defaultWorld: string,
     defaultWorlds: Record<string, WorldMetaData>,
-    packetCompression: boolean
+    packetCompression: boolean,
+    maxMessageLength: number,
+    spamFilter: {
+        enabled: boolean,
+        threshold: number,
+        seconds: number
+    }
 };
 
 export const DefaultServerConfig: ServerConfig = {
@@ -34,7 +40,13 @@ export const DefaultServerConfig: ServerConfig = {
             seed: getRandomSeed()
         }
     },
-    packetCompression: false
+    packetCompression: false,
+    maxMessageLength: 256,
+    spamFilter: {
+        enabled: true,
+        threshold: 3,
+        seconds: 5
+    }
 };
 
 export class Server {
@@ -46,47 +58,41 @@ export class Server {
     saveCounterMax = 45;
     commands: Record<string, Command> = {};
     sender: ConsoleCommandSender;
-    config: ServerConfig = DefaultServerConfig;
+    config: ServerConfig;
 
     constructor(public fs: typeof import("fs"), public path: string) {
         setServer(this);
     };
 
     deleteFile(path: string) {
-        return new Promise(r => this.fs.rm(path, r));
+        this.fs.rmSync(path);
     };
 
-    fileExists(path: string): Promise<boolean> {
-        return new Promise(r => (<any>this.fs).exists(path, r));
+    fileExists(path: string): boolean {
+        return this.fs.existsSync(path);
     };
 
     createDirectory(path: string) {
-        return new Promise(r => this.fs.mkdir(path, {recursive: true, mode: 0o777}, r))
+        if (!this.fileExists(path)) this.fs.mkdirSync(path, {recursive: true, mode: 0o777});
     };
 
     writeFile(path: string, contents: any) {
-        return new Promise(r => this.fs.writeFile(path, contents, r));
+        this.fs.writeFileSync(path, contents);
     };
 
-    readFile(path: string): Promise<Buffer | null> {
-        return new Promise(r => this.fs.readFile(path, (e, contents) => {
-            if (e) r(null);
-            else r(contents);
-        }));
+    readFile(path: string): Buffer | null {
+        return this.fs.readFileSync(path);
     };
 
-    readDirectory(path: string): Promise<string[] | null> {
-        return new Promise(r => this.fs.readdir(path, (e, contents) => {
-            if (e) r(null);
-            else r(contents);
-        }));
+    readDirectory(path: string): string[] | null {
+        return this.fs.readdirSync(path);
     };
 
     isClientSide() {
         return !this.fs;
     };
 
-    async init() {
+    init() {
         this.sender = new ConsoleCommandSender;
         setInterval(() => {
             const now = Date.now();
@@ -102,35 +108,34 @@ export class Server {
             PermissionCommand
         ]) this.registerCommand(new clazz());
 
-        if (!await this.fileExists(this.path)) await this.createDirectory(this.path);
+        if (!this.fileExists(this.path)) this.createDirectory(this.path);
 
-        await this.loadConfig();
-        if (!await this.fileExists(`${this.path}/worlds`)) await this.createDirectory(`${this.path}/worlds`);
+        this.loadConfig();
+        if (!this.fileExists(`${this.path}/worlds`)) this.createDirectory(`${this.path}/worlds`);
         for (const folder in this.config.defaultWorlds) {
-            await this.createWorld(folder, this.config.defaultWorlds[folder]);
+            this.createWorld(folder, this.config.defaultWorlds[folder]);
         }
-        for (const folder of await this.getWorldFolders()) {
-            if (await this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
+        for (const folder of this.getWorldFolders()) {
+            if (this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
             else printer.fail("Failed to load world %c" + folder, "color: yellow");
         }
         if (!(this.config.defaultWorld in this.worlds)) {
             printer.error("Default world couldn't be found. Please create the world named '" + this.config.defaultWorld + "'");
-            await this.close();
+            this.close();
         }
         this.defaultWorld = this.worlds[this.config.defaultWorld];
     };
 
-    async loadConfig() {
-        if (!await this.fileExists(`${this.path}/server.json`) && !this.config) {
+    loadConfig() {
+        if (this.config) return;
+        if (!this.fileExists(`${this.path}/server.json`)) {
             this.config ??= DefaultServerConfig;
-            await this.writeFile(`${this.path}/server.json`, JSON.stringify(
-                this.config, null, 2
-            ));
+            this.writeFile(`${this.path}/server.json`, JSON.stringify(this.config, null, 2));
             printer.warn("Created server.json, please edit it and restart the server");
             process.exit(0);
         } else {
-            const buf = await this.readFile(`${this.path}/server.json`);
-            this.config ??= <ServerConfig>JSON.parse(buf.toString());
+            const buf = this.readFile(`${this.path}/server.json`);
+            this.config ??= {...(this.config ?? {}), ...JSON.parse(buf.toString())};
         }
     };
 
@@ -301,58 +306,59 @@ export class Server {
         return entities;
     };
 
-    async worldExists(folder: string): Promise<boolean> {
-        return await this.fileExists(this.path + "/worlds/" + folder);
+    worldExists(folder: string): boolean {
+        return this.fileExists(this.path + "/worlds/" + folder);
     };
 
-    async getWorldData(folder: string): Promise<WorldMetaData | null> {
+    getWorldData(folder: string): WorldMetaData | null {
         const path = this.path + "/worlds/" + folder + "/world.json";
-        if (!await this.fileExists(path)) return null;
+        if (!this.fileExists(path)) return null;
 
-        const buf = await this.readFile(path);
+        const buf = this.readFile(path);
         return JSON.parse(buf.toString());
     };
 
-    async getWorldChunkList(folder: string): Promise<number[] | null> {
+    getWorldChunkList(folder: string): number[] | null {
         const worldPath = this.path + "/worlds/" + folder;
-        if (!await this.fileExists(worldPath)) return null;
+        if (!this.fileExists(worldPath)) return null;
         const chunksPath = this.path + "/worlds/" + folder + "/chunks";
-        if (!await this.fileExists(chunksPath)) await this.createDirectory(chunksPath);
-        return (await this.readDirectory(chunksPath)).map(file => parseInt(file.split(".")[0]));
+        if (!this.fileExists(chunksPath)) this.createDirectory(chunksPath);
+        return (this.readDirectory(chunksPath)).map(file => parseInt(file.split(".")[0]));
     };
 
-    async getWorldFolders(): Promise<string[]> {
-        return await this.readDirectory(this.path + "/worlds");
+    getWorldFolders(): string[] {
+        return this.readDirectory(this.path + "/worlds");
     };
 
-    async loadWorld(folder: string): Promise<World | null> {
-        const data = await this.getWorldData(folder);
+    loadWorld(folder: string): World | null {
+        const data = this.getWorldData(folder);
         if (!data) return null;
         const gen = <any>Generators[data.generator];
         const world = new World(
             this, data.name, folder, data.seed, new gen(data.generatorOptions),
-            new Set(await this.getWorldChunkList(folder))
+            new Set(this.getWorldChunkList(folder))
         );
         this.worlds[folder] = world;
         world.ensureSpawnChunks();
         return world;
     };
 
-    async createWorld(folder: string, data: WorldMetaData): Promise<boolean> {
-        if (await this.worldExists(folder)) return false;
-        await this.createDirectory(this.path + "/worlds/" + folder);
-        await this.createDirectory(this.path + "/worlds/" + folder + "/chunks");
-        await this.writeFile(this.path + "/worlds/" + folder + "/world.json", JSON.stringify(data, null, 2));
+    createWorld(folder: string, data: WorldMetaData): boolean {
+        if (this.worldExists(folder)) return false;
+        this.createDirectory(this.path + "/worlds/" + folder);
+        this.createDirectory(this.path + "/worlds/" + folder + "/chunks");
+        this.writeFile(this.path + "/worlds/" + folder + "/world.json", JSON.stringify(data, null, 2));
         return true;
     };
 
     update(dt: number) {
+        checkLag("server");
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
         }
         this.saveCounter += dt;
         if (this.saveCounter > this.saveCounterMax) {
-            this.save().then(r => r); // ignoring the save time
+            this.save();
             this.saveCounter = 0;
         }
 
@@ -360,6 +366,7 @@ export class Server {
             const player = this.players[name];
             player.network.releaseBatch();
         }
+        checkLag("server");
     };
 
     broadcastPacket(pk: Packet, exclude: Player[] = [], immediate = false) {
@@ -406,7 +413,14 @@ export class Server {
     };
 
     processMessage(sender: CommandSender, message: string) {
-        message = cleanText(message);
+        if (this.config.spamFilter.enabled && sender instanceof Player) {
+            sender.messageTimes = sender.messageTimes.filter(i => i + 1000 * this.config.spamFilter.seconds > Date.now());
+            sender.messageTimes.push(Date.now());
+            if (sender.messageTimes.length > this.config.spamFilter.threshold) {
+                sender.kick("Kicked for spam");
+            }
+        }
+        message = cleanText(message).substring(0, this.config.maxMessageLength);
         if (message[0] === "/") {
             this.executeCommandLabel(
                 sender,
@@ -425,24 +439,24 @@ export class Server {
         command.init();
     };
 
-    async saveWorlds() {
+    saveWorlds() {
         for (const folder in this.worlds) {
-            await this.worlds[folder].save();
+            this.worlds[folder].save();
         }
     };
 
-    async savePlayers() {
+    savePlayers() {
         for (const player in this.players) {
-            await this.players[player].save();
+            this.players[player].save();
         }
     };
 
-    async save() {
-        await this.saveWorlds();
-        await this.savePlayers();
+    save() {
+        this.saveWorlds();
+        this.savePlayers();
     };
 
-    async close() {
+    close() {
         printer.info("Closing the server...");
 
         printer.info("Kicking players...");
@@ -451,13 +465,12 @@ export class Server {
         }
 
         printer.info("Saving the server...");
-        await this.saveWorlds();
+        this.saveWorlds();
 
         this.terminateProcess();
     };
 
     terminateProcess() {
         if (typeof process === "object") process.exit();
-        else close();
     };
 }

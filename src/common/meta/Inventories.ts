@@ -1,5 +1,3 @@
-import X, {Bin} from "stramp";
-
 export enum Containers {
     Closed,
     PlayerInventory,
@@ -33,5 +31,3 @@ export enum InventorySizes {
     craftingBig = 9,
     craftingBigResult = 1
 }
-
-export const ContainerNameBin = <Bin<Inventories>>X.any.of(Object.values(Inventories).map(X.makeLiteral));

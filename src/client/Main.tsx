@@ -1,7 +1,7 @@
 import React, {ChangeEvent, useEffect, useState} from "react";
 import "./css/common.css";
 import {Index} from "./Index";
-import {Client, RequiresClientInit, terminateClient} from "./Client";
+import {Client, terminateClient} from "./Client";
 import {isValidUUID} from "./js/utils/Utils";
 
 export type ReactState<T> = ReturnType<typeof useState<T>>;
@@ -30,12 +30,47 @@ export function useEventListener<
     }, [el, event, cb]);
 }
 
+export async function requestFullscreen() {
+    for (const key of ["requestFullscreen", "webkitRequestFullscreen", "msRequestFullscreen"]) {
+        if (document.documentElement[key]) return await document.documentElement[key]();
+    }
+}
+
+export function isMobileByAgent() {
+    const userAgent = navigator.userAgent.toLowerCase();
+
+    if (/iphone|ipod|ipad|android/i.test(userAgent)) {
+        return true;
+    } else if (/windows|macintosh/i.test(userAgent)) {
+        return false;
+    }
+
+    return false; // unknown
+}
+
 export function Main() {
     const clientUUID = useState(() => {
         const hash = location.hash.substring(1);
-        if (hash && isValidUUID(hash)) RequiresClientInit.value = true;
-        return hash;
+        if (hash && isValidUUID(hash)) {
+            return hash;
+        }
+        if (hash) location.hash = "";
+        return "";
     });
+
+    useEffect(() => {
+        function onClick() {
+            if (isMobileByAgent()) {
+                // requestFullscreen().then(r => r);
+            }
+        }
+
+        addEventListener("click", onClick);
+
+        return () => {
+            removeEventListener("click", onClick);
+        };
+    }, []);
 
     function onContextMenu(e: MouseEvent) {
         if (e.composedPath()[0] instanceof HTMLInputElement) return;
@@ -49,6 +84,7 @@ export function Main() {
     }
 
     return <>
+        <div className="rotate-message">Please rotate your device to landscape mode.</div>
         {
             clientUUID[0]
                 ? <Client clientUUID={clientUUID}/>

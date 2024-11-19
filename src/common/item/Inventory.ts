@@ -1,11 +1,11 @@
 import {Item, ItemDescriptor} from "./Item";
 import {World} from "../world/World";
 import {IM} from "../meta/ItemIds";
-import {ContainerStruct} from "../utils/Utils";
+import {InventoryStruct} from "../structs/InventoryStruct";
 
 export class Inventory {
     cleanDirty = false;
-    dirtyIndexes = new Set;
+    dirtyIndexes = new Set<number>;
     // _tile: ContainerTile | null = null;
     private contents: (Item | null)[] = [];
 
@@ -174,6 +174,6 @@ export class Inventory {
     };
 
     getSaveBuffer(): Buffer {
-        return ContainerStruct(this.size).serialize(this);
+        return new InventoryStruct(this.size).serialize(this);
     };
 }

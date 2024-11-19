@@ -3,7 +3,8 @@ import {BoundingBox} from "../entity/BoundingBox";
 export enum Entities {
     UNKNOWN,
     PLAYER,
-    ITEM
+    ITEM,
+    __MAX__
 }
 
 export const EntityBoundingBoxes: Record<number, BoundingBox> = {

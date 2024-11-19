@@ -1,14 +1,10 @@
-import X, {Bin} from "stramp";
-import {ItemStruct} from "../item/Item";
-import {Inventory} from "../item/Inventory";
-import {Entities, EntityClasses} from "../meta/Entities";
+import {Entities} from "../meta/Entities";
 import {Entity} from "../entity/Entity";
-import {ChunkBlocksBin} from "./Bins";
 import {ZstdSimple} from "@oneidentity/zstd-js";
-import {Inventories, InventorySizes} from "../meta/Inventories";
-import {World} from "../world/World";
 import {Server} from "../Server";
 import {Location} from "./Location";
+import * as BrowserFS from "browserfs";
+import PlayerStruct from "../structs/entities/PlayerStruct";
 
 let server: Server;
 
@@ -70,107 +66,19 @@ export function deserializeUint16Array(size: number, buffer: Buffer, offset: num
     return chunk;
 }
 
-export const WORLD_HEIGHT_EXP = 9;
-export const WORLD_HEIGHT = 1 << WORLD_HEIGHT_EXP;
-export const CHUNK_LENGTH_BITS = 4;
-export const CHUNK_LENGTH = 1 << CHUNK_LENGTH_BITS;
-export const CHUNK_LENGTH_N = CHUNK_LENGTH - 1;
-export const SUB_CHUNK_AMOUNT = WORLD_HEIGHT / CHUNK_LENGTH;
+export const WorldHeightExp = 9;
+export const WorldHeight = 1 << WorldHeightExp;
+export const ChunkLengthBits = 4;
+export const ChunkLength = 1 << ChunkLengthBits;
+export const ChunkLengthN = ChunkLength - 1;
+export const SubChunkAmount = WorldHeight / ChunkLength;
 
-export const SURFACE_HEIGHT = 172;
-export const CAVE_SCALE = 40;
-
-export const ChunkStruct = X.object.struct({
-    data: ChunkBlocksBin
-});
-
-const ItemList = X.array.typed(ItemStruct.or(X.null));
-
-export const ContainerStruct = (size: number) => {
-    return X.makeBin({
-        name: `Container<${size}>`,
-        write: (buffer, index, inv) => ItemList.write(buffer, index, inv.getContents()),
-        read: (buffer, index) => new Inventory(size).setContents(ItemList.read(buffer, index)),
-        size: inv => ItemList.getSize(inv.getContents()),
-        validate: inv => ItemList.validate(inv.getContents()),
-        sample: () => new Inventory(size)
-    });
-};
-
-export const WorldFolder: Bin<World> = X.makeBin({
-    name: "World",
-    write: (buffer, index, value) => X.string8.write(buffer, index, value.folder),
-    read: (buffer, index) => getServer().worlds[X.string8.read(buffer, index)],
-    size: world => X.string8.getSize(world.folder),
-    validate: world => X.string8.validate(world.folder),
-    sample: () => getServer().defaultWorld
-});
-
-export const EntityStruct = X.object.struct({
-    x: X.f32,
-    y: X.f32,
-    tags: X.set.typed(X.string16),
-    walkSpeed: X.f32,
-    flySpeed: X.f32,
-    jumpVelocity: X.f32,
-    health: X.f32,
-    maxHealth: X.f32,
-    gravity: X.f32,
-    canPhase: X.bool,
-    immobile: X.bool
-});
-
-export const PlayerStruct = EntityStruct.extend({
-    world: WorldFolder,
-    permissions: X.set.typed(X.string16),
-    handIndex: X.u8,
-    [Inventories.Hotbar]: ContainerStruct(InventorySizes.hotbar),
-    [Inventories.Player]: ContainerStruct(InventorySizes.player),
-    [Inventories.Armor]: ContainerStruct(InventorySizes.armor),
-    [Inventories.Cursor]: ContainerStruct(InventorySizes.cursor),
-    [Inventories.Chest]: ContainerStruct(InventorySizes.chest),
-    [Inventories.DoubleChest]: ContainerStruct(InventorySizes.doubleChest),
-    [Inventories.CraftingSmall]: ContainerStruct(InventorySizes.craftingSmall),
-    [Inventories.CraftingSmallResult]: ContainerStruct(InventorySizes.craftingSmallResult),
-    [Inventories.CraftingBig]: ContainerStruct(InventorySizes.craftingBig),
-    [Inventories.CraftingBigResult]: ContainerStruct(InventorySizes.craftingBigResult),
-    xp: X.u32,
-    blockReach: X.f32,
-    attackReach: X.f32,
-    isFlying: X.bool,
-    canToggleFly: X.bool,
-    food: X.f32,
-    maxFood: X.f32
-});
+export const SurfaceHeight = 172;
+export const CaveScale = 40;
 
 export const EntityStructs = {
     [Entities.PLAYER]: PlayerStruct
 };
-
-export const EntitySaveStruct: Bin<Entity> = X.makeBin({
-    name: "Entity",
-    write: (buffer, index, entity) => {
-        buffer[index[0]++] = entity.typeId;
-        entity.struct.write(buffer, index, entity);
-    },
-    read: (buffer, index) => {
-        const typeId = buffer[index[0]++];
-        const struct = EntityStructs[typeId];
-        const obj = struct.read(buffer, index);
-        const entity = new (EntityClasses[typeId])(null);
-
-        for (const k in obj) {
-            entity[k] = obj[k];
-        }
-
-        return entity;
-    },
-    size: entity => 1 + entity.struct.getSize(entity),
-    validate: entity => {
-        if (!(entity instanceof Entity) || !entity.struct) return "Not an entity";
-    },
-    sample: () => <Entity>null
-});
 
 export function permissionCheck(permissions: Set<string>, wanted: string) {
     const wantedSpl = wanted.split(".");
@@ -268,4 +176,28 @@ export function zstdOptionalDecode(buffer: Buffer) {
     if (buffer[0] === 1) return Buffer.from(ZstdSimple.decompress(sliced));
 
     return sliced;
+}
+
+export async function initBrowserFS() {
+    if (!self.bfs) {
+        self.fsr = {};
+        BrowserFS.install(self.fsr);
+        await new Promise(r => BrowserFS.configure({fs: "LocalStorage", options: {}}, e => {
+            if (e) printer.error(e);
+            else r(null);
+        }));
+        self.bfs = self.fsr.require("fs");
+    }
+}
+
+const lags = <Record<string, number>>{};
+
+export function checkLag(label: string, ms = 30) {
+    if (label in lags) {
+        const diff = Date.now() - lags[label];
+        if (diff > ms) printer.warn(`Lag detected: label=${label}, ms=${diff}, expected=${ms}`);
+        delete lags[label];
+    } else {
+        lags[label] = Date.now();
+    }
 }

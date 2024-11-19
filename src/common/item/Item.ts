@@ -1,7 +1,7 @@
 import {BM, I, ItemsByAccess} from "../meta/ItemIds";
-import X from "stramp";
 import {im2f} from "../meta/Items";
 import {Canvas} from "../utils/Texture";
+import ItemStruct from "../structs/ItemStruct";
 
 export class Item {
     constructor(
@@ -121,10 +121,3 @@ export class ItemPool {
         return ItemsByAccess[name] || null;
     };
 }
-
-export const ItemStruct = X.object.struct({
-    id: X.getTypeOf(I.__MAX__),
-    meta: X.u8,
-    count: X.u8,
-    nbt: X.object
-}).class(new Item(0), ({id, meta, count, nbt}) => new Item(id, meta, count, nbt));

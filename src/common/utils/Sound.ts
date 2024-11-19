@@ -3,7 +3,7 @@ import {simplifyTexturePath} from "./Utils";
 const SoundVolumes: Record<string, number> = {};
 
 export class Sound {
-    static ctx = typeof AudioContext === "undefined" ? null : new AudioContext;
+    static ctx: AudioContext = null;
     static canCreateContext = false;
 
     static sounds: Record<string, Sound> = {};
@@ -91,6 +91,7 @@ export class Sound {
         if (this.actualSrc.startsWith("assets/sounds/"))
             extraVol = SoundVolumes[this.actualSrc.substring("assets/sounds/".length).replaceAll(/^\d$/g, "")] ?? 1;
         return await new Promise(async r => {
+            if (!Sound.ctx) return r(new SoundContext(null, null));
             const source = new AudioBufferSourceNode(Sound.ctx, {buffer: this.buffer});
             const gainNode = new GainNode(Sound.ctx, {gain: volume * extraVol});
             source.connect(gainNode);
@@ -110,7 +111,7 @@ export class Sound {
 }
 
 class SoundContext {
-    static instances = new Set;
+    static instances = new Set<SoundContext>();
     started = false;
     _ended: boolean;
 
@@ -164,7 +165,8 @@ class SoundContext {
     };
 }
 
-if (typeof addEventListener !== "undefined") addEventListener("mousedown", async () => {
+if (typeof addEventListener !== "undefined") addEventListener("click", async () => {
+    Sound.ctx = new AudioContext();
     Sound.canCreateContext = true;
     await Sound.ctx.resume();
 });

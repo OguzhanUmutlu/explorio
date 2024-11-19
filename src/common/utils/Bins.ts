@@ -1,5 +1,5 @@
 import X from "stramp";
-import {CHUNK_LENGTH, WORLD_HEIGHT} from "./Utils";
+import {ChunkLength, WorldHeight} from "./Utils";
 
 function findSmallPatterns(array, max = 255) {
     const result = [];
@@ -45,7 +45,7 @@ export const ChunkBlocksBin = X.makeBin({
         buffer[index[0]++] = 0xff;
     },
     read(buffer, index) {
-        const blocks = new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT);
+        const blocks = new Uint16Array(ChunkLength * WorldHeight);
         let i = 0;
         for (; i < blocks.length; i++) {
             if (buffer[index[0]] === 0xff) {
@@ -71,5 +71,5 @@ export const ChunkBlocksBin = X.makeBin({
     },
     size: value => blocksToBuffer(value).length + 1,
     validate: X.u16array.validate,
-    sample: () => new Uint16Array(CHUNK_LENGTH * WORLD_HEIGHT)
+    sample: () => new Uint16Array(ChunkLength * WorldHeight)
 });
