@@ -19,7 +19,12 @@ export default new class EntitySaveStruct extends Bin<Entity> {
     read(bind: BufferIndex): Entity {
         const typeId = this.typeIdBin.read(bind);
         const entity = new (EntityClasses[typeId])(null);
-        entity.struct.read(bind, entity);
+        const obj = entity.struct.read(bind, entity);
+
+        for (const k in obj) {
+            entity[k] = obj[k];
+        }
+
         return entity;
     };
 

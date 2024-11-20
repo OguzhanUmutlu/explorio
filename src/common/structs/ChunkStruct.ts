@@ -1,5 +1,5 @@
 import X from "stramp";
-import {ChunkBlocksBin} from "../utils/Bins";
+import ChunkBlocksBin from "./ChunkBlocksBin";
 
 export default X.object.struct({
     data: ChunkBlocksBin

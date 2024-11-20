@@ -27,7 +27,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "simplex-noise": "^4.0.3",
-    "stramp": "^1.6.4",
+    "stramp": "^1.6.7",
     "tsx": "^4.19.2",
     "vite": "^5.4.10",
     "vite-plugin-copy": "^0.1.6",

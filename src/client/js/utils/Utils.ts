@@ -22,7 +22,13 @@ export type ServerData = {
     preferSecure: boolean
 };
 
+function initClientPrinter() {
+    printer.tags.warn.textColor = "none";
+    printer.tags.error.textColor = "none";
+}
+
 export async function initClientThings() {
+    initClientPrinter();
     loadOptions();
     initClientEntities();
     await initCommon();

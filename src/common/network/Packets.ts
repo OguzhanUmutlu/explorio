@@ -2,8 +2,8 @@ import {PacketError} from "./PacketError";
 import {Packet} from "./Packet";
 import {getServer, zstdOptionalDecode} from "../utils/Utils";
 import {PacketIds} from "../meta/PacketIds";
-import X from "stramp";
-import {ChunkBlocksBin} from "../utils/Bins";
+import X, {Bin, BufferIndex} from "stramp";
+import ChunkBlocksBin from "../structs/ChunkBlocksBin";
 
 export const CurrentGameProtocol = 2;
 
@@ -13,46 +13,52 @@ const EntityUpdateStruct = X.object.struct({
     props: X.object
 });
 
-const BatchStruct = X.makeBin({
-    name: "BatchPacket",
-    write(buffer, index, value: Packet[]) {
+const BatchStruct = new class BatchStruct extends Bin<Packet[]> {
+    name = "BatchPacket";
+
+    unsafeWrite(bind: BufferIndex, value: Packet[]) {
         for (const packet of value) {
-            buffer[index[0]++] = packet.packetId;
-            packet.write(buffer, index);
+            bind.push(packet.packetId);
+            packet.write(bind);
         }
-        buffer[index[0]++] = 0xff;
-    },
-    read(buffer, index) {
+        bind.push(0xff);
+    };
+
+    read(bind: BufferIndex) {
         const data = [];
-        while (buffer[index[0]] !== 0xff) {
-            const packetId = buffer[index[0]++];
+        let packetId: number;
+
+        while ((packetId = bind.incGet()) !== 0xff) {
             const clazz = Packets[packetId];
-            if (!clazz) throw new PacketError("Invalid packet", buffer);
-            data.push(clazz.read(buffer, index));
+            if (!clazz) throw new PacketError("Invalid packet", bind);
+            data.push(clazz.read(bind));
         }
-        index[0]++;
+
         return data;
-    },
-    size(value) {
+    };
+
+    unsafeSize(value: Packet[]) {
         return value.reduce((acc, p) => acc + p.getSize() + 1, 0) + 1;
-    },
-    validate(value) {
+    };
+
+    findProblem(value: any) {
         if (!Array.isArray(value)) return "Expected an array of packets";
         for (const p of value) {
             if (!(p instanceof Packet)) return "Expected an array of packets";
         }
-    },
-    sample() {
+    };
+
+    get sample() {
         return <Packet[]>[];
-    }
-});
+    };
+};
 
 export type PkStr<T extends keyof typeof PacketIds> = typeof PacketStructs[typeof PacketIds[T]];
 export type PacketByName<T extends keyof typeof PacketIds> = Packet<PkStr<T>>;
 
 export type PacketNameToPacket<N extends keyof typeof PacketIds> = {
     new(data: PkStr<N>["__TYPE__"]): Packet<PkStr<N>>;
-    read(buffer: Buffer, index: number[]): Packet<PkStr<N>>;
+    read(bind: BufferIndex): Packet<PkStr<N>>;
     __STRUCT__: PkStr<N>; // for typings
 };
 
@@ -122,5 +128,5 @@ export function readPacket(buffer: Buffer) {
     buffer = getServer().config.packetCompression ? zstdOptionalDecode(buffer) : buffer;
     const clazz = Packets[buffer[0]];
     if (!clazz) throw new PacketError("Invalid packet", buffer);
-    return <Packet>clazz.read(buffer, [1]);
+    return <Packet>clazz.read(new BufferIndex(buffer, 1));
 }

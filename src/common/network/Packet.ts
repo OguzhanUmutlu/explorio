@@ -1,4 +1,4 @@
-import {Bin} from "stramp";
+import {Bin, BufferIndex} from "stramp";
 import {getServer, zstdOptionalEncode} from "../utils/Utils";
 import {PacketStructs} from "./Packets";
 
@@ -12,16 +12,16 @@ export class Packet<T extends Bin = Bin> {
         return PacketStructs[this.packetId];
     };
 
-    static read(buffer: Buffer, index: [number]) {
+    static read(bind: BufferIndex) {
         // @ts-ignore
         const pk = <this>new this(0, null);
-        pk.data = pk.struct.read(buffer, index);
+        pk.data = pk.struct.read(bind);
         return pk;
     };
 
-    write(buffer: Buffer, index: [number]) {
+    write(bind: BufferIndex) {
         if (!this.struct) return;
-        this.struct.write(buffer, index, this.data);
+        this.struct.write(bind, this.data);
     };
 
     getSize(): number {
@@ -36,10 +36,10 @@ export class Packet<T extends Bin = Bin> {
 
     serialize() {
         this.assert();
-        const buffer = Buffer.allocUnsafe(this.getSize() + 1);
-        buffer[0] = this.packetId;
-        this.write(buffer, [1]);
-        return getServer().config.packetCompression ? zstdOptionalEncode(buffer) : buffer;
+        const bind = BufferIndex.allocUnsafe(this.getSize() + 1);
+        bind.push(this.packetId);
+        this.write(bind);
+        return getServer().config.packetCompression ? zstdOptionalEncode(bind.buffer) : bind.buffer;
     };
 
     send(ws: any) {
