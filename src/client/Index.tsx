@@ -1,6 +1,5 @@
-import {getServerList, getWorldList} from "./js/utils/Utils";
+import {getServerList, getWorldList, isMobileByAgent, ReactState, useGroupState} from "./js/utils/Utils";
 import React, {useState} from "react";
-import {isMobileByAgent, ReactState, useGroupState} from "./Main";
 import {SinglePlayerPopup} from "./components/indexPopups/SinglePlayerPopup";
 import {MultiPlayerPopup} from "./components/indexPopups/MultiPlayerPopup";
 import {NewWorldPopup} from "./components/indexPopups/NewWorldPopup";

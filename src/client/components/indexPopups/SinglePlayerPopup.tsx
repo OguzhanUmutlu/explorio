@@ -1,8 +1,7 @@
 import {StateInput} from "../StateInput";
-import {removeWorld, WorldData} from "../../js/utils/Utils";
+import {ReactState, removeWorld, WorldData} from "../../js/utils/Utils";
 import {MainMenuPopup} from "../MainMenuPopup";
 import React, {useState} from "react";
-import {ReactState} from "../../Main";
 
 export function SinglePlayerPopup(O: {
     sp: ReactState<boolean>,

@@ -17,7 +17,7 @@ export default new class WorldStruct extends Bin<World> {
         return X.string8.getSize(value.folder);
     };
 
-    findProblem(value: any, strict?: boolean): void | undefined | string {
+    findProblem(value: any, strict?: boolean) {
         return X.string8.findProblem(value.folder, strict);
     };
 

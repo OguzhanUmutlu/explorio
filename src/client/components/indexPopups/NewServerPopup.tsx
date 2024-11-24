@@ -1,8 +1,7 @@
 import {StateInput} from "../StateInput";
-import {addServer} from "../../js/utils/Utils";
+import {addServer, ReactState} from "../../js/utils/Utils";
 import {MainMenuPopup} from "../MainMenuPopup";
 import React, {useState} from "react";
-import {ReactState} from "../../Main";
 
 export function NewServerPopup(O: {
     ns: ReactState<boolean>,

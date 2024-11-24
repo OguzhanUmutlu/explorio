@@ -17,20 +17,17 @@ export class PlayerNetwork {
         this.ip = req.socket.remoteAddress;
     };
 
-    processPacket(pk: Packet) {
+    async processPacket(pk: Packet) {
+        await this.server.pluginPromise;
         const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
         if (key in this) this[key](pk);
         else printer.warn("Unhandled packet: ", pk);
     };
 
-    processBatch({data}: PacketByName<"Batch">) {
+    async processBatch({data}: PacketByName<"Batch">) {
         for (const p of data) {
-            this.processPacket(p);
+            await this.processPacket(p);
         }
-    };
-
-    processCQuit() {
-        throw new Error("This is not singleplayer.");
     };
 
     processCMovement({data}: PacketByName<"CMovement">) {
@@ -130,7 +127,7 @@ export class PlayerNetwork {
             this.processCAuth(<any>pk);
         } else {
             try {
-                this.processPacket(pk);
+                await this.processPacket(pk);
             } catch (e) {
                 printer.error(pk, e);
                 this.kick("Invalid packet");
@@ -148,9 +145,9 @@ export class PlayerNetwork {
         this.ws.close();
     };
 
-    async onClose() {
+    onClose() {
         if (this.player) {
-            await this.player.save();
+            this.player.save();
             delete this.server.players[this.player.name];
             this.player.despawn();
             printer.info(`${this.player.name}(${this.ip}) disconnected: ${this.kickReason || "client disconnect"}`);

@@ -1,8 +1,7 @@
 import {StateInput} from "../StateInput";
-import {addWorld} from "../../js/utils/Utils";
+import {addWorld, ReactState} from "../../js/utils/Utils";
 import {MainMenuPopup} from "../MainMenuPopup";
 import React, {useState} from "react";
-import {ReactState} from "../../Main";
 
 export function NewWorldPopup(O: {
     nw: ReactState<boolean>,

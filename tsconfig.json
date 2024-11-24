@@ -10,6 +10,21 @@
     "noEmitOnError": true,
     "allowSyntheticDefaultImports": true,
     "jsx": "react",
-    "lib": ["ESNext", "DOM"]
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@client/*": [
+        "./src/client/*"
+      ],
+      "@server/*": [
+        "./src/server/*"
+      ],
+      "@explorio/*": [
+        "./src/common/*"
+      ]
+    }
   }
 }

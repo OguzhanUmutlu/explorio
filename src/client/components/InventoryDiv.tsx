@@ -1,5 +1,5 @@
 import React from "react";
-import {Inventories, InventorySizes} from "../../common/meta/Inventories";
+import {Inventories, InventorySizes} from "@explorio/meta/Inventories";
 import {clientPlayer} from "../Client";
 import {Div} from "../js/utils/Utils";
 

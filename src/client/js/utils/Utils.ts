@@ -1,16 +1,66 @@
-import {Entities, EntityBoundingBoxes, EntityClasses} from "../../../common/meta/Entities";
+import {Entities, EntityBoundingBoxes} from "@explorio/meta/Entities";
 import {CPlayer} from "../entity/types/CPlayer";
-import {initCommon} from "../../../common/utils/Inits";
-import {Canvas} from "../../../common/utils/Texture";
-import {BoundingBox} from "../../../common/entity/BoundingBox";
+import {initCommon} from "@explorio/utils/Inits";
+import {Canvas} from "@explorio/utils/Texture";
+import {BoundingBox} from "@explorio/entity/BoundingBox";
 import {camera, canvas, ctx} from "../../Client";
-import {initBrowserFS} from "../../../common/utils/Utils";
+import {initBrowserFS, SoundFiles} from "@explorio/utils/Utils";
+import {ChangeEvent, useEffect, useState} from "react";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
 export type Input = HTMLInputElement;
 
 export const URLPrefix = "/explorio/";
+
+export type ReactState<T> = ReturnType<typeof useState<T>>;
+
+export function useGroupState<K extends string[], T>(names: K, default_: T) {
+    const obj = {};
+    for (const k of names) {
+        obj[k] = useState(default_);
+    }
+    return obj as { [k in K[number]]: ReturnType<typeof useState<T>> };
+}
+
+export function stateChanger(state: ReactState<any>) {
+    return function (e: ChangeEvent<HTMLInputElement>) {
+        state[1](e.target.value);
+    };
+}
+
+export function useEventListener<
+    T extends Element | Window,
+    K extends keyof (ElementEventMap & GlobalEventHandlersEventMap)
+>(el: T, event: K, cb: (ev: (ElementEventMap & GlobalEventHandlersEventMap)[K]) => any) {
+    useEffect(() => {
+        el.addEventListener(event, cb);
+        return () => el.removeEventListener(event, cb);
+    }, [el, event, cb]);
+}
+
+export async function requestFullscreen() {
+    for (const key of ["requestFullscreen", "webkitRequestFullscreen", "msRequestFullscreen"]) {
+        if (document.documentElement[key]) return await document.documentElement[key]();
+    }
+}
+
+export function isMobileByAgent() {
+    const userAgent = navigator.userAgent.toLowerCase();
+
+    return /iphone|ipod|ipad|android/i.test(userAgent);
+}
+
+export function getHash() {
+    const hash = location.hash.substring(1);
+    if (hash && isValidUUID(hash)) {
+        return hash;
+    }
+
+    if (hash) location.hash = "";
+
+    return "";
+}
 
 export type WorldData = { uuid: string, name: string, seed: number, lastPlayedAt: number };
 export type ServerData = {
@@ -27,7 +77,11 @@ function initClientPrinter() {
     printer.tags.error.textColor = "none";
 }
 
+export const ClientEntityClasses: Record<Entities, any> = <any>{};
+
 export async function initClientThings() {
+    // @ts-ignore
+    SoundFiles.push(...Object.keys(import.meta.glob("../../client/assets/sounds/**/*")));
     initClientPrinter();
     loadOptions();
     initClientEntities();
@@ -36,7 +90,7 @@ export async function initClientThings() {
 }
 
 export function initClientEntities() {
-    EntityClasses[Entities.PLAYER] = CPlayer;
+    ClientEntityClasses[Entities.PLAYER] = CPlayer;
 }
 
 export function getWSUrls(ip: string, port: number): string[] {

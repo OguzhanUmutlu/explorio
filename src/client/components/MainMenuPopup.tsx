@@ -1,5 +1,5 @@
 import React, {ReactNode} from "react";
-import {ReactState} from "../Main";
+import {ReactState} from "@client/js/utils/Utils";
 
 export function MainMenuPopup(o: {
     state: ReactState<boolean>,

@@ -33,7 +33,7 @@ export default new class EntitySaveStruct extends Bin<Entity> {
     };
 
     findProblem(value: Entity, strict = false) {
-        if (!(value instanceof Entity)) return "Expected an entity";
+        if (!(value instanceof Entity)) return this.makeProblem("Expected an entity");
         return value.struct.findProblem(value, strict);
     };
 

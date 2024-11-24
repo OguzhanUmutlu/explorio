@@ -42,9 +42,9 @@ const BatchStruct = new class BatchStruct extends Bin<Packet[]> {
     };
 
     findProblem(value: any) {
-        if (!Array.isArray(value)) return "Expected an array of packets";
+        if (!Array.isArray(value)) return this.makeProblem("Expected an array of packets");
         for (const p of value) {
-            if (!(p instanceof Packet)) return "Expected an array of packets";
+            if (!(p instanceof Packet)) return this.makeProblem("Expected an array of packets");
         }
     };
 
@@ -110,7 +110,6 @@ export const PacketStructs = {
         skin: X.string16,
         protocol: X.u16
     }),
-    [PacketIds.CQuit]: X.null,
     [PacketIds.CMovement]: X.object.struct({
         x: X.f32,
         y: X.f32,

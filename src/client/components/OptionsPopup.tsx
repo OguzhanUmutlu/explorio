@@ -1,8 +1,7 @@
-import {ReactState} from "../Main";
 import {MainMenuPopup} from "./MainMenuPopup";
 import React, {useState} from "react";
-import {loadOptions, Options, saveOptions} from "../js/utils/Utils";
-import {saveAndQuit} from "../Client";
+import {loadOptions, Options, ReactState, saveOptions} from "../js/utils/Utils";
+import {terminateClient} from "../Client";
 
 export function OptionsPopup(O: {
     opt: ReactState<boolean>,
@@ -56,6 +55,6 @@ export function OptionsPopup(O: {
                 <div className="option-value-text">{cameraSpeed[0]}</div>
             </div>
         </div>
-        <div className="save-and-quit btn" hidden={!O.showSaveAndQuit} onClick={saveAndQuit}>Save and Quit</div>
+        <div className="save-and-quit btn" hidden={!O.showSaveAndQuit} onClick={terminateClient}>Save and Quit</div>
     </>}/>;
 }

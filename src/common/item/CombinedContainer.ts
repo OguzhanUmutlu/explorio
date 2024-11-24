@@ -1,4 +1,5 @@
 import {Inventory} from "./Inventory";
+import {Item} from "@explorio/item/Item";
 
 // This is for double chests etc.
 export class CombinedContainer extends Inventory {
@@ -19,7 +20,7 @@ export class CombinedContainer extends Inventory {
         return contents;
     };
 
-    get(index) {
+    get(index: number) {
         let ind = this.size;
         const invLs = this.inventories;
         for (let i = invLs.length - 1; i >= 0; i--) {
@@ -32,7 +33,7 @@ export class CombinedContainer extends Inventory {
         return null;
     };
 
-    set(index, item, update = true) {
+    set(index: number, item: Item, update = true) {
         let ind = this.size;
         const invLs = this.inventories;
         for (let i = invLs.length - 1; i >= 0; i--) {

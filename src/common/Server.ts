@@ -1,4 +1,4 @@
-import {Generators, getRandomSeed, World, WorldMetaData} from "./world/World";
+import {Generators, getRandomSeed, World, WorldMetaData, ZWorldMetaData} from "./world/World";
 import {Player} from "./entity/types/Player";
 import {Command, CommandError} from "./command/Command";
 import {CommandAs, CommandSender} from "./command/CommandSender";
@@ -12,21 +12,25 @@ import {ConsoleCommandSender} from "./command/ConsoleCommandSender";
 import {ExecuteCommand} from "./command/defaults/ExecuteCommand";
 import {Packet} from "./network/Packet";
 import {PermissionCommand} from "./command/defaults/PermissionCommand";
-import {Packets} from "./network/Packets";
+import {z} from "zod";
+import {Plugin, PluginMetadata, ZPluginMetadata} from "./plugin/Plugin";
 
-export type ServerConfig = {
-    port: number,
-    renderDistance: number,
-    defaultWorld: string,
-    defaultWorlds: Record<string, WorldMetaData>,
-    packetCompression: boolean,
-    maxMessageLength: number,
-    spamFilter: {
-        enabled: boolean,
-        threshold: number,
-        seconds: number
-    }
-};
+export const ZServerConfig = z.object({
+    port: z.number().min(0).max(65535),
+    renderDistance: z.number().min(0),
+    defaultWorld: z.string().default("default"),
+    defaultWorlds: z.record(z.string(), ZWorldMetaData),
+    packetCompression: z.boolean(),
+    maxMessageLength: z.number(),
+    spamFilter: z.object({
+        enabled: z.boolean(),
+        threshold: z.number().min(0),
+        seconds: z.number().min(0)
+    }),
+    saveIntervalSeconds: z.number().min(0)
+});
+
+export type ServerConfig = z.infer<typeof ZServerConfig>;
 
 export const DefaultServerConfig: ServerConfig = {
     port: 1881,
@@ -46,7 +50,8 @@ export const DefaultServerConfig: ServerConfig = {
         enabled: true,
         threshold: 3,
         seconds: 5
-    }
+    },
+    saveIntervalSeconds: 45
 };
 
 export class Server {
@@ -55,10 +60,12 @@ export class Server {
     players: Record<string, Player> = {};
     lastUpdate = Date.now() - 1;
     saveCounter = 0;
-    saveCounterMax = 45;
     commands: Record<string, Command> = {};
     sender: ConsoleCommandSender;
     config: ServerConfig;
+    pluginMetas: Record<string, PluginMetadata> = {};
+    plugins: Record<string, Plugin> = {};
+    pluginPromise: Promise<void> | null;
 
     constructor(public fs: typeof import("fs"), public path: string) {
         setServer(this);
@@ -108,14 +115,20 @@ export class Server {
             PermissionCommand
         ]) this.registerCommand(new clazz());
 
-        if (!this.fileExists(this.path)) this.createDirectory(this.path);
+        this.createDirectory(this.path);
 
         this.loadConfig();
-        if (!this.fileExists(`${this.path}/worlds`)) this.createDirectory(`${this.path}/worlds`);
+
+        this.createDirectory(`${this.path}/players`);
+        this.createDirectory(`${this.path}/worlds`);
+        this.createDirectory(`${this.path}/plugins`);
+
+        this.pluginPromise = this.loadPlugins();
+
         for (const folder in this.config.defaultWorlds) {
             this.createWorld(folder, this.config.defaultWorlds[folder]);
         }
-        for (const folder of this.getWorldFolders()) {
+        for (const folder of this.readDirectory(this.path + "/worlds")) {
             if (this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
             else printer.fail("Failed to load world %c" + folder, "color: yellow");
         }
@@ -132,11 +145,81 @@ export class Server {
             this.config ??= DefaultServerConfig;
             this.writeFile(`${this.path}/server.json`, JSON.stringify(this.config, null, 2));
             printer.warn("Created server.json, please edit it and restart the server");
-            process.exit(0);
+            this.terminateProcess();
         } else {
-            const buf = this.readFile(`${this.path}/server.json`);
-            this.config ??= {...(this.config ?? {}), ...JSON.parse(buf.toString())};
+            try {
+                const got = JSON.parse(this.readFile(`${this.path}/server.json`).toString());
+                ZServerConfig.parse(got);
+                this.config = got;
+            } catch (e) {
+                printer.error(e);
+                printer.warn("Invalid server.json, please edit it and restart the server");
+                printer.info("Default config: ", JSON.stringify(DefaultServerConfig, null, 2));
+                this.terminateProcess();
+            }
         }
+    };
+
+    async loadPlugins() {
+        const nonReadyPluginNames = new Set<string>;
+
+        const url = await import(/* @vite-ignore */ "url");
+
+        for (const folder of this.readDirectory(this.path + "/plugins")) {
+            try {
+                const meta = <PluginMetadata>JSON.parse(this.readFile(`${this.path}/plugins/${folder}/plugin.json`).toString());
+                ZPluginMetadata.parse(meta);
+
+                if (meta.name in this.pluginMetas) {
+                    throw new Error("Duplicate plugin.");
+                }
+
+                this.pluginMetas[meta.name] = meta;
+                const mainPath = `${this.path}/plugins/${folder}/${meta.main}`;
+                let exp = await import(/* @vite-ignore */ url.pathToFileURL(mainPath).toString());
+                if (!("default" in exp) || typeof exp.default !== "function") {
+                    throw new Error("Plugin main file doesn't have a default function export.");
+                }
+
+                const plugin = this.plugins[meta.name] = <Plugin>new (exp.default)(this, meta);
+
+                if (!(plugin instanceof Plugin)) {
+                    throw new Error("Plugin main file doesn't export a Plugin class.");
+                }
+
+                plugin.load();
+
+                nonReadyPluginNames.add(meta.name);
+            } catch (e) {
+                printer.error("Failed to load plugin %c" + folder, "color: yellow");
+                printer.error(e);
+                printer.error("Closing the server for plugin integrity.");
+                this.close();
+            }
+        }
+
+        while (nonReadyPluginNames.size > 0) {
+            let loadedAny = false;
+            for (const name of Array.from(nonReadyPluginNames)) {
+                const meta = this.pluginMetas[name];
+                const plugin = this.plugins[name];
+                try {
+                    if (meta.dependencies && meta.dependencies.some(n => nonReadyPluginNames.has(n))) continue;
+                    loadedAny = true;
+                    plugin.enable();
+                    nonReadyPluginNames.delete(name);
+                } catch (e) {
+                    printer.error("Failed to load plugin %c" + meta.name, "color: yellow");
+                    printer.error(e);
+                }
+            }
+            if (!loadedAny) {
+                printer.error(`Circular dependencies detected in the plugins: ${Array.from(nonReadyPluginNames).join(", ")}. Closing the server for plugin integrity.`);
+                this.close();
+            }
+        }
+
+        this.pluginPromise = null;
     };
 
     getAllEntities() {
@@ -315,19 +398,23 @@ export class Server {
         if (!this.fileExists(path)) return null;
 
         const buf = this.readFile(path);
-        return JSON.parse(buf.toString());
+        try {
+            const conf = JSON.parse(buf.toString())
+            ZWorldMetaData.parse(conf);
+            return conf;
+        } catch (e) {
+            printer.error("World " + folder + " has an invalid world.json file");
+            printer.error(e);
+            return null;
+        }
     };
 
     getWorldChunkList(folder: string): number[] | null {
         const worldPath = this.path + "/worlds/" + folder;
         if (!this.fileExists(worldPath)) return null;
         const chunksPath = this.path + "/worlds/" + folder + "/chunks";
-        if (!this.fileExists(chunksPath)) this.createDirectory(chunksPath);
+        this.createDirectory(chunksPath);
         return (this.readDirectory(chunksPath)).map(file => parseInt(file.split(".")[0]));
-    };
-
-    getWorldFolders(): string[] {
-        return this.readDirectory(this.path + "/worlds");
     };
 
     loadWorld(folder: string): World | null {
@@ -352,13 +439,13 @@ export class Server {
     };
 
     update(dt: number) {
-        checkLag("server");
+        checkLag("server update", 10);
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
         }
         this.saveCounter += dt;
-        if (this.saveCounter > this.saveCounterMax) {
-            this.save();
+        if (this.saveCounter > this.config.saveIntervalSeconds) {
+            this.saveWorlds();
             this.saveCounter = 0;
         }
 
@@ -366,7 +453,7 @@ export class Server {
             const player = this.players[name];
             player.network.releaseBatch();
         }
-        checkLag("server");
+        checkLag("server update");
     };
 
     broadcastPacket(pk: Packet, exclude: Player[] = [], immediate = false) {
@@ -377,7 +464,10 @@ export class Server {
     };
 
     broadcastMessage(message: string) {
-        this.broadcastPacket(new Packets.SendMessage(message));
+        for (const name in this.players) {
+            const player = this.players[name];
+            player.sendMessage(message);
+        }
         printer.info(message);
     };
 
@@ -451,7 +541,7 @@ export class Server {
         }
     };
 
-    save() {
+    saveAll() {
         this.saveWorlds();
         this.savePlayers();
     };
@@ -464,7 +554,7 @@ export class Server {
             this.players[player].kick("Server closed");
         }
 
-        printer.info("Saving the server...");
+        printer.info("Saving the worlds...");
         this.saveWorlds();
 
         this.terminateProcess();

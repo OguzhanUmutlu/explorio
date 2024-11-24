@@ -77,7 +77,7 @@ export default new class ChunkBlocksBin extends Bin<Uint16Array> {
         return blocksToBuffer(value).length + 1
     };
 
-    findProblem(value: any, strict?: boolean): void | string | undefined {
+    findProblem(value: any, strict?: boolean) {
         return baseBlocks.findProblem(value, strict);
     };
 

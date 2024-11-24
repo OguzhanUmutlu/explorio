@@ -29,7 +29,6 @@ export enum PacketIds {
     // SUpdateTime,
 
     CAuth,
-    CQuit, // only for client-side, used for saving the world.
     CMovement,
     CStartBreaking,
     CStopBreaking,

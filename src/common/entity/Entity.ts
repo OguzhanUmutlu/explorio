@@ -1,7 +1,7 @@
 import {BoundingBox} from "./BoundingBox";
 import {World} from "../world/World";
 import {EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
-import {Location} from "../utils/Location";
+import {getRotationTowards, Location} from "../utils/Location";
 import {Packets} from "../network/Packets";
 import EntitySaveStruct from "../structs/EntitySaveStruct";
 
@@ -46,7 +46,7 @@ export abstract class Entity {
     };
 
     getRotationTowards(x: number, y: number) {
-        return this.location.getRotationTowards(x, y, this.bb.width / 2, this.bb.height);
+        return getRotationTowards(this.bb.x + this.bb.width / 2, this.bb.y + this.bb.height, x, y);
     };
 
     get eyeHeight() {

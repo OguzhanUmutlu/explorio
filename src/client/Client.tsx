@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from "react";
-import {isMobileByAgent, ReactState} from "./Main";
 import "./css/client.css";
 import {
     Div,
@@ -7,7 +6,9 @@ import {
     getServerList,
     getWorldList,
     Input,
+    isMobileByAgent,
     Options,
+    ReactState,
     saveOptions,
     ServerData,
     WorldData
@@ -19,14 +20,14 @@ import {OptionsPopup} from "./components/OptionsPopup";
 import {CWorld} from "./js/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "./components/InventoryDiv";
-import {Inventories} from "../common/meta/Inventories";
-import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "../common/utils/Utils";
+import {Inventories} from "@explorio/meta/Inventories";
+import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@explorio/utils/Utils";
 import {CEntity} from "./js/entity/CEntity";
-import {I} from "../common/meta/ItemIds";
-import {Packets} from "../common/network/Packets";
+import {I} from "@explorio/meta/ItemIds";
+import {Packets} from "@explorio/network/Packets";
 import Buffer from "buffer";
-import {DefaultServerConfig, Server} from "../common/Server";
-import {PlayerNetwork} from "../common/network/PlayerNetwork";
+import {DefaultServerConfig, Server} from "@explorio/Server";
+import {PlayerNetwork} from "@explorio/network/PlayerNetwork";
 
 declare global {
     interface Window {
@@ -176,7 +177,6 @@ function animate() {
             (entity as CEntity).render(ctx, dt);
         }
     }
-    clientPlayer.render(ctx, dt);
 
     // 0.01ms
     const smoothDt = Math.min(dt, 0.015) * Options.cameraSpeed;
@@ -346,16 +346,6 @@ function onChatKeyPress(e: KeyboardEvent) {
     }
 }
 
-export function saveAndQuit() {
-    saveOptions();
-    if (!isMultiPlayer) {
-        clientNetwork.sendPacket(new Packets.CQuit(null));
-        saveScreen[1](true);
-    } else {
-        clientNetwork.processCQuit();
-    }
-}
-
 export function initClient() {
     saveScreen[1](false);
     self.Buffer = Buffer["Buffer"] as any;
@@ -383,6 +373,7 @@ export function initClient() {
     canvas.addEventListener("mousedown", onCanvasMouseDown);
     addEventListener("mouseup", onMouseUp);
     chatInput.addEventListener("keydown", onChatKeyPress);
+    addEventListener("beforeunload", terminateClient);
 
     clientServer = new CServer();
     clientServer.config = DefaultServerConfig;
@@ -402,7 +393,6 @@ export function initClient() {
 
         if (!singlePlayerServer.fileExists("singleplayer")) singlePlayerServer.createDirectory("singleplayer");
         singlePlayerServer.config = DefaultServerConfig;
-        singlePlayerServer.saveCounterMax = 3; // every 3 seconds because the player might F5 at any point in time
 
         singlePlayerServer.init();
 
@@ -411,10 +401,11 @@ export function initClient() {
                 clientNetwork.processPacket(data);
             },
             kick() {
-                printer.warn("got kicked for some reason? did you kick yourself?");
+                printer.warn("Got kicked for some reason? did you kick yourself?");
             },
             close() {
                 printer.warn("Pseudo-closed the pseudo-socket. What a duo...");
+                serverNetwork.onClose();
             }
         }, {socket: {remoteAddress: "::ffff:127.0.0.1"}});
 
@@ -426,6 +417,8 @@ export function initClient() {
         clientNetwork.sendPacket = pk => serverNetwork.processPacket(pk);
 
         clientNetwork.sendAuth(true);
+
+        clientNetwork.handshakeCb = () => serverNetwork.player.permissions.add("*");
     }
 
     Mouse._x = innerWidth / 2;
@@ -448,6 +441,7 @@ export function initClient() {
 }
 
 export function terminateClient() {
+    saveOptions();
     cancelAnimationFrame(frameId);
     clearInterval(intervalId);
     if (clientNetwork && clientNetwork.worker) {
@@ -468,12 +462,14 @@ export function terminateClient() {
     if (chatInput) {
         chatInput.removeEventListener("keydown", onChatKeyPress);
     }
+    removeEventListener("beforeunload", terminateClient);
     singlePlayerServer = null;
 }
 
 // todo: fix non-rendering chunks in clients
 // todo: add sounds
 // todo: add inventory transactions
+// todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 
 function isInChat() {
     if (isMobileByAgent()) return chatContainer[0];
@@ -504,7 +500,8 @@ function hasBlur() {
 }
 
 export function Client(O: {
-    clientUUID: ReactState<string>
+    clientUUID: ReactState<string>,
+    favicon: ReactState<string>
 }) {
     optionPopup = useState(false);
     saveScreen = useState(false);

@@ -3,7 +3,7 @@ import {Inventory} from "../item/Inventory";
 import {Item} from "../item/Item";
 import ItemStruct from "./ItemStruct";
 
-export class InventoryStruct extends Bin<Inventory> {
+export default class InventoryStruct extends Bin<Inventory> {
     name: string;
     listBin: Bin<Item[]>;
 
@@ -26,7 +26,7 @@ export class InventoryStruct extends Bin<Inventory> {
         return this.listBin.getSize(value.getContents());
     };
 
-    findProblem(value: any, strict?: boolean): void | undefined | string {
+    findProblem(value: any, strict?: boolean) {
         return this.listBin.findProblem(value.getContents(), strict);
     };
 

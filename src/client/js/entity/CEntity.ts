@@ -1,4 +1,4 @@
-import {Entity} from "../../../common/entity/Entity";
+import {Entity} from "@explorio/entity/Entity";
 
 export interface CEntity extends Entity {
     typeId: number;

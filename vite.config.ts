@@ -2,12 +2,13 @@ import {defineConfig} from "vite";
 import path from "path";
 import {copy} from "vite-plugin-copy";
 import react from "@vitejs/plugin-react";
+import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
     root: path.resolve(__dirname, "src/client"),
     base: "/explorio/",
     server: {
-        host: true,
+        host: "127.0.0.1",
         port: 1923
     },
     build: {
@@ -34,6 +35,7 @@ export default defineConfig({
         format: "es"
     },
     plugins: [
+        tsconfigPaths(),
         copy([
             {
                 src: path.resolve(__dirname, "src/client/assets/*").replaceAll("\\", "/"),

@@ -1,10 +1,17 @@
 import {WebSocketServer} from "ws";
 import Printer from "fancy-printer";
-import {initServerThings} from "./Utils";
-import {Location} from "../common/utils/Location";
-import {PlayerNetwork} from "../common/network/PlayerNetwork";
+import {Location} from "@explorio/utils/Location";
+import {PlayerNetwork} from "@explorio/network/PlayerNetwork";
 import * as fs from "fs";
-import {Server} from "../common/Server";
+import {Server} from "@explorio/Server";
+import {initCommon} from "@explorio/utils/Inits";
+import {SoundFiles} from "@explorio/utils/Utils";
+import fg from "fast-glob";
+import path from "path";
+import {fileURLToPath} from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 Error.stackTraceLimit = 50;
 
@@ -41,32 +48,36 @@ function addStyles(printer: typeof Printer) {
 
 addStyles(printer);
 
-printer.info("Starting server...");
-
-async function exit() {
+function exit() {
     wss.close();
     try {
-        await server.close();
+        server.close();
     } catch (e) {
     }
     process.exit(1);
 }
 
-async function onCrash(error: Error) {
+function onCrash(error: Error) {
     printer.error("Server crashed.");
     printer.error(error);
-    await exit();
+    exit();
 }
 
 process.on("uncaughtException", onCrash);
 process.on("unhandledRejection", onCrash);
 process.on("SIGINT", exit);
 
-await initServerThings();
 
+const soundPath = path.resolve(`${__dirname}/../client/assets/sounds`);
+SoundFiles.push(...(await fg(soundPath.replaceAll("\\", "/") + "/**/*"))
+    .map(i => i.substring(soundPath.length - "assets/sounds".length)));
+
+await initCommon();
+
+printer.info("Starting server...");
 const wss = new WebSocketServer({port: 1881});
 const server = new Server(fs, ".");
-await server.init();
+server.init();
 
 // todo: mobile support, desktop app support, mobile app support
 

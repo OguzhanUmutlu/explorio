@@ -1,5 +1,5 @@
 import {CEntity} from "../CEntity";
-import {ItemEntity} from "../../../../common/entity/types/ItemEntity";
+import {ItemEntity} from "@explorio/entity/types/ItemEntity";
 import {getClientPosition} from "../../utils/Utils";
 
 export class CItemEntity extends ItemEntity implements CEntity {

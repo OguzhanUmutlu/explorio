@@ -1,5 +1,5 @@
-import {World} from "../../../common/world/World";
-import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "../../../common/utils/Utils";
+import {Ring3, World} from "@explorio/world/World";
+import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "@explorio/utils/Utils";
 import {CSubChunk} from "./CSubChunk";
 
 export class CWorld extends World {
@@ -27,6 +27,12 @@ export class CWorld extends World {
         const chunkY = y >> ChunkLengthBits;
         this.prepareSubChunkSurroundingRenders(chunkX, chunkY, false, true);
         this.renderBlockAt(x, y);
+        const block = this.getBlock(x, y);
+        if (!block.isOpaque) {
+            for (const [dx, dy] of Ring3) {
+                this.renderBlockAt(x + dx, y + dy);
+            }
+        }
     };
 
     getSubChunk(chunkX: number, chunkY: number) {
@@ -68,5 +74,13 @@ export class CWorld extends World {
 
     renderShadowAt(x: number, y: number) {
         this.getSubChunkAt(x, y)?.renderShadow(x & ChunkLengthN, y & ChunkLengthN);
+    };
+
+    setChunkBuffer(_: number, __: Buffer) {
+        throw new Error("Report a bug if you see this.");
+    };
+
+    getChunkBuffer(_: number): Buffer | null {
+        throw new Error("Report a bug if you see this.");
     };
 }

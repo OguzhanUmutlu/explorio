@@ -8,6 +8,8 @@ import PlayerStruct from "../structs/entities/PlayerStruct";
 
 let server: Server;
 
+export let SoundFiles = [];
+
 export function getServer() {
     return server;
 }

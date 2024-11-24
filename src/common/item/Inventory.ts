@@ -1,7 +1,6 @@
 import {Item, ItemDescriptor} from "./Item";
 import {World} from "../world/World";
 import {IM} from "../meta/ItemIds";
-import {InventoryStruct} from "../structs/InventoryStruct";
 
 export class Inventory {
     cleanDirty = false;
@@ -171,9 +170,5 @@ export class Inventory {
             item.count -= amount;
             this.updateIndex(index);
         }
-    };
-
-    getSaveBuffer(): Buffer {
-        return new InventoryStruct(this.size).serialize(this);
     };
 }

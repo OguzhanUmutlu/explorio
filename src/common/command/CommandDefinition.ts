@@ -12,7 +12,7 @@ import {Location} from "../utils/Location";
 import {EntityArgument} from "./arguments/EntityArgument";
 import {LabelArgument} from "./arguments/LabelArgument";
 
-export type Append<T, V> = T extends [] ? [V] : [...T, V];
+export type Append<T extends any[] | [], V> = T extends [] ? [V] : [...T, V];
 
 export type CommandDefinitionType = CommandDefinition<CommandArgument[]>;
 

@@ -1,27 +1,29 @@
-import {createCanvas} from "../../../common/utils/Texture";
-import {ChunkLength, ChunkLengthBits} from "../../../common/utils/Utils";
+import {createCanvas} from "@explorio/utils/Texture";
+import {ChunkLength, ChunkLengthBits} from "@explorio/utils/Utils";
 import {clientPlayer} from "../../Client";
-import {f2id, f2meta} from "../../../common/meta/Items";
-import {I, IM} from "../../../common/meta/ItemIds";
-import {World} from "../../../common/world/World";
+import {f2id, f2meta} from "@explorio/meta/Items";
+import {I, IM} from "@explorio/meta/ItemIds";
+import {World} from "@explorio/world/World";
 
 const renderScale = 16; // Blocks are rendered as 16x16
 const renderSize = renderScale * ChunkLength;
 
 function __renderBlock(
     relX: number, relY: number, fullId: number,
-    ctx: CanvasRenderingContext2D
+    ctx: CanvasRenderingContext2D, clear: boolean
 ) {
     const id = f2id(fullId);
     const meta = f2meta(fullId);
+    const dx = relX * renderScale;
+    const dy = renderScale * (ChunkLength - relY);
+    const dw = renderScale;
+    const dh = -renderScale;
     if (id !== I.AIR) {
         const texture = IM[id].getTexture(meta);
-        const dx = relX * renderScale;
-        const dy = renderScale * (ChunkLength - relY);
-        const dw = renderScale;
-        const dh = -renderScale;
         ctx.drawImage(texture.image, dx, dy, dw, dh);
         if (!texture.loaded) texture.wait().then(img => ctx.drawImage(img, dx, dy, dw, dh));
+    } else if (clear) {
+        ctx.clearRect(dx, dy, dw, dh);
     }
 }
 
@@ -72,7 +74,7 @@ export class CSubChunk {
     };
 
     renderBlock(relX: number, relY: number) {
-        __renderBlock(relX, relY, this.updateValue()[relX + (relY << ChunkLengthBits) + this.subIndex], this.bCtx);
+        __renderBlock(relX, relY, this.updateValue()[relX + (relY << ChunkLengthBits) + this.subIndex], this.bCtx, true);
     };
 
     renderShadow(relX: number, relY: number) {
@@ -94,7 +96,7 @@ export class CSubChunk {
                     const depth = this.getDepthAt(relX, relY);
 
                     if (depth != 0 && !this.bDone) {
-                        __renderBlock(relX, relY, chunk[i], bCtx);
+                        __renderBlock(relX, relY, chunk[i], bCtx, false);
                     }
 
                     if (depth < 3 && !this.sDone) {

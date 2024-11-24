@@ -1,7 +1,7 @@
-import {Texture} from "../../../../common/utils/Texture";
+import {Texture} from "@explorio/utils/Texture";
 import {getClientPosition, Options, renderPlayerModel} from "../../utils/Utils";
 import {CEntity} from "../CEntity";
-import {Player} from "../../../../common/entity/types/Player";
+import {Player} from "@explorio/entity/types/Player";
 
 export function getCurrentSwing() {
     const p = 400;

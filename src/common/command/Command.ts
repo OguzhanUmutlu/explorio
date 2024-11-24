@@ -1,5 +1,4 @@
 import {CommandAs, CommandSender} from "./CommandSender";
-import {Entity} from "../entity/Entity";
 import {Location} from "../utils/Location";
 
 export class CommandError extends Error {

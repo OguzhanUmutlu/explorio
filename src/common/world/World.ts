@@ -20,6 +20,7 @@ import {Entity} from "../entity/Entity";
 import {Server} from "../Server";
 import {Packets} from "../network/Packets";
 import ChunkStruct from "../structs/ChunkStruct";
+import {z} from "zod";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -37,13 +38,9 @@ export const Ring3 = [
     [3, 0], [2, 1], [1, 2], [0, 3], [-1, 2], [-2, 1], [-3, 0], [-2, -1], [-1, -2], [0, -3], [1, -2], [2, -1]
 ];
 
+export const All3Rings = [...Ring1, ...Ring2, ...Ring3];
+
 export type ChunkData = Uint16Array;
-export type WorldMetaData = {
-    name: string,
-    seed: number,
-    generator: keyof typeof Generators,
-    generatorOptions: string
-};
 
 export const Generators = {
     flat: FlatGenerator,
@@ -51,6 +48,24 @@ export const Generators = {
     flower_lands: FlowerLandGenerator,
     custom: CustomGenerator
 } as const;
+
+type GeneratorKeys = keyof typeof Generators;
+
+export const ZWorldMetaData = z.object({
+    name: z.string(),
+    seed: z.number().int(),
+    generator: z.enum(<[GeneratorKeys, ...GeneratorKeys[]]>Object.keys(Generators)),
+    generatorOptions: z.string()
+});
+
+export type WorldMetaData = z.infer<typeof ZWorldMetaData>;
+
+export const DefaultWorldMetadata: WorldMetaData = {
+    name: "world",
+    seed: getRandomSeed(),
+    generator: "default",
+    generatorOptions: ""
+};
 
 // Variable meanings:
 // x = World X
@@ -136,29 +151,29 @@ export class World {
         return y < WorldHeight && y >= 0;
     };
 
-    _setBlock(x: number, y: number, fullId: number, generate = true, polluteChunk = true, broadcast = true) {
+    _setBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true) {
         // WARNING: This assumes x and y are integers, and y is a bounded valid height.
         const chunk = this.getFullChunkAt(x, generate);
         const i = (x & ChunkLengthN) | (y << ChunkLengthBits);
         if (chunk[i] === fullId) return false;
         chunk[i] = fullId;
-        if (polluteChunk) this._polluteBlockAt(x, y);
+        if (polluteBlock) this._polluteBlockAt(x, y);
         if (broadcast) this.broadcastBlockAt(x, y, fullId); // the promise doesn't matter.
         return true;
     };
 
-    setFullBlock(x: number, y: number, fullId: number, generate = true, polluteChunk = true, broadcast = true) {
+    setFullBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
         if (!this.inWorld(y)) return;
-        this._setBlock(x, y, fullId, generate, polluteChunk, broadcast);
+        this._setBlock(x, y, fullId, generate, polluteBlock, broadcast);
     };
 
-    setBlock(x: number, y: number, id: number, meta: number, generate = true, polluteChunk = true, broadcast = true) {
+    setBlock(x: number, y: number, id: number, meta: number, generate = true, polluteBlock = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
         if (!this.inWorld(y)) return;
-        this._setBlock(x, y, im2f(id, meta), generate, polluteChunk, broadcast);
+        this._setBlock(x, y, im2f(id, meta), generate, polluteBlock, broadcast);
     };
 
 
@@ -238,7 +253,7 @@ export class World {
         this._polluteChunk(x >> ChunkLengthBits);
     };
 
-    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteChunk = true, broadcast = true) {
+    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteBlock = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
         if (
@@ -258,7 +273,7 @@ export class World {
             this._setBlock(x, y, target.fullId, true, false);
             return false;
         }
-        if (polluteChunk) this._polluteBlockAt(x, y);
+        if (polluteBlock) this._polluteBlockAt(x, y);
         if (broadcast) this.broadcastBlockAt(x, y, fullId);
         return true;
     };
@@ -274,9 +289,9 @@ export class World {
             && target.solid;
     };
 
-    tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteChunk = true, broadcast = true) {
+    tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true) {
         if (!this.canBreakBlockAt(entity, x, y)) return false;
-        this.setFullBlock(x, y, B.AIR, true, polluteChunk, broadcast);
+        this.setFullBlock(x, y, B.AIR, true, polluteBlock, broadcast);
         return true;
     };
 

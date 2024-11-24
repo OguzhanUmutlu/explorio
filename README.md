@@ -1,4 +1,4 @@
-# explorio
+# <img src="./src/client/assets/logo.png" width="32px"> explorio
 
 Explorio is a 2D block game
 
@@ -28,7 +28,7 @@ Explorio is a 2D block game
 
 The client is hosted statically by GitHub Pages on https://oguzhanumutlu.github.io/explorio
 
-You can also find hosted clients outside GitHub Pages and use them.
+You can also find hosted clients outside GitHub Pages and use them. Though this is not recommended.
 
 ### Running/modding the client locally
 

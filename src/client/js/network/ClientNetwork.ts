@@ -1,15 +1,14 @@
-import {Packet,} from "../../../common/network/Packet";
-import {getWSUrls, setServerOptions} from "../utils/Utils";
-import {DEFAULT_GRAVITY} from "../../../common/entity/Entity";
-import {CurrentGameProtocol, PacketByName, Packets, readPacket} from "../../../common/network/Packets";
-import {EntityClasses} from "../../../common/meta/Entities";
-import {PacketError} from "../../../common/network/PacketError";
-import {ChunkLengthBits} from "../../../common/utils/Utils";
+import {Packet,} from "@explorio/network/Packet";
+import {ClientEntityClasses, getWSUrls, setServerOptions} from "../utils/Utils";
+import {DEFAULT_GRAVITY} from "@explorio/entity/Entity";
+import {CurrentGameProtocol, PacketByName, Packets, readPacket} from "@explorio/network/Packets";
+import {PacketError} from "@explorio/network/PacketError";
+import {ChunkLengthBits} from "@explorio/utils/Utils";
 import {CPlayer} from "../entity/types/CPlayer";
-import {Sound} from "../../../common/utils/Sound";
+import {Sound} from "@explorio/utils/Sound";
 import {CWorld} from "../world/CWorld";
-import {PacketIds} from "../../../common/meta/PacketIds";
-import {clientPlayer, clientUUID, isMultiPlayer, ServerInfo} from "../../Client";
+import {PacketIds} from "@explorio/meta/PacketIds";
+import {clientPlayer, isMultiPlayer, ServerInfo} from "../../Client";
 // @ts-ignore
 import SocketWorker from "../worker/SocketWorker?worker";
 
@@ -22,6 +21,7 @@ export class ClientNetwork {
     immediate: Packet[] = [];
     handshake = false;
     ping = 0;
+    handshakeCb = null;
 
     whenConnect() {
         return this.connectPromise;
@@ -84,15 +84,6 @@ export class ClientNetwork {
         this.sendPacket(new Packets.Ping(new Date));
     };
 
-    processCQuit() {
-        if (!isMultiPlayer) return;
-        this.connected = false;
-        this.worker.terminate();
-        this.worker = null;
-        location.hash = "";
-        clientUUID[1]("");
-    };
-
     processSHandshake({data}: PacketByName<"SHandshake">) {
         this.handshake = true;
         clientPlayer.gravity = DEFAULT_GRAVITY;
@@ -101,10 +92,11 @@ export class ClientNetwork {
         clientPlayer.x = data.x;
         clientPlayer.y = data.y;
         clientPlayer.init();
+        if (this.handshakeCb) this.handshakeCb();
     };
 
     spawnEntityFromData(data: any) {
-        const entity = new EntityClasses[data.typeId](clientPlayer.world);
+        const entity = new ClientEntityClasses[data.typeId](clientPlayer.world);
         entity.id = data.entityId;
         for (const k in data.props) {
             entity[k] = data.props[k];
@@ -142,9 +134,12 @@ export class ClientNetwork {
         delete data.typeId;
         const dist = entity.distance(data.props.x, data.props.y);
         Object.assign(entity, data.props);
+
         if (entity === clientPlayer) {
             clientPlayer.updateCacheState();
+            clientPlayer.teleport(entity.x, entity.y);
         }
+
         if (dist > 0) entity.onMovement();
     };
 
@@ -189,10 +184,10 @@ export class ClientNetwork {
         Sound.play(path, volume);
     };
 
+
     processSendMessage({data}: PacketByName<"SendMessage">) {
         clientPlayer.sendMessage(data);
     };
-
 
     sendStopBreaking(immediate = false) {
         this.sendPacket(new Packets.CStopBreaking(null), immediate);

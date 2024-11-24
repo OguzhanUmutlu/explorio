@@ -34,6 +34,8 @@ export class Player extends Entity implements CommandSender {
     canToggleFly = false;
     food = 20;
     maxFood = 20;
+    placeCooldown = 0.3;
+    instantBreak = false;
 
     messageTimes: number[] = [];
 
@@ -110,9 +112,9 @@ export class Player extends Entity implements CommandSender {
         }
     };
 
-    teleport(x: number, y: number) {
+    teleport(x: number, y: number, send = true) {
         super.teleport(x, y);
-        this.network.sendPosition();
+        if (send) this.network.sendPosition();
     };
 
     broadcastBlockBreaking() {
@@ -138,9 +140,7 @@ export class Player extends Entity implements CommandSender {
     };
 
     save() {
-        if (!this.server.fileExists(`${this.server.path}/players`)) {
-            this.server.createDirectory(`${this.server.path}/players`);
-        }
+        this.server.createDirectory(`${this.server.path}/players`);
 
         const buffer = this.getSaveBuffer();
         const encoded = zstdOptionalEncode(buffer);
@@ -180,11 +180,12 @@ export class Player extends Entity implements CommandSender {
 
     static loadPlayer(name: string) {
         const server = getServer();
-        if (!server.fileExists(`${server.path}/players/${name}.dat`)) {
+        const datPath = `${server.path}/players/${name}.dat`;
+        if (!server.fileExists(datPath)) {
             return Player.new(name);
         }
 
-        let buffer = server.readFile(`${server.path}/players/${name}.dat`);
+        let buffer = server.readFile(datPath);
         buffer = zstdOptionalDecode(Buffer.from(buffer));
 
         try {
@@ -192,6 +193,7 @@ export class Player extends Entity implements CommandSender {
             player.name = name;
             return player;
         } catch (e) {
+            printer.error(e);
             printer.warn(`Player data corrupted, creating new player for ${name}`);
             return Player.new(name);
         }

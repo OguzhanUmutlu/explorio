@@ -1,13 +1,17 @@
 import {CPlayer} from "./CPlayer";
-import {I} from "../../../../common/meta/ItemIds";
-import {Containers} from "../../../../common/meta/Inventories";
-import {chatBox, clientNetwork, Keyboard, Mouse} from "../../../Client";
+import {I} from "@explorio/meta/ItemIds";
+import {Containers} from "@explorio/meta/Inventories";
+import {chatBox, clientNetwork, Keyboard, Mouse} from "@client/Client";
 import {Options} from "../../utils/Utils";
 
 export class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
     placeTime = 0;
     name = "";
+
+    teleport(x: number, y: number) {
+        super.teleport(x, y, false);
+    };
 
     render(ctx: CanvasRenderingContext2D, dt: number) {
         this.placeTime = Math.max(0, this.placeTime - dt);
@@ -40,6 +44,7 @@ export class OriginPlayer extends CPlayer {
                 const block = this.world.getBlock(Mouse.rx, Mouse.ry);
                 // todo: handle tools
                 this.breakingTime = block.getHardness();
+                if (this.instantBreak) this.breakingTime = 0;
                 clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
             }
         } else {
@@ -49,7 +54,7 @@ export class OriginPlayer extends CPlayer {
         }
         if (Mouse.right) {
             if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GLASS, 0)) {
-                //this.placeTime = 0.3;
+                this.placeTime = this.placeCooldown;
             }
         } else this.placeTime = 0;
     };

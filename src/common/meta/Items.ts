@@ -12,7 +12,6 @@ export type ItemMetaDataConfig = {
     metas?: { identifier: string, name: string, texture: string | Texture | Canvas | (() => Texture) }[],
     isBlock?: boolean,
     replaceableBy?: number[] | "*",
-    isTransparent?: boolean,
     canBePlacedOn?: number[] | "*",
     cannotBePlacedOn?: number[],
     canBePhased?: boolean,
@@ -113,7 +112,6 @@ export class ItemMetadata {
         public smeltsTo: ID | IPool | null,
         public smeltXP: number,
         public replaceableBy: number[] | "*",
-        public isTransparent: boolean,
         public canBePlacedOn: number[] | "*",
         public cannotBePlacedOn: number[],
         public canBePhased: boolean,
@@ -175,7 +173,7 @@ export class ItemMetadata {
     static fromOptions(id: number, meta: number, O: ItemMetaDataConfig) {
         return new ItemMetadata(
             id, meta, O.metas, O.isConsumeable, O.foodPoints, O.armorType, O.armorPoints,
-            O.durability, O.maxStack, O.fuel, O.isBlock, O.smeltsTo, O.smeltXP, O.replaceableBy, O.isTransparent,
+            O.durability, O.maxStack, O.fuel, O.isBlock, O.smeltsTo, O.smeltXP, O.replaceableBy,
             O.canBePlacedOn, O.cannotBePlacedOn, O.canBePhased, O.drops, O.requiresSide, O.canFall, O.canHoldBlocks,
             O.explodeMaxDistance, O.hardness, O.requiredToolLevel, O.dropsWithToolTypes, O.intendedToolType, O.step,
             O.dig, O.solid, O.fireResistance, O.isOpaque, O.isSlab, O.isStairs
@@ -191,7 +189,6 @@ export const DefaultItemOptions = (identifier: string, name: string, t: string) 
     }],
     isBlock: true,
     replaceableBy: [],
-    isTransparent: false,
     canBePlacedOn: "*",
     cannotBePlacedOn: [],
     canBePhased: false,
