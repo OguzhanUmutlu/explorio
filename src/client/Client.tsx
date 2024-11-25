@@ -418,7 +418,9 @@ export function initClient() {
 
         clientNetwork.sendAuth(true);
 
-        clientNetwork.handshakeCb = () => serverNetwork.player.permissions.add("*");
+        clientNetwork.handshakeCb = () => {
+            if (serverNetwork.player) serverNetwork.player.permissions.add("*");
+        };
     }
 
     Mouse._x = innerWidth / 2;

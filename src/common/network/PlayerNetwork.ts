@@ -19,6 +19,7 @@ export class PlayerNetwork {
 
     async processPacket(pk: Packet) {
         await this.server.pluginPromise;
+        if (this.server.terminated) return;
         const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
         if (key in this) this[key](pk);
         else printer.warn("Unhandled packet: ", pk);
@@ -67,14 +68,14 @@ export class PlayerNetwork {
         player.skin = data.skin;
         player.init();
         this.server.players[player.name] = player;
+        player.broadcastSpawn();
+        printer.info(`${this.player.name}(${this.ip}) connected`);
+        this.server.broadcastMessage(`§e${this.player.name} joined the server`);
         player.network.sendPacket(new Packets.SHandshake({
             entityId: this.player.id,
             x: player.x,
             y: player.y
         }), true);
-        player.broadcastSpawn();
-        printer.info(`${this.player.name}(${this.ip}) connected`)
-        this.server.broadcastMessage(`§e${this.player.name} joined the server`);
     };
 
     processSendMessage({data}: PacketByName<"SendMessage">) {

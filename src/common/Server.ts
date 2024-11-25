@@ -66,6 +66,8 @@ export class Server {
     pluginMetas: Record<string, PluginMetadata> = {};
     plugins: Record<string, Plugin> = {};
     pluginPromise: Promise<void> | null;
+    intervalId: any = 0;
+    terminated = false;
 
     constructor(public fs: typeof import("fs"), public path: string) {
         setServer(this);
@@ -101,7 +103,7 @@ export class Server {
 
     init() {
         this.sender = new ConsoleCommandSender;
-        setInterval(() => {
+        this.intervalId = setInterval(() => {
             const now = Date.now();
             const dt = Math.min((now - this.lastUpdate) / 1000, 0.015);
             this.lastUpdate = now;
@@ -438,6 +440,7 @@ export class Server {
         return true;
     };
 
+
     update(dt: number) {
         checkLag("server update", 10);
         for (const folder in this.worlds) {
@@ -561,6 +564,8 @@ export class Server {
     };
 
     terminateProcess() {
+        this.terminated = true;
+        clearInterval(this.intervalId);
         if (typeof process === "object") process.exit();
     };
 }
