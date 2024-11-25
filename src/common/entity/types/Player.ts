@@ -198,4 +198,8 @@ export class Player extends Entity implements CommandSender {
             return Player.new(name);
         }
     };
+
+    playSound(path: string, volume = 1) {
+        this.network.sendPacket(new Packets.SPlaySound({path, x: this.x, y: this.y, volume}))
+    };
 }

@@ -419,7 +419,9 @@ export function initClient() {
         clientNetwork.sendAuth(true);
 
         clientNetwork.handshakeCb = () => {
-            if (serverNetwork.player) serverNetwork.player.permissions.add("*");
+            if (serverNetwork.player) {
+                serverNetwork.player.permissions.add("*");
+            }
         };
     }
 

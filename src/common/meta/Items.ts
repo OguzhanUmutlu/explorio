@@ -317,7 +317,7 @@ export function initItems() {
     });
 
     registerItem("glass", I.GLASS, {
-        name: "Glass", hardness: 0.5, step: "stone", dig: "glass", intendedToolType: ["pickaxe"], drops: [],
+        name: "Glass", hardness: 0.5, step: "stone", dig: "stone", intendedToolType: ["pickaxe"], drops: [],
         isOpaque: false
     });
 

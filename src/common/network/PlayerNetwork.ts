@@ -4,6 +4,7 @@ import {Player} from "../entity/types/Player";
 import {PacketByName, Packets, readPacket} from "./Packets";
 import {PacketIds} from "../meta/PacketIds";
 import {getServer} from "../utils/Utils";
+import {ItemIds} from "@explorio/meta/ItemIds";
 
 export class PlayerNetwork {
     batch: Packet[] = [];
@@ -58,14 +59,14 @@ export class PlayerNetwork {
         this.player.broadcastBlockBreaking();
     };
 
-    processCAuth({data}: PacketByName<"CAuth">) {
-        if (this.player || data.name in this.server.players) {
+    processCAuth({data: {name, skin}}: PacketByName<"CAuth">) {
+        if (this.player || name in this.server.players) {
             return this.kick("You are already in game");
         }
 
-        const player = this.player = Player.loadPlayer(data.name);
+        const player = this.player = Player.loadPlayer(name);
         player.network = this;
-        player.skin = data.skin;
+        player.skin = skin;
         player.init();
         this.server.players[player.name] = player;
         player.broadcastSpawn();
@@ -77,6 +78,16 @@ export class PlayerNetwork {
             y: player.y
         }), true);
     };
+
+    processCPlaceBlock({data: {x, y}}: PacketByName<"CPlaceBlock">) {
+        const world = this.player.world;
+        if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.GLASS, 0)) return this.sendBlock(x, y);
+
+        const block = world.getBlock(x, y);
+        world.broadcastBlockAt(x, y, null, [this.player]);
+        world.playSound(`assets/sounds/dig/${block.dig}${Math.floor(Math.random() * 4) + 1}.ogg`, x, y);
+    };
+
 
     processSendMessage({data}: PacketByName<"SendMessage">) {
         if (!data) return;

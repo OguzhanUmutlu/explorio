@@ -343,8 +343,8 @@ export class World {
         return 0;
     };
 
-    playSound(path: string, x: number, y: number) {
-        this.broadcastPacketAt(x, new Packets.SPlaySound({path, x, y}));
+    playSound(path: string, x: number, y: number, volume = 1) {
+        this.broadcastPacketAt(x, new Packets.SPlaySound({path, x, y, volume}));
     };
 
     getChunkBuffer(chunkX: number): Buffer | null {

@@ -177,11 +177,11 @@ export class ClientNetwork {
         printer.warn("Got kicked: ", reason);
     };
 
-    processSSound({data: {x, y, path}}: PacketByName<"SPlaySound">) {
+    processSPlaySound({data: {x, y, path, volume}}: PacketByName<"SPlaySound">) {
         const distance = clientPlayer.distance(x, y);
         if (distance > 20) return;
-        const volume = 1 / distance;
-        Sound.play(path, volume);
+        const lastVolume = volume * (1 - (distance / 20));
+        Sound.play(path, lastVolume);
     };
 
 

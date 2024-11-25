@@ -33,7 +33,7 @@ export enum PacketIds {
     CStartBreaking,
     CStopBreaking,
     CCloseContainer,
-    // CPlaceBlock,
+    CPlaceBlock,
     // CContainerSwap,
     // CItemTransfer,
     // CHandItem,

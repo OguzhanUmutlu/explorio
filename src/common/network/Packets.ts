@@ -102,6 +102,7 @@ export const PacketStructs = {
     [PacketIds.SPlaySound]: X.object.struct({
         x: X.f32,
         y: X.f32,
+        volume: X.f32,
         path: X.string16
     }),
 
@@ -120,7 +121,11 @@ export const PacketStructs = {
         y: X.u32
     }),
     [PacketIds.CStopBreaking]: X.null,
-    [PacketIds.CCloseContainer]: X.null
+    [PacketIds.CCloseContainer]: X.null,
+    [PacketIds.CPlaceBlock]: X.object.struct({
+        x: X.i32,
+        y: X.u32
+    })
 } as const;
 
 export function readPacket(buffer: Buffer) {

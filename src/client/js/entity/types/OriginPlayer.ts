@@ -3,6 +3,7 @@ import {I} from "@explorio/meta/ItemIds";
 import {Containers} from "@explorio/meta/Inventories";
 import {chatBox, clientNetwork, Keyboard, Mouse} from "@client/Client";
 import {Options} from "../../utils/Utils";
+import {Packets} from "@explorio/network/Packets";
 
 export class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
@@ -54,6 +55,10 @@ export class OriginPlayer extends CPlayer {
         }
         if (Mouse.right) {
             if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GLASS, 0)) {
+                clientNetwork.sendPacket(new Packets.CPlaceBlock({
+                    x: Mouse.x,
+                    y: Mouse.y
+                }));
                 this.placeTime = this.placeCooldown;
             }
         } else this.placeTime = 0;
