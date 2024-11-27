@@ -474,7 +474,6 @@ export function terminateClient() {
 }
 
 // todo: fix non-rendering chunks in clients
-// todo: add sounds
 // todo: add inventory transactions
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 

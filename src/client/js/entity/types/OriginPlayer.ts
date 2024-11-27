@@ -55,7 +55,7 @@ export class OriginPlayer extends CPlayer {
             this.breakingTime = 0;
         }
         if (Mouse.right) {
-            if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.LOG, 0)) {
+            if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GRASS_BLOCK, 0)) {
                 clientNetwork.sendPacket(new Packets.CPlaceBlock({
                     x: Mouse.x,
                     y: Mouse.y

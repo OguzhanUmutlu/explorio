@@ -27,12 +27,12 @@ function __renderShadow(
     relX: number, relY: number,
     depth: number, ctx: CanvasRenderingContext2D
 ) {
-    if (depth >= 3) return;
     const dx = relX * renderScale;
     const dy = renderScale * (ChunkLength - relY);
     const dw = renderScale;
     const dh = -renderScale;
     ctx.clearRect(dx, dy, dw, dh);
+    if (depth >= 3) return;
     ctx.save();
     ctx.fillStyle = "black";
     ctx.globalAlpha = [1, 0.8, 0.5][depth];

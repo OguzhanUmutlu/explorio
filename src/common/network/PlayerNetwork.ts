@@ -85,7 +85,7 @@ export class PlayerNetwork {
 
     processCPlaceBlock({data: {x, y}}: PacketByName<"CPlaceBlock">) {
         const world = this.player.world;
-        if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.LOG, 0)) return this.sendBlock(x, y);
+        if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.GRASS_BLOCK, 0)) return this.sendBlock(x, y);
     };
 
 
