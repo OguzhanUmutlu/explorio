@@ -1,8 +1,7 @@
 import {createCanvas} from "@explorio/utils/Texture";
 import {ChunkLength, ChunkLengthBits} from "@explorio/utils/Utils";
 import {clientPlayer} from "../../Client";
-import {f2id, f2meta} from "@explorio/meta/Items";
-import {I, IM} from "@explorio/meta/ItemIds";
+import {BM} from "@explorio/meta/ItemIds";
 import {World} from "@explorio/world/World";
 
 const renderScale = 16; // Blocks are rendered as 16x16
@@ -12,16 +11,13 @@ function __renderBlock(
     relX: number, relY: number, fullId: number,
     ctx: CanvasRenderingContext2D, clear: boolean
 ) {
-    const id = f2id(fullId);
-    const meta = f2meta(fullId);
+    const block = BM[fullId];
     const dx = relX * renderScale;
     const dy = renderScale * (ChunkLength - relY);
     const dw = renderScale;
     const dh = -renderScale;
-    if (id !== I.AIR) {
-        const texture = IM[id].getTexture(meta);
-        ctx.drawImage(texture.image, dx, dy, dw, dh);
-        if (!texture.loaded) texture.wait().then(img => ctx.drawImage(img, dx, dy, dw, dh));
+    if (block.hasTexture()) {
+        block.render(ctx, dx, dy, dw, dh);
     } else if (clear) {
         ctx.clearRect(dx, dy, dw, dh);
     }
@@ -31,10 +27,12 @@ function __renderShadow(
     relX: number, relY: number,
     depth: number, ctx: CanvasRenderingContext2D
 ) {
+    if (depth >= 3) return;
     const dx = relX * renderScale;
     const dy = renderScale * (ChunkLength - relY);
     const dw = renderScale;
     const dh = -renderScale;
+    ctx.clearRect(dx, dy, dw, dh);
     ctx.save();
     ctx.fillStyle = "black";
     ctx.globalAlpha = [1, 0.8, 0.5][depth];

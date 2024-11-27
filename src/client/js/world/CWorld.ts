@@ -1,9 +1,14 @@
-import {Ring3, World} from "@explorio/world/World";
+import {All3Rings, Ring3, World} from "@explorio/world/World";
 import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "@explorio/utils/Utils";
 import {CSubChunk} from "./CSubChunk";
+import {Packet} from "@explorio/network/Packet";
+import {Player} from "@explorio/entity/types/Player";
 
 export class CWorld extends World {
     subChunkRenders: Record<number, CSubChunk[]> = {};
+
+    broadcastPacketAt(_0: number, _1: Packet, _2: Player[] = [], _3: boolean = false) {
+    };
 
     ensureChunk(chunkX: number, generate = true) {
         super.ensureChunk(chunkX, generate);
@@ -23,12 +28,13 @@ export class CWorld extends World {
     _polluteBlockAt(x: number, y: number) {
         super._polluteBlockAt(x, y);
 
-        const chunkX = x >> ChunkLengthBits;
-        const chunkY = y >> ChunkLengthBits;
-        this.prepareSubChunkSurroundingRenders(chunkX, chunkY, false, true);
         this.renderBlockAt(x, y);
         const block = this.getBlock(x, y);
-        if (!block.isOpaque) {
+        if (block.isOpaque) {
+            for (const [dx, dy] of All3Rings) {
+                this.renderShadowAt(x + dx, y + dy);
+            }
+        } else {
             for (const [dx, dy] of Ring3) {
                 this.renderBlockAt(x + dx, y + dy);
             }

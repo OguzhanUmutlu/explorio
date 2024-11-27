@@ -2,7 +2,6 @@ import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
 import {Inventory} from "../../item/Inventory";
 import {CommandSender} from "../../command/CommandSender";
 import {ChunkLengthBits, getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "../../utils/Utils";
-import {B} from "../../meta/ItemIds";
 import {PlayerNetwork} from "../../network/PlayerNetwork";
 import {Entity} from "../Entity";
 import {Packets} from "../../network/Packets";
@@ -97,10 +96,6 @@ export class Player extends Entity implements CommandSender {
             if (!this.world.tryToBreakBlockAt(this, bx, by)) {
                 this.network.sendBlock(bx, by);
                 return;
-            }
-
-            for (const p of this.world.getChunkViewers(bx >> ChunkLengthBits)) {
-                p.network.sendBlock(bx, by, B.AIR);
             }
         }
     };
@@ -200,6 +195,10 @@ export class Player extends Entity implements CommandSender {
     };
 
     playSound(path: string, volume = 1) {
-        this.network.sendPacket(new Packets.SPlaySound({path, x: this.x, y: this.y, volume}))
+        this.playSoundAt(path, this.x, this.y, volume);
+    };
+
+    playSoundAt(path: string, x: number, y: number, volume = 1) {
+        this.network.sendPacket(new Packets.SPlaySound({path, x, y, volume}));
     };
 }

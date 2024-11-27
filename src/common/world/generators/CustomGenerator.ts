@@ -15,7 +15,8 @@ export class CustomGenerator extends Generator {
         super();
         this.processedPattern = [];
         const split = pattern.split(";");
-        for (const pat of split) {
+        for (let i = 0; i < split.length; i++) {
+            const pat = split[i];
             if (pat.length === 0) {
                 this.processedPattern.push([]);
                 continue;

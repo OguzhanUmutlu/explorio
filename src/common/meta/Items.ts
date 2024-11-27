@@ -24,8 +24,10 @@ export type ItemMetaDataConfig = {
     requiredToolLevel?: ToolLevel,
     dropsWithToolTypes?: ToolType[] | "*",
     intendedToolType?: ToolType[] | "*", // This makes it faster to break as the used tool upgrades
-    step?: keyof typeof STEP_SOUNDS | null, // null for no sound
-    dig?: keyof typeof DIG_SOUNDS | null, // null for no sound
+    step?: typeof S[keyof typeof S] | null, // null for no sound
+    dig?: typeof S[keyof typeof S] | null, // null for no sound
+    break?: typeof S[keyof typeof S] | null, // null for no sound
+    place?: typeof S[keyof typeof S] | null, // null for no sound
     solid?: boolean,
     fuel?: number, // How many items it can smelt
     smeltsTo?: ID | IPool | null, // null means it will just disappear after smelting, and possibly give XP from smeltXP property
@@ -67,32 +69,29 @@ export const ToolLevels = {
     NETHERITE: 6
 } as const;
 
-export const STEP_SOUNDS = {
-    cloth: ["cloth", 4],
-    coral: ["coral", 6],
-    grass: ["grass", 6],
-    gravel: ["gravel", 4],
-    ladder: ["ladder", 5],
-    sand: ["sand", 5],
-    scaffold: ["scaffold", 7],
-    snow: ["snow", 4],
-    stone: ["stone", 6],
-    wet_grass: ["wet_grass", 6],
-    wood: ["wood", 6]
-};
-
-export const DIG_SOUNDS = {
-    cloth: ["cloth", 4],
-    coral: ["coral", 4],
-    glass: ["glass", 4],
-    grass: ["grass", 4],
-    gravel: ["gravel", 4],
-    sand: ["sand", 4],
-    snow: ["snow", 4],
-    stone: ["stone", 4],
-    wet_grass: ["wet_grass", 4],
-    wood: ["wood", 4]
-};
+export const S = {
+    "digCloth": ["assets/sounds/dig/cloth$.ogg", 4],
+    "digCoral": ["assets/sounds/dig/coral$.ogg", 4],
+    "digGlass": ["assets/sounds/dig/glass$.ogg", 3],
+    "digGrass": ["assets/sounds/dig/grass$.ogg", 4],
+    "digGravel": ["assets/sounds/dig/gravel$.ogg", 4],
+    "digSand": ["assets/sounds/dig/sand$.ogg", 4],
+    "digSnow": ["assets/sounds/dig/snow$.ogg", 4],
+    "digStone": ["assets/sounds/dig/stone$.ogg", 4],
+    "digWetGrass": ["assets/sounds/dig/wet_grass$.ogg", 4],
+    "digWood": ["assets/sounds/dig/wood$.ogg", 4],
+    "stepCloth": ["assets/sounds/step/cloth$.ogg", 4],
+    "stepCoral": ["assets/sounds/step/coral$.ogg", 4],
+    "stepGrass": ["assets/sounds/step/grass$.ogg", 4],
+    "stepGravel": ["assets/sounds/step/gravel$.ogg", 4],
+    "stepLadder": ["assets/sounds/step/ladder$.ogg", 5],
+    "stepSand": ["assets/sounds/step/sand$.ogg", 4],
+    "stepScaffold": ["assets/sounds/step/scaffold$.ogg", 7],
+    "stepSnow": ["assets/sounds/step/snow$.ogg", 4],
+    "stepStone": ["assets/sounds/step/stone$.ogg", 4],
+    "stepWetGrass": ["assets/sounds/step/wet_grass$.ogg", 4],
+    "stepWood": ["assets/sounds/step/wood$.ogg", 4]
+} as const;
 
 export class ItemMetadata {
     public fullId: number;
@@ -124,8 +123,10 @@ export class ItemMetadata {
         public requiredToolLevel: ToolLevel,
         public dropsWithToolTypes: ToolType[] | "*",
         public intendedToolType: ToolType[] | "*",
-        public step: keyof typeof STEP_SOUNDS | null,
-        public dig: keyof typeof DIG_SOUNDS | null,
+        public step: typeof S[keyof typeof S] | null,
+        public dig: typeof S[keyof typeof S] | null,
+        public breakSound: typeof S[keyof typeof S] | null,
+        public place: typeof S[keyof typeof S] | null,
         public solid: boolean,
         public fireResistance: number,
         public isOpaque: boolean,
@@ -137,6 +138,27 @@ export class ItemMetadata {
 
     [Symbol.toPrimitive]() {
         return this.id;
+    };
+
+    private randRepl(s: any) {
+        if (!s) return null;
+        return s[0].replace("$", Math.floor(Math.random() * s[1]) + 1 + "");
+    };
+
+    randomDig() {
+        return this.randRepl(this.dig);
+    };
+
+    randomStep() {
+        return this.randRepl(this.step);
+    };
+
+    randomBreak() {
+        return this.randRepl(this.breakSound);
+    };
+
+    randomPlace() {
+        return this.randRepl(this.place);
     };
 
     toString() {
@@ -170,13 +192,24 @@ export class ItemMetadata {
         return new Item(this.id, this.meta % this.metas.length, count);
     };
 
+    hasTexture() {
+        return this.metas.length > 0;
+    };
+
+    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+        if (!this.hasTexture()) return;
+        const texture = this.getTexture();
+        ctx.drawImage(texture.image, x, y, w, h);
+        if (!texture.loaded) texture.wait().then(img => ctx.drawImage(img, x, y, w, h));
+    };
+
     static fromOptions(id: number, meta: number, O: ItemMetaDataConfig) {
         return new ItemMetadata(
             id, meta, O.metas, O.isConsumeable, O.foodPoints, O.armorType, O.armorPoints,
             O.durability, O.maxStack, O.fuel, O.isBlock, O.smeltsTo, O.smeltXP, O.replaceableBy,
             O.canBePlacedOn, O.cannotBePlacedOn, O.canBePhased, O.drops, O.requiresSide, O.canFall, O.canHoldBlocks,
             O.explodeMaxDistance, O.hardness, O.requiredToolLevel, O.dropsWithToolTypes, O.intendedToolType, O.step,
-            O.dig, O.solid, O.fireResistance, O.isOpaque, O.isSlab, O.isStairs
+            O.dig, O.break, O.place, O.solid, O.fireResistance, O.isOpaque, O.isSlab, O.isStairs
         );
     };
 }
@@ -203,6 +236,8 @@ export const DefaultItemOptions = (identifier: string, name: string, t: string) 
     intendedToolType: "*",
     step: null,
     dig: null,
+    break: null,
+    place: null,
     solid: true,
     fuel: 0,
     smeltsTo: null,
@@ -300,14 +335,18 @@ export function initItems() {
         name: "Air", metas: [], canBePhased: true, isOpaque: false, replaceableBy: "*", hardness: -1
     });
     registerItem("bedrock", I.BEDROCK, {
-        name: "Bedrock", hardness: -1, step: "stone", dig: "stone", drops: [], explodeMaxDistance: -1
+        step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        drops: [], name: "Bedrock", hardness: -1, explodeMaxDistance: -1
     });
     registerItem("dirt", I.DIRT, {
-        name: "Dirt", hardness: 0.75, step: "grass", dig: "grass", intendedToolType: ["shovel"]
+        step: S.stepGrass, dig: S.stepGrass, break: S.digGrass, place: S.digGrass,
+        name: "Dirt", hardness: 0.75,
+        intendedToolType: ["shovel"]
     });
 
     const grassOptions: ItemMetaDataConfig = {
-        hardness: 0.75, step: "grass", dig: "grass", drops: [new ID(I.DIRT)], intendedToolType: ["shovel"]
+        hardness: 0.75, step: S.stepGrass, dig: S.stepGrass, break: S.digGrass, place: S.digGrass,
+        drops: [new ID(I.DIRT)], intendedToolType: ["shovel"]
     };
     registerItem("grass_block", I.GRASS_BLOCK, {
         ...grassOptions, name: "Grass Block"
@@ -317,24 +356,24 @@ export function initItems() {
     });
 
     registerItem("glass", I.GLASS, {
-        name: "Glass", hardness: 0.5, step: "stone", dig: "stone", intendedToolType: ["pickaxe"], drops: [],
-        isOpaque: false
+        name: "Glass", hardness: 0.5, step: S.stepStone, dig: S.stepStone, break: S.digGlass, place: S.digStone,
+        intendedToolType: ["pickaxe"], drops: [], isOpaque: false
     });
 
     const stoneOpts: ItemMetaDataConfig = {
-        hardness: 7.5, step: "stone", dig: "stone", dropsWithToolTypes: ["pickaxe"],
-        requiredToolLevel: ToolLevels.WOODEN, intendedToolType: ["pickaxe"]
+        hardness: 7.5, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        dropsWithToolTypes: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN, intendedToolType: ["pickaxe"]
     };
     registerItem("stone", I.STONE, {
         ...stoneOpts, name: "Stone", drops: [new ID(I.COBBLESTONE)]
     });
 
     const cobbOpts: ItemMetaDataConfig = {
-        hardness: 3.3, step: "stone", dig: "stone", dropsWithToolTypes: ["pickaxe"],
-        requiredToolLevel: ToolLevels.WOODEN, intendedToolType: ["pickaxe"]
+        hardness: 3.3, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        dropsWithToolTypes: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN, intendedToolType: ["pickaxe"]
     };
     registerItem("cobblestone", I.COBBLESTONE, {
-        ...cobbOpts, name: "Cobblestone", smeltsTo: new ID(I.STONE), smeltXP: 0.1
+        ...cobbOpts, name: "Cobblestone", smeltsTo: new ID(I.LOG), smeltXP: 0.1
     });
 
     const logOptions: ItemMetaDataConfig = {
@@ -346,8 +385,8 @@ export function initItems() {
             {identifier: "log_spruce", name: "Spruce Log", texture: "assets/textures/blocks/log_spruce.png"},
             {identifier: "log_acacia", name: "Acacia Log", texture: "assets/textures/blocks/log_acacia.png"}
         ],
-        hardness: 3, step: "wood", dig: "wood", dropsWithToolTypes: ["axe"], intendedToolType: ["axe"],
-        fuel: 1.5, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL)
+        hardness: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood, dropsWithToolTypes: ["axe"],
+        intendedToolType: ["axe"], fuel: 1.5, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL)
     };
 
     const leavesOptions: ItemMetaDataConfig = {
@@ -375,8 +414,9 @@ export function initItems() {
                 texture: "assets/textures/blocks/leaves_acacia.png"
             }
         ],
-        hardness: 0.2, step: "grass", dig: "grass", dropsWithToolTypes: ["hoe"], intendedToolType: ["hoe"],
-        fuel: 0.2, drops: [new ID(I.APPLE).setChance(0.05)], fireResistance: 5, isOpaque: false
+        hardness: 0.2, step: S.stepGrass, dig: S.stepGrass, break: S.digGrass, place: S.digGrass,
+        dropsWithToolTypes: ["hoe"], intendedToolType: ["hoe"], fuel: 0.2, drops: [new ID(I.APPLE).setChance(0.05)],
+        fireResistance: 5, isOpaque: false
     };
 
     registerItem("log", I.LOG, logOptions);
@@ -386,7 +426,8 @@ export function initItems() {
     });
 
     registerItem("gravel", I.GRAVEL, {
-        name: "Gravel", hardness: 0.6, canFall: true, step: "gravel", dig: "gravel", intendedToolType: ["shovel"],
+        step: S.stepGravel, dig: S.stepGravel, break: S.digGravel, place: S.digGravel,
+        name: "Gravel", hardness: 0.6, canFall: true, intendedToolType: ["shovel"],
         drops: [new IPool([new ID(I.GRAVEL), new ID(I.FLINT)], [90, 10])]
     });
     registerItem("water", I.WATER, {
@@ -417,34 +458,34 @@ export function initItems() {
     });
 
     const coalOre: ItemMetaDataConfig = {
-        hardness: 15, drops: [new ID(I.COAL)], step: "stone", dig: "stone", dropsWithToolTypes: ["pickaxe"],
-        intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN, smeltsTo: new ID(I.COAL),
-        xpDrops: [0, 2], smeltXP: 0.1
+        step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        hardness: 15, drops: [new ID(I.COAL)], dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"],
+        requiredToolLevel: ToolLevels.WOODEN, smeltsTo: new ID(I.COAL), xpDrops: [0, 2], smeltXP: 0.1
     };
     const ironOre: ItemMetaDataConfig = {
-        hardness: 15, step: "stone", dig: "stone", dropsWithToolTypes: ["pickaxe"], drops: [new ID(I.RAW_IRON)],
-        intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(I.IRON_INGOT),
-        smeltXP: 0.7
+        hardness: 15, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        dropsWithToolTypes: ["pickaxe"], drops: [new ID(I.RAW_IRON)], intendedToolType: ["pickaxe"],
+        requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(I.IRON_INGOT), smeltXP: 0.7
     };
     const goldOre: ItemMetaDataConfig = {
-        hardness: 15, step: "stone", dig: "stone", dropsWithToolTypes: ["pickaxe"], drops: [new ID(I.RAW_GOLD)],
-        intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.IRON, smeltsTo: new ID(I.GOLD_INGOT),
-        smeltXP: 1
+        hardness: 15, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        dropsWithToolTypes: ["pickaxe"], drops: [new ID(I.RAW_GOLD)], intendedToolType: ["pickaxe"],
+        requiredToolLevel: ToolLevels.IRON, smeltsTo: new ID(I.GOLD_INGOT), smeltXP: 1
     };
     const lapisOre: ItemMetaDataConfig = {
-        hardness: 15, drops: [new ID(I.LAPIS)], step: "stone", dig: "stone", dropsWithToolTypes: ["pickaxe"],
-        intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(I.LAPIS),
-        smeltXP: 0.7, xpDrops: [0, 1]
+        step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        hardness: 15, drops: [new ID(I.LAPIS)], dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"],
+        requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(I.LAPIS), smeltXP: 0.7, xpDrops: [0, 1]
     };
     const redstoneOre: ItemMetaDataConfig = {
-        hardness: 15, drops: [new ID(I.REDSTONE, 0, [1, 3])], step: "stone", dig: "stone",
-        dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.STONE,
-        smeltsTo: new ID(I.REDSTONE), smeltXP: 0.7, xpDrops: [0, 3]
+        hardness: 15, drops: [new ID(I.REDSTONE, 0, [1, 3])], step: S.stepStone, dig: S.stepStone, break: S.digStone,
+        place: S.digStone, dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"],
+        requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(I.REDSTONE), smeltXP: 0.7, xpDrops: [0, 3]
     };
     const diamondOre: ItemMetaDataConfig = {
-        hardness: 15, drops: [new ID(I.DIAMOND)], step: "stone", dig: "stone", dropsWithToolTypes: ["pickaxe"],
-        intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.IRON, smeltsTo: new ID(I.DIAMOND),
-        smeltXP: 1, xpDrops: [0, 3]
+        step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        hardness: 15, drops: [new ID(I.DIAMOND)], dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"],
+        requiredToolLevel: ToolLevels.IRON, smeltsTo: new ID(I.DIAMOND), smeltXP: 1, xpDrops: [0, 3]
     };
 
     registerItem("coal_ore", I.COAL_ORE, {...coalOre, name: "Coal Ore"});
@@ -455,13 +496,14 @@ export function initItems() {
     registerItem("diamond_ore", I.DIAMOND_ORE, {...diamondOre, name: "Diamond Ore"});
 
     registerItem("deepslate", I.DEEPSLATE, {
-        name: "Deepslate", hardness: 4, drops: [new ID(I.COBBLED_DEEPSLATE)], step: "stone", dig: "stone",
-        dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN,
-        smeltsTo: new ID(I.DEEPSLATE), smeltXP: 0.4
+        name: "Deepslate", hardness: 4, drops: [new ID(I.COBBLED_DEEPSLATE)], step: S.stepStone, dig: S.stepStone,
+        break: S.digStone, place: S.digStone, dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"],
+        requiredToolLevel: ToolLevels.WOODEN, smeltsTo: new ID(I.DEEPSLATE), smeltXP: 0.4
     });
     registerItem("cobbled_deepslate", I.COBBLED_DEEPSLATE, {
-        name: "Cobbled Deepslate", hardness: 5, drops: [new ID(I.COBBLED_DEEPSLATE)], step: "stone", dig: "stone",
-        dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN
+        step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        name: "Cobbled Deepslate", hardness: 5, drops: [new ID(I.COBBLED_DEEPSLATE)], dropsWithToolTypes: ["pickaxe"],
+        intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN
     });
 
     registerItem("deepslate_coal_ore", I.DEEPSLATE_COAL_ORE, {
@@ -485,7 +527,7 @@ export function initItems() {
 
     const flowerOptions: ItemMetaDataConfig = {
         isOpaque: false, canBePlacedOn: [I.GRASS_BLOCK, I.SNOWY_GRASS_BLOCK, I.DIRT], canBePhased: true,
-        hardness: 0, dig: "grass", step: "grass"
+        hardness: 0, dig: S.stepGrass, break: S.digGrass, place: S.digGrass, step: S.stepGrass
     };
 
     FlowerIds.forEach(([identifier, name, id]) => registerItem(identifier, id, {...flowerOptions, name}));

@@ -5,6 +5,21 @@ import alea from "alea";
 import {ChunkData, World} from "../World";
 import {CaveScale, ChunkLength, SurfaceHeight} from "../../utils/Utils";
 
+export const TreeShape = [
+    [0, 0],
+    [-1, 0],
+    [1, 0],
+    [-1, -1],
+    [1, -1],
+    [-2, -1],
+    [2, -1],
+    [-2, 0],
+    [2, 0],
+    [-1, 1],
+    [0, 1],
+    [1, 1]
+];
+
 export class DefaultGenerator extends Generator {
     noise: NoiseFunction2D;
     noiseCoal: NoiseFunction2D;
@@ -31,23 +46,13 @@ export class DefaultGenerator extends Generator {
         for (let i = 0; i < treeLength; i++) {
             chunk[x + (i + y) * ChunkLength] = B.NATURAL_LOG;
         }
-        for (let [X, Y] of [
-            [0, 0],
-            [-1, 0],
-            [1, 0],
-            [-1, -1],
-            [1, -1],
-            [-2, -1],
-            [2, -1],
-            [-2, 0],
-            [2, 0],
-            [-1, 1],
-            [0, 1],
-            [1, 1]
-        ]) world.setBlock(
-            worldX + X, treeLength + y + Y,
-            I.LEAVES, 0, false
-        );
+        for (let i = 0; i < TreeShape.length; i++) {
+            const [X, Y] = TreeShape[i];
+            world.setBlock(
+                worldX + X, treeLength + y + Y,
+                I.LEAVES, 0, false
+            );
+        }
         return treeLength;
     };
 

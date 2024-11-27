@@ -12,6 +12,8 @@ export enum PacketIds {
     SBlockBreakingStop,
     SDisconnect,
     SPlaySound,
+    SPlaceBlock,
+    SBreakBlock,
     // SEntityAnimation,
     // SContainerSet,
     // SContainerSetIndex,

@@ -1,16 +1,17 @@
 import {Packet,} from "@explorio/network/Packet";
 import {ClientEntityClasses, getWSUrls, setServerOptions} from "../utils/Utils";
 import {DEFAULT_GRAVITY} from "@explorio/entity/Entity";
-import {CurrentGameProtocol, PacketByName, Packets, readPacket} from "@explorio/network/Packets";
+import {PacketByName, Packets, readPacket} from "@explorio/network/Packets";
 import {PacketError} from "@explorio/network/PacketError";
 import {ChunkLengthBits} from "@explorio/utils/Utils";
 import {CPlayer} from "../entity/types/CPlayer";
-import {Sound} from "@explorio/utils/Sound";
 import {CWorld} from "../world/CWorld";
 import {PacketIds} from "@explorio/meta/PacketIds";
 import {clientPlayer, isMultiPlayer, ServerInfo} from "../../Client";
 // @ts-ignore
 import SocketWorker from "../worker/SocketWorker?worker";
+import {Version} from "@explorio/Versions";
+import {BM} from "@explorio/meta/ItemIds";
 
 export class ClientNetwork {
     worker: Worker;
@@ -178,10 +179,17 @@ export class ClientNetwork {
     };
 
     processSPlaySound({data: {x, y, path, volume}}: PacketByName<"SPlaySound">) {
-        const distance = clientPlayer.distance(x, y);
-        if (distance > 20) return;
-        const lastVolume = volume * (1 - (distance / 20));
-        Sound.play(path, lastVolume);
+        clientPlayer.playSoundAt(path, x, y, volume);
+    };
+
+    processSPlaceBlock({data: {x, y, fullId}}: PacketByName<"SPlaceBlock">) {
+        const block = BM[fullId];
+        if (block.place) clientPlayer.playSoundAt(block.randomPlace(), x, y);
+    };
+
+    processSBreakBlock({data: {x, y, fullId}}: PacketByName<"SBreakBlock">) {
+        const block = BM[fullId];
+        if (block.breakSound) clientPlayer.playSoundAt(block.randomBreak(), x, y);
     };
 
 
@@ -205,7 +213,7 @@ export class ClientNetwork {
         canvas.getContext("2d").drawImage(skin, 0, 0);
 
         this.sendPacket(new Packets.CAuth({
-            name: clientPlayer.name, skin: canvas.toDataURL(), protocol: CurrentGameProtocol
+            name: clientPlayer.name, skin: canvas.toDataURL(), version: Version
         }), immediate);
     };
 

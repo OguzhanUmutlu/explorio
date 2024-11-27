@@ -6,6 +6,7 @@ import {NewWorldPopup} from "./components/indexPopups/NewWorldPopup";
 import {NewServerPopup} from "./components/indexPopups/NewServerPopup";
 import {OptionsPopup} from "./components/OptionsPopup";
 import "./css/index.css";
+import {VersionString} from "@explorio/Versions";
 
 export function Index(O: {
     clientUUID: ReactState<string>
@@ -49,7 +50,7 @@ export function Index(O: {
         <NewServerPopup ns={toggles.ns} mp={toggles.mp} refresh={refreshServers}/>
         <OptionsPopup opt={toggles.opt} showSaveAndQuit={false}/>
 
-        <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio 1.0.0 Alpha</div>
+        <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio {VersionString}</div>
         <div className="text-right" style={isMobile ? {fontSize: "15px"} : {}}>
             No copyright. Do distribute! <a href="https://github.com/OguzhanUmutlu/explorio" target="_blank">Click for
             the source

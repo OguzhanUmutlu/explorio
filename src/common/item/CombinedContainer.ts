@@ -16,7 +16,9 @@ export class CombinedContainer extends Inventory {
 
     getContents() {
         const contents = [];
-        for (const inv of this.inventories) contents.push(...inv.getContents());
+        for (let i = 0; i < this.inventories.length; i++) {
+            contents.push(...this.inventories[i].getContents());
+        }
         return contents;
     };
 
@@ -50,6 +52,9 @@ export class CombinedContainer extends Inventory {
     clear() {
         this.cleanDirty = true;
         this.dirtyIndexes.clear();
-        for (const inv of this.inventories) inv.clear();
+
+        for (let i = 0; i < this.inventories.length; i++) {
+            this.inventories[i].clear();
+        }
     };
 }

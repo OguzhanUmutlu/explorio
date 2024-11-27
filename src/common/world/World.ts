@@ -274,7 +274,10 @@ export class World {
             return false;
         }
         if (polluteBlock) this._polluteBlockAt(x, y);
-        if (broadcast) this.broadcastBlockAt(x, y, fullId);
+        if (broadcast) {
+            this.broadcastBlockAt(x, y, fullId);
+            this.broadcastPacketAt(x, new Packets.SPlaceBlock({x, y, fullId}));
+        }
         return true;
     };
 
@@ -291,7 +294,9 @@ export class World {
 
     tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true) {
         if (!this.canBreakBlockAt(entity, x, y)) return false;
+        const fullId = this.getFullBlockAt(x, y);
         this.setFullBlock(x, y, B.AIR, true, polluteBlock, broadcast);
+        if (broadcast) this.broadcastPacketAt(x, new Packets.SBreakBlock({x, y, fullId}));
         return true;
     };
 
@@ -344,7 +349,9 @@ export class World {
     };
 
     playSound(path: string, x: number, y: number, volume = 1) {
-        this.broadcastPacketAt(x, new Packets.SPlaySound({path, x, y, volume}));
+        for (const player of this.getChunkViewers(x >> ChunkLengthBits)) {
+            player.playSoundAt(path, x, y, volume);
+        }
     };
 
     getChunkBuffer(chunkX: number): Buffer | null {

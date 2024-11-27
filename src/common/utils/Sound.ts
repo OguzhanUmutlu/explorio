@@ -165,7 +165,8 @@ class SoundContext {
     };
 }
 
-if (typeof addEventListener !== "undefined") addEventListener("click", async () => {
+if (typeof addEventListener !== "undefined") addEventListener("mousedown", async () => {
+    if (Sound.ctx) return;
     Sound.ctx = new AudioContext();
     Sound.canCreateContext = true;
     await Sound.ctx.resume();

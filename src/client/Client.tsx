@@ -22,12 +22,12 @@ import "fancy-printer";
 import InventoryDiv, {animateInventories} from "./components/InventoryDiv";
 import {Inventories} from "@explorio/meta/Inventories";
 import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@explorio/utils/Utils";
-import {CEntity} from "./js/entity/CEntity";
 import {I} from "@explorio/meta/ItemIds";
 import {Packets} from "@explorio/network/Packets";
 import Buffer from "buffer";
 import {DefaultServerConfig, Server} from "@explorio/Server";
 import {PlayerNetwork} from "@explorio/network/PlayerNetwork";
+import {ParticleManager} from "@client/js/particle/ParticleManager";
 
 declare global {
     interface Window {
@@ -66,6 +66,7 @@ export let ServerInfo: ServerData;
 export let WorldInfo: WorldData;
 export let isMultiPlayer: boolean;
 export const Keyboard: Record<string, boolean> = {};
+export let particleManager: ParticleManager;
 
 export function resetKeyboard() {
     for (const k in Keyboard) delete Keyboard[k];
@@ -128,7 +129,6 @@ function animate() {
     _fps = _fps.filter(i => i > now - 1000);
     _fps.push(now);
 
-    // from here to the next part is 0.01ms
     f3.fps[1](Math.floor(_fps.length));
     f3.x[1](+clientPlayer.x.toFixed(2));
     f3.y[1](+clientPlayer.y.toFixed(2));
@@ -156,7 +156,6 @@ function animate() {
 
     const world = clientPlayer.world as CWorld;
 
-    // 0.1ms
     for (let chunkX = minSubX; chunkX <= maxSubX; chunkX++) {
         for (let chunkY = minSubY; chunkY <= maxSubY; chunkY++) {
             world.renderSubChunk(chunkX, chunkY);
@@ -169,16 +168,16 @@ function animate() {
         }
     }
 
-    // 0.01ms
+    particleManager.render(ctx, dt);
+
     const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
     for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
         const entities = world.chunkEntities[chunkX] ??= [];
-        for (const entity of entities) {
-            (entity as CEntity).render(ctx, dt);
+        for (let i = 0; i < entities.length; i++) {
+            entities[i].render(ctx, dt);
         }
     }
 
-    // 0.01ms
     const smoothDt = Math.min(dt, 0.015) * Options.cameraSpeed;
     Mouse._xSmooth += (Mouse._x - Mouse._xSmooth) * smoothDt;
     Mouse._ySmooth += (Mouse._y - Mouse._ySmooth) * smoothDt;
@@ -207,9 +206,9 @@ function animate() {
 function update(dt: number) {
     const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
     for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
-        const entities = clientPlayer.world.chunkEntities[chunkX] ??= [];
-        for (const entity of [...entities]) {
-            entity.update(dt);
+        const entities = Array.from(clientPlayer.world.chunkEntities[chunkX] ??= []);
+        for (let i = 0; i < entities.length; i++) {
+            entities[i].update(dt);
         }
     }
 
@@ -375,10 +374,14 @@ export function initClient() {
     chatInput.addEventListener("keydown", onChatKeyPress);
     addEventListener("beforeunload", terminateClient);
 
+    particleManager = new ParticleManager;
+
     clientServer = new CServer();
     clientServer.config = DefaultServerConfig;
     clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set);
     clientServer.defaultWorld.ensureSpawnChunks();
+
+    const req = {socket: {remoteAddress: "::ffff:127.0.0.1"}};
 
     clientPlayer = OriginPlayer.spawn(clientServer.defaultWorld);
     clientPlayer.name = Options.username;
@@ -407,7 +410,7 @@ export function initClient() {
                 printer.warn("Pseudo-closed the pseudo-socket. What a duo...");
                 serverNetwork.onClose();
             }
-        }, {socket: {remoteAddress: "::ffff:127.0.0.1"}});
+        }, req);
 
         clientNetwork.connected = true;
         clientNetwork.worker = {
@@ -538,11 +541,11 @@ export function Client(O: {
         </div>
 
 
-        {/* The game's canvas */}
+    {/* The game's canvas */}
         <canvas id="game" ref={el => canvas = el}></canvas>
 
 
-        {/* Chat Container */}
+    {/* Chat Container */}
         <div className={isMobile ? "mobile-chat-container" : "chat-container"} style={
             isMobile ? (chatContainer[0] ? {} : {opacity: "0", pointerEvents: "none"}) : {}
         }>
@@ -552,13 +555,13 @@ export function Client(O: {
         </div>
 
 
-        {/* Mobile Chat Toggle Button */}
+    {/* Mobile Chat Toggle Button */}
         <div className="mobile-chat-toggle"
              style={isMobile && !hasBlur() ? {} : {scale: "0"}}
              onClick={() => toggleChat()}></div>
 
 
-        {/* Mobile Options Button */}
+    {/* Mobile Options Button */}
         <div className="mobile-options-open" style={isMobile && !hasBlur() ? {} : {scale: "0"}}
              onClick={() => {
                  closeChat();
@@ -571,16 +574,16 @@ export function Client(O: {
         </div>
 
 
-        {/* Background Blur used in UIs */}
+    {/* Background Blur used in UIs */}
         <div className="background-blur" style={hasBlur() ? {opacity: "1", pointerEvents: "auto"} : {}}></div>
 
 
-        {/* Hotbar */}
+    {/* Hotbar */}
         <InventoryDiv className="hotbar-inventory inventory" style={isMobile ? {width: "60%"} : {}}
                       inventoryType={Inventories.Hotbar} ikey={"hi"}></InventoryDiv>
 
 
-        {/* Player Inventory */}
+    {/* Player Inventory */}
         <div className="player-inventory-container" style={playerInventoryOn[0] ? {scale: "1"} : {}}>
             <InventoryDiv className="inv-pp inventory" inventoryType={Inventories.Player}
                           ikey={"pp"}></InventoryDiv>
@@ -594,11 +597,11 @@ export function Client(O: {
         </div>
 
 
-        {/* Options */}
+    {/* Options */}
         <OptionsPopup showSaveAndQuit={true} opt={optionPopup}/>
 
 
-        {/* The screen that only pops up when saving */}
+    {/* The screen that only pops up when saving */}
         <div className="save-screen" style={
             saveScreen[0] ? {
                 opacity: "1",

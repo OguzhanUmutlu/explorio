@@ -1,9 +1,10 @@
 import {CPlayer} from "./CPlayer";
 import {I} from "@explorio/meta/ItemIds";
 import {Containers} from "@explorio/meta/Inventories";
-import {chatBox, clientNetwork, Keyboard, Mouse} from "@client/Client";
+import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@client/Client";
 import {Options} from "../../utils/Utils";
 import {Packets} from "@explorio/network/Packets";
+import {Sound} from "@explorio/utils/Sound";
 
 export class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
@@ -54,20 +55,28 @@ export class OriginPlayer extends CPlayer {
             this.breakingTime = 0;
         }
         if (Mouse.right) {
-            if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GLASS, 0)) {
+            if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.LOG, 0)) {
                 clientNetwork.sendPacket(new Packets.CPlaceBlock({
                     x: Mouse.x,
                     y: Mouse.y
                 }));
-                this.placeTime = this.placeCooldown;
+                //this.placeTime = this.placeCooldown;
             }
         } else this.placeTime = 0;
     };
 
+    playSoundAt(path: string, x: number, y: number, volume = 1) {
+        const distance = clientPlayer.distance(x, y);
+        if (distance > 20) return;
+        const lastVolume = volume * (1 - (distance / 20));
+        Sound.play(path, lastVolume);
+    };
+
     sendMessage(message: string) {
         if (message.includes("\n")) {
-            for (const msg of message.split("\n")) {
-                this.sendMessage(msg);
+            const split = message.split("\n");
+            for (let i = 0; i < split.length; i++) {
+                this.sendMessage(split[i]);
             }
             return;
         }

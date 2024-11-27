@@ -5,8 +5,6 @@ import {PacketIds} from "../meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
 import ChunkBlocksBin from "../structs/ChunkBlocksBin";
 
-export const CurrentGameProtocol = 2;
-
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
     entityId: X.u32,
@@ -88,6 +86,16 @@ export const PacketStructs = {
         y: X.u32,
         fullId: X.u16
     }),
+    [PacketIds.SBreakBlock]: X.object.struct({
+        x: X.i32,
+        y: X.u32,
+        fullId: X.u16
+    }),
+    [PacketIds.SPlaceBlock]: X.object.struct({
+        x: X.i32,
+        y: X.u32,
+        fullId: X.u16
+    }),
     [PacketIds.SBlockBreakingUpdate]: X.object.struct({
         entityId: X.u32,
         time: X.f32,
@@ -109,7 +117,7 @@ export const PacketStructs = {
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,
         skin: X.string16,
-        protocol: X.u16
+        version: X.u16
     }),
     [PacketIds.CMovement]: X.object.struct({
         x: X.f32,

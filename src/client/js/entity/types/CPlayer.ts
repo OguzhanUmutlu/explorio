@@ -13,6 +13,7 @@ export class CPlayer extends Player implements CEntity {
     skin = Texture.get("assets/steve.png");
     name = "";
     ws = <any>null;
+    breakingSoundTime = 0;
 
     // self explanatory properties:
     renderHeadRotation = 0; // IN DEGREES
@@ -38,7 +39,8 @@ export class CPlayer extends Player implements CEntity {
 
         const breaking = this.breaking;
         if (breaking) {
-            const hardness = this.world.getBlock(breaking[0], breaking[1]).getHardness();
+            const block = this.world.getBlock(breaking[0], this.breaking[1]);
+            const hardness = block.getHardness();
             const ratio = 1 - this.breakingTime / hardness;
             const blockPos = getClientPosition(breaking[0], breaking[1]);
             ctx.drawImage(
@@ -48,7 +50,13 @@ export class CPlayer extends Player implements CEntity {
             );
             // todo: haven't tested but totally existing bug: when a player is breaking and if another entity is before
             //       the player, the entity would be behind the breaking animation.
-        }
+
+            const bst = this.breakingSoundTime = Math.max(0, this.breakingSoundTime - dt);
+            if (bst === 0 && block.dig) {
+                this.world.playSound(block.randomDig(), this.breaking[0], this.breaking[1]);
+                this.breakingSoundTime = 0.2;
+            }
+        } else this.breakingSoundTime = 0;
 
         if (this.lastX !== this.x) {
             this.walkingRemaining = 0.2;

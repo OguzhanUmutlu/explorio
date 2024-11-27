@@ -5,7 +5,8 @@ export function getUTCDate() {
 onmessage = async e => {
     onmessage = () => void 0;
     const urls = e.data;
-    for (const url of urls) {
+    for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
         await new Promise(r => {
             let works = false;
 

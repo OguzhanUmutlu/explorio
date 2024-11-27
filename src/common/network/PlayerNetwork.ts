@@ -5,6 +5,7 @@ import {PacketByName, Packets, readPacket} from "./Packets";
 import {PacketIds} from "../meta/PacketIds";
 import {getServer} from "../utils/Utils";
 import {ItemIds} from "@explorio/meta/ItemIds";
+import {Version} from "@explorio/Versions";
 
 export class PlayerNetwork {
     batch: Packet[] = [];
@@ -59,7 +60,10 @@ export class PlayerNetwork {
         this.player.broadcastBlockBreaking();
     };
 
-    processCAuth({data: {name, skin}}: PacketByName<"CAuth">) {
+    processCAuth({data: {name, skin, version}}: PacketByName<"CAuth">) {
+        if (version !== Version) {
+            return this.kick(version > Version ? "Client is outdated" : "Server is outdated");
+        }
         if (this.player || name in this.server.players) {
             return this.kick("You are already in game");
         }
@@ -81,11 +85,7 @@ export class PlayerNetwork {
 
     processCPlaceBlock({data: {x, y}}: PacketByName<"CPlaceBlock">) {
         const world = this.player.world;
-        if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.GLASS, 0)) return this.sendBlock(x, y);
-
-        const block = world.getBlock(x, y);
-        world.broadcastBlockAt(x, y, null, [this.player]);
-        world.playSound(`assets/sounds/dig/${block.dig}${Math.floor(Math.random() * 4) + 1}.ogg`, x, y);
+        if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.LOG, 0)) return this.sendBlock(x, y);
     };
 
 
