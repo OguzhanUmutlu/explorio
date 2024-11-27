@@ -29,7 +29,8 @@ export class CWorld extends World {
         super._polluteBlockAt(x, y);
 
         this.renderBlockAt(x, y);
-        console.log(x, y)
+        this.renderShadowAt(x, y);
+
         const block = this.getBlock(x, y);
         if (!block.isOpaque) {
             for (const [dx, dy] of Ring3) {
