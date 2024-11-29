@@ -1,6 +1,6 @@
 import X, {Bin, BufferIndex} from "stramp";
-import {World} from "../world/World";
-import {getServer} from "../utils/Utils";
+import {World} from "../../world/World";
+import {getServer} from "../../utils/Utils";
 
 export default new class WorldStruct extends Bin<World> {
     name = "World";

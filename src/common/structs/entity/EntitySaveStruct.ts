@@ -1,6 +1,6 @@
 import X, {Bin, BufferIndex, IntBaseBin} from "stramp";
-import {Entities, EntityClasses} from "../meta/Entities";
-import {Entity} from "../entity/Entity";
+import {Entities, EntityClasses} from "../../meta/Entities";
+import {Entity} from "../../entity/Entity";
 
 export default new class EntitySaveStruct extends Bin<Entity> {
     name = "Entity";

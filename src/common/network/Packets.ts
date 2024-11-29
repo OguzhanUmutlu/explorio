@@ -3,8 +3,8 @@ import {Packet} from "./Packet";
 import {getServer, zstdOptionalDecode} from "../utils/Utils";
 import {PacketIds} from "../meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
-import ChunkBlocksBin from "../structs/ChunkBlocksBin";
-import {PlayerAttributesStruct} from "@explorio/structs/entities/PlayerStruct";
+import ChunkBlocksBin from "@explorio/structs/world/ChunkBlocksBin";
+import {PlayerAttributesStruct} from "@explorio/structs/entity/PlayerStruct";
 
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,

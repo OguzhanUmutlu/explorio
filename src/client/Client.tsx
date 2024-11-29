@@ -73,6 +73,7 @@ export function resetKeyboard() {
 }
 
 function onResize() {
+    Options.tileSize = Math.round(innerWidth / 21);
     canvas.width = innerWidth + 1;
     canvas.height = innerHeight + 1;
     ctx.imageSmoothingEnabled = false;
@@ -295,8 +296,35 @@ function onCanvasMouseMove(e: MouseEvent) {
     handleMouseMovement(e.pageX, e.pageY);
 }
 
+let startTouchX = 0;
+let startTouchY = 0;
+let movedTouchOut = false;
+
+function handleTouch(t: Touch) {
+    handleMouseMovement(t.pageX, t.pageY);
+}
+
+function onCanvasTouchStart(e: TouchEvent) {
+    handleTouch(e.touches[0]);
+    startTouchX = Mouse.rx;
+    startTouchY = Mouse.ry;
+    movedTouchOut = false;
+    Mouse.left = true;
+}
+
 function onCanvasTouchMove(e: TouchEvent) {
-    handleMouseMovement(e.touches[0].pageX, e.touches[0].pageY);
+    handleTouch(e.touches[0]);
+    if (startTouchX !== Mouse.rx || startTouchY !== Mouse.ry) movedTouchOut = true;
+}
+
+function onTouchEnd() {
+    Mouse.left = false;
+    const broke = clientPlayer.justBreaking;
+    if (!movedTouchOut && (!broke || broke[0] !== Mouse.rx || broke[1] !== Mouse.ry)) {
+        // click! place!
+        clientPlayer.placeIfCan();
+    }
+    clientPlayer.justBreaking = null;
 }
 
 function handleMouseMovement(x: number, y: number) {
@@ -367,8 +395,9 @@ export function initClient() {
     addEventListener("blur", onLoseFocus);
     addEventListener("focus", onFocus);
     canvas.addEventListener("mousemove", onCanvasMouseMove);
-    canvas.addEventListener("touchstart", onCanvasTouchMove);
+    canvas.addEventListener("touchstart", onCanvasTouchStart);
     canvas.addEventListener("touchmove", onCanvasTouchMove);
+    addEventListener("touchend", onTouchEnd);
     canvas.addEventListener("mousedown", onCanvasMouseDown);
     addEventListener("mouseup", onMouseUp);
     chatInput.addEventListener("keydown", onChatKeyPress);
@@ -463,7 +492,10 @@ export function terminateClient() {
     if (canvas) {
         canvas.removeEventListener("mousemove", onCanvasMouseMove);
         canvas.removeEventListener("mousedown", onCanvasMouseDown);
+        canvas.removeEventListener("touchstart", onCanvasTouchMove);
+        canvas.removeEventListener("touchmove", onCanvasTouchMove);
     }
+    removeEventListener("touchend", onTouchEnd);
     removeEventListener("mouseup", onMouseUp);
     if (chatInput) {
         chatInput.removeEventListener("keydown", onChatKeyPress);
@@ -478,7 +510,9 @@ export function terminateClient() {
 // todo: add crafting api
 // todo: sync crafting inventory in a nice way
 // todo: fix non-rendering chunks in clients
-// todo: add inventory transactions: move X items from A to B, drop X items from A
+// todo: add inventory transactions:
+//   client: move X items from A to B, drop X items from A
+//   server: set an item
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 
 function isInChat() {
@@ -582,26 +616,40 @@ export function Client(O: {
 
 
         {/* Hotbar */}
-        <InventoryDiv className="hotbar-inventory inventory" style={isMobile ? {width: "60%"} : {}}
-                      inventoryType={Inventories.Hotbar} ikey={"hi"}></InventoryDiv>
+        <InventoryDiv className="hotbar-inventory inventory" style={isMobile ? {width: "50%"} : {}}
+                      inventoryType={Inventories.Hotbar} ikey="hi"></InventoryDiv>
 
 
         {/* Player Inventory */}
         <div className="player-inventory-container" style={playerInventoryOn[0] ? {scale: "1"} : {}}>
             <InventoryDiv className="inv-pp inventory" inventoryType={Inventories.Player}
-                          ikey={"pp"}></InventoryDiv>
+                          ikey="pp"></InventoryDiv>
             <InventoryDiv className="inv-ph inventory" inventoryType={Inventories.Hotbar}
-                          ikey={"ph"}></InventoryDiv>
-            <InventoryDiv className="inv-pa inventory" inventoryType={Inventories.Armor} ikey={"pa"}></InventoryDiv>
+                          ikey="ph"></InventoryDiv>
+            <InventoryDiv className="inv-pa inventory" inventoryType={Inventories.Armor} ikey="pa"></InventoryDiv>
             <InventoryDiv className="inv-pcs inventory" inventoryType={Inventories.CraftingSmall}
-                          ikey={"pcs"}></InventoryDiv>
+                          ikey="pcs"></InventoryDiv>
             <InventoryDiv className="inv-pcr inventory" inventoryType={Inventories.CraftingSmallResult}
-                          ikey={"pcr"}></InventoryDiv>
+                          ikey="pcr"></InventoryDiv>
         </div>
 
 
         {/* Options */}
         <OptionsPopup showSaveAndQuit={true} opt={optionPopup}/>
+
+
+        {/* Mobile Control Buttons */}
+        <div className="mobile-controls">
+            <div className="mobile-up"
+                 onTouchStart={() => Keyboard.w = true}
+                 onTouchEnd={() => Keyboard.w = false}></div>
+            <div className="mobile-left"
+                 onTouchStart={() => Keyboard.a = true}
+                 onTouchEnd={() => Keyboard.a = false}></div>
+            <div className="mobile-right"
+                 onTouchStart={() => Keyboard.d = true}
+                 onTouchEnd={() => Keyboard.d = false}></div>
+        </div>
 
 
         {/* The screen that only pops up when saving */}

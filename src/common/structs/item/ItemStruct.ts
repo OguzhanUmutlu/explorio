@@ -1,7 +1,6 @@
 import X from "stramp";
-import {I} from "../meta/ItemIds";
-import {Item} from "../item/Item";
-
+import {I} from "../../meta/ItemIds";
+import {Item} from "../../item/Item";
 
 export default X.object.struct({
     id: X.getTypeOf(I.__MAX__),

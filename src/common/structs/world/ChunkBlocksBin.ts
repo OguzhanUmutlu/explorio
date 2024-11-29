@@ -1,5 +1,5 @@
 import X, {Bin, BufferIndex} from "stramp";
-import {ChunkLength, WorldHeight} from "../utils/Utils";
+import {ChunkLength, WorldHeight} from "../../utils/Utils";
 
 function findSmallPatterns(array: Uint16Array, max = 255) {
     const result = [];

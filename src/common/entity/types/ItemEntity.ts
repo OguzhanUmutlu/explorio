@@ -2,6 +2,7 @@ import {Entity} from "../Entity";
 import {BoundingBox} from "../BoundingBox";
 import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
 import {Item} from "../../item/Item";
+import {Player} from "@explorio/entity/types/Player";
 
 export class ItemEntity extends Entity {
     typeId = Entities.ITEM;
@@ -11,6 +12,14 @@ export class ItemEntity extends Entity {
     item: Item;
 
     serverUpdate(dt: number) {
+        for (const entity of this.getChunkEntities()) {
+            if (entity instanceof Player) {
+                entity.addItem(this.item);
+                this.despawn();
+                return;
+            }
+        }
+
         super.serverUpdate(dt);
     };
 

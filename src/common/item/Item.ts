@@ -1,7 +1,7 @@
 import {BM, I, ItemsByAccess} from "../meta/ItemIds";
 import {im2f} from "../meta/Items";
 import {Canvas} from "../utils/Texture";
-import ItemStruct from "../structs/ItemStruct";
+import ItemStruct from "../structs/item/ItemStruct";
 
 export class Item {
     constructor(

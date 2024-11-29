@@ -3,7 +3,7 @@ import {World} from "../world/World";
 import {EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
 import {getRotationTowards, Location} from "../utils/Location";
 import {Packets} from "../network/Packets";
-import EntitySaveStruct from "../structs/EntitySaveStruct";
+import EntitySaveStruct from "@explorio/structs/entity/EntitySaveStruct";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -17,7 +17,7 @@ export abstract class Entity {
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes
     id = _entity_id++;
-    chunk: World["chunkEntities"][number];
+    chunkEntities: World["chunkEntities"][number];
     _x = 0;
     _y = 0;
     location = new Location(0, 0, 0, null);
@@ -99,6 +99,14 @@ export abstract class Entity {
         this.location.world = world;
     };
 
+    tryToJump() {
+        if (this.onGround) this.jump();
+    };
+
+    jump() {
+        this.vy = this.jumpVelocity;
+    };
+
     calcCacheState(): string {
         return `${this.x.toFixed(2)};${this.y.toFixed(2)}`;
     };
@@ -165,10 +173,14 @@ export abstract class Entity {
         if (this.x !== x || this.y !== y) this.onMovement();
     };
 
+    getChunkEntities() {
+        return this.chunkEntities ?? [];
+    };
+
     onMovement() {
         this._x = this.x;
         this._y = this.y;
-        const oldChunk = this.chunk;
+        const oldChunk = this.chunkEntities;
         const newChunk = this.world.getChunkEntitiesAt(this.x);
         if (oldChunk !== newChunk) {
             newChunk.push(this);
@@ -177,7 +189,7 @@ export abstract class Entity {
                 if (index !== -1) oldChunk.splice(index, 1);
             }
         }
-        this.chunk = newChunk;
+        this.chunkEntities = newChunk;
         this.updateCollisionBox();
     };
 

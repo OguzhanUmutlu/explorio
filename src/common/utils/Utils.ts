@@ -4,7 +4,8 @@ import {ZstdSimple} from "@oneidentity/zstd-js";
 import {Server} from "../Server";
 import {Location} from "./Location";
 import * as BrowserFS from "browserfs";
-import PlayerStruct from "../structs/entities/PlayerStruct";
+import PlayerStruct from "@explorio/structs/entity/PlayerStruct";
+import ItemStruct from "@explorio/structs/item/ItemStruct";
 
 let server: Server;
 
@@ -79,7 +80,8 @@ export const SurfaceHeight = 172;
 export const CaveScale = 40;
 
 export const EntityStructs = {
-    [Entities.PLAYER]: PlayerStruct
+    [Entities.PLAYER]: PlayerStruct,
+    [Entities.ITEM]: ItemStruct
 };
 
 export function permissionCheck(permissions: Set<string>, wanted: string) {

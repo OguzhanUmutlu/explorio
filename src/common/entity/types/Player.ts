@@ -7,7 +7,7 @@ import {Entity} from "../Entity";
 import {Packets} from "../../network/Packets";
 import {Inventories, InventorySizes} from "../../meta/Inventories";
 import {Item} from "../../item/Item";
-import EntitySaveStruct from "../../structs/EntitySaveStruct";
+import EntitySaveStruct from "@explorio/structs/entity/EntitySaveStruct";
 import {Packet} from "@explorio/network/Packet";
 
 export class Player extends Entity implements CommandSender {

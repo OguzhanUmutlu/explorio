@@ -1,8 +1,8 @@
 import X from "stramp";
 import {Inventories, InventorySizes} from "../../meta/Inventories";
-import EntityStruct, {EntityAttributesStruct} from "../EntityStruct";
-import InventoryStruct from "../InventoryStruct";
-import WorldStruct from "../WorldStruct";
+import EntityStruct, {EntityAttributesStruct} from "./EntityStruct";
+import InventoryStruct from "../item/InventoryStruct";
+import WorldStruct from "../world/WorldStruct";
 
 export const PlayerAttributesStruct = X.object.struct({
     xp: X.u32,

@@ -1,10 +1,10 @@
 import {CPlayer} from "./CPlayer";
-import {I} from "@explorio/meta/ItemIds";
 import {Containers} from "@explorio/meta/Inventories";
 import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@client/Client";
 import {Options} from "../../utils/Utils";
-import {Packets} from "@explorio/network/Packets";
 import {Sound} from "@explorio/utils/Sound";
+import {I} from "@explorio/meta/ItemIds";
+import {Packets} from "@explorio/network/Packets";
 
 export class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
@@ -23,14 +23,28 @@ export class OriginPlayer extends CPlayer {
         super.render(ctx, dt);
     };
 
+    walkHorizontal(sign: 1 | -1, dt: number) {
+        this.tryToMove(sign * (Keyboard.shift ? 2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed * dt, 0, dt);
+    };
+
+    placeIfCan() {
+        if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GRASS_BLOCK, 0)) {
+            clientNetwork.sendPacket(new Packets.CPlaceBlock({
+                x: Math.round(Mouse.x),
+                y: Math.round(Mouse.y)
+            }));
+            this.placeTime = this.placeCooldown;
+        }
+    };
+
+    justBreaking = null; // for mobile
+
     update(dt: number) {
         super.update(dt);
 
-        const speed = this.walkSpeed * dt * (Keyboard.shift ? 2 : 1);
-        const walkMultiplier = this.onGround ? 1 : 0.8;
-        if ((Keyboard.w || Keyboard[" "]) && this.onGround) this.vy = this.jumpVelocity;
-        if (Keyboard.a) this.tryToMove(-speed * walkMultiplier, 0, dt);
-        if (Keyboard.d) this.tryToMove(speed * walkMultiplier, 0, dt);
+        if ((Keyboard.w || Keyboard[" "])) this.tryToJump();
+        if (Keyboard.a) this.walkHorizontal(-1, dt);
+        if (Keyboard.d) this.walkHorizontal(1, dt);
 
         if (Mouse.left) {
             if (this.breaking) {
@@ -42,7 +56,7 @@ export class OriginPlayer extends CPlayer {
                     clientNetwork.sendStopBreaking();
                 }
             } else if (this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
-                this.breaking = [Mouse.rx, Mouse.ry];
+                this.justBreaking = this.breaking = [Mouse.rx, Mouse.ry];
                 const block = this.world.getBlock(Mouse.rx, Mouse.ry);
                 // todo: handle tools
                 this.breakingTime = block.getHardness();
@@ -53,15 +67,8 @@ export class OriginPlayer extends CPlayer {
             this.breaking = null;
             this.breakingTime = 0;
         }
-        if (Mouse.right) {
-            if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GRASS_BLOCK, 0)) {
-                clientNetwork.sendPacket(new Packets.CPlaceBlock({
-                    x: Math.round(Mouse.x),
-                    y: Math.round(Mouse.y)
-                }));
-                //this.placeTime = this.placeCooldown;
-            }
-        } else this.placeTime = 0;
+        if (Mouse.right) this.placeIfCan();
+        else this.placeTime = 0;
     };
 
     playSoundAt(path: string, x: number, y: number, volume = 1) {

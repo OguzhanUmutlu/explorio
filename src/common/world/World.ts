@@ -19,7 +19,7 @@ import {Packet} from "../network/Packet";
 import {Entity} from "../entity/Entity";
 import {Server} from "../Server";
 import {Packets} from "../network/Packets";
-import ChunkStruct from "../structs/ChunkStruct";
+import ChunkStruct from "@explorio/structs/world/ChunkStruct";
 import {z} from "zod";
 
 export function getRandomSeed() {

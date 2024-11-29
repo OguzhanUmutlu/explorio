@@ -307,3 +307,39 @@ body {
     background: white;
     border-radius: 50%;
 }
+
+.mobile-controls {
+    position: absolute;
+    left: 2%;
+    bottom: 6%;
+    width: 22.5%;
+    aspect-ratio: 3 / 2;
+}
+
+.mobile-up, .mobile-right, .mobile-left {
+    position: absolute;
+    width: 33%;
+    aspect-ratio: 1 / 1;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 100% 100%;
+}
+
+.mobile-up {
+    top: 0;
+    left: 50%;
+    translate: -50%;
+    background-image: url("../assets/textures/gui/controls/up.png");
+}
+
+.mobile-right {
+    bottom: 0;
+    right: 0;
+    background-image: url("../assets/textures/gui/controls/right.png");
+}
+
+.mobile-left {
+    bottom: 0;
+    left: 0;
+    background-image: url("../assets/textures/gui/controls/left.png");
+}

@@ -1,6 +1,6 @@
 import X, {Bin, BufferIndex} from "stramp";
-import {Inventory} from "../item/Inventory";
-import {Item} from "../item/Item";
+import {Inventory} from "../../item/Inventory";
+import {Item} from "../../item/Item";
 import ItemStruct from "./ItemStruct";
 
 export default class InventoryStruct extends Bin<Inventory> {

@@ -203,7 +203,11 @@ body {
     transition: scale 0.3s;
     z-index: 1;
     min-width: max-content;
-    min-height: max-content;
+}
+
+.option-list {
+    max-height: calc(100% - 50px);
+    overflow-y: auto;
 }
 
 input {
@@ -278,7 +282,7 @@ input {
 
 @media (max-width: 916px) {
     .container {
-        width: calc(100% - 50px);
-        height: calc(100% - 50px);
+        width: calc(100vw - 50px);
+        height: calc(100vh - 50px);
     }
 }
