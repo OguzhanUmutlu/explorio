@@ -299,6 +299,7 @@ function onCanvasMouseMove(e: MouseEvent) {
 let startTouchX = 0;
 let startTouchY = 0;
 let movedTouchOut = false;
+let touchDown = 0;
 
 function handleTouch(t: Touch) {
     handleMouseMovement(t.pageX, t.pageY);
@@ -309,6 +310,7 @@ function onCanvasTouchStart(e: TouchEvent) {
     startTouchX = Mouse.rx;
     startTouchY = Mouse.ry;
     movedTouchOut = false;
+    touchDown++;
     Mouse.left = true;
 }
 
@@ -318,13 +320,14 @@ function onCanvasTouchMove(e: TouchEvent) {
 }
 
 function onTouchEnd() {
-    Mouse.left = false;
     const broke = clientPlayer.justBreaking;
     if (!movedTouchOut && (!broke || broke[0] !== Mouse.rx || broke[1] !== Mouse.ry)) {
         // click! place!
         clientPlayer.placeIfCan();
     }
     clientPlayer.justBreaking = null;
+    touchDown--;
+    if (touchDown === 0) Mouse.left = false;
 }
 
 function handleMouseMovement(x: number, y: number) {
