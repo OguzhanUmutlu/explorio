@@ -22,12 +22,12 @@ export function NewServerPopup(O: {
         </div>
         <div className="server-ip-port">
             <StateInput state={serverIp} placeholder="Server IP..."/>
-            <StateInput state={serverPort} type="number" placeholder="Server port..."/>
+            <StateInput state={serverPort} type="number" placeholder="Server port... (1881)"/>
         </div>
         <div className="create-server btn" onClick={() => {
             const name = serverName[0];
             const ip = serverIp[0];
-            const port = Math.floor(+serverPort[0]);
+            const port = Math.floor(+(serverPort[0] || "1881"));
             if (!name || name.length > 128 || !ip || ip.length > 128 || isNaN(port) || port <= 0 || port > 65535) {
                 popupError[1]("Invalid name or IP or port");
                 serverName[1]("");

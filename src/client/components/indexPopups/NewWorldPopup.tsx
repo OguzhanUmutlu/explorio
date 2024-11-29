@@ -2,6 +2,7 @@ import {StateInput} from "../StateInput";
 import {addWorld, ReactState} from "../../js/utils/Utils";
 import {MainMenuPopup} from "../MainMenuPopup";
 import React, {useState} from "react";
+import {getRandomSeed} from "@explorio/world/World";
 
 export function NewWorldPopup(O: {
     nw: ReactState<boolean>,
@@ -19,11 +20,11 @@ export function NewWorldPopup(O: {
             <StateInput state={worldName} placeholder="World name..."/>
         </div>
         <div className="world-seed">
-            <StateInput state={worldSeed} type="number" placeholder="World seed..."/>
+            <StateInput state={worldSeed} type="number" placeholder="World seed... (optional)"/>
         </div>
         <div className="create-world btn" onClick={() => {
             const name = worldName[0];
-            const seed = Math.floor(+worldSeed[0]);
+            const seed = Math.floor(+(worldSeed[0] || getRandomSeed()));
             if (seed <= 0 || !name || name.length > 128) {
                 popupError[1]("Invalid name or seed");
                 worldName[1]("");
