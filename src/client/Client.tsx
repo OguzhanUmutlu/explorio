@@ -656,7 +656,7 @@ export function Client(O: {
 
 
         {/* The screen that only pops up when saving */}
-        <div className="save-screen" style={
+        <div className="save-screen" hidden={!isMobile} style={
             saveScreen[0] ? {
                 opacity: "1",
                 pointerEvents: "auto"
