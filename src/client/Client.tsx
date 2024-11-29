@@ -386,7 +386,6 @@ export function initClient() {
     clientPlayer = OriginPlayer.spawn(clientServer.defaultWorld);
     clientPlayer.name = Options.username;
 
-    clientPlayer.gravity = 0;
     clientPlayer.immobile = true;
     clientNetwork = new ClientNetwork;
     if (isMultiPlayer) clientNetwork._connect().then(r => r); // not waiting for it to connect
@@ -401,7 +400,7 @@ export function initClient() {
 
         const serverNetwork = new PlayerNetwork({
             sendImmediate(data: any) {
-                clientNetwork.processPacket(data);
+                clientNetwork.processPacketBuffer(data.serialize());
             },
             kick() {
                 printer.warn("Got kicked for some reason? did you kick yourself?");
@@ -414,10 +413,10 @@ export function initClient() {
 
         clientNetwork.connected = true;
         clientNetwork.worker = {
-            sendImmediate: (pk: any) => serverNetwork.processPacket(pk),
+            sendImmediate: (pk: any) => serverNetwork.processPacketBuffer(pk.serialize()),
             terminate: () => null
         } as any;
-        clientNetwork.sendPacket = pk => serverNetwork.processPacket(pk);
+        clientNetwork.sendPacket = pk => serverNetwork.processPacketBuffer(pk.serialize());
 
         clientNetwork.sendAuth(true);
 
@@ -473,8 +472,13 @@ export function terminateClient() {
     singlePlayerServer = null;
 }
 
+// todo: sync attributes in a nice way
+// todo: add fall damage
+// todo: make item entity
+// todo: add crafting api
+// todo: sync crafting inventory in a nice way
 // todo: fix non-rendering chunks in clients
-// todo: add inventory transactions
+// todo: add inventory transactions: move X items from A to B, drop X items from A
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 
 function isInChat() {
@@ -540,11 +544,11 @@ export function Client(O: {
         </div>
 
 
-    {/* The game's canvas */}
+        {/* The game's canvas */}
         <canvas id="game" ref={el => canvas = el}></canvas>
 
 
-    {/* Chat Container */}
+        {/* Chat Container */}
         <div className={isMobile ? "mobile-chat-container" : "chat-container"} style={
             isMobile ? (chatContainer[0] ? {} : {opacity: "0", pointerEvents: "none"}) : {}
         }>
@@ -554,13 +558,13 @@ export function Client(O: {
         </div>
 
 
-    {/* Mobile Chat Toggle Button */}
+        {/* Mobile Chat Toggle Button */}
         <div className="mobile-chat-toggle"
              style={isMobile && !hasBlur() ? {} : {scale: "0"}}
              onClick={() => toggleChat()}></div>
 
 
-    {/* Mobile Options Button */}
+        {/* Mobile Options Button */}
         <div className="mobile-options-open" style={isMobile && !hasBlur() ? {} : {scale: "0"}}
              onClick={() => {
                  closeChat();
@@ -573,16 +577,16 @@ export function Client(O: {
         </div>
 
 
-    {/* Background Blur used in UIs */}
+        {/* Background Blur used in UIs */}
         <div className="background-blur" style={hasBlur() ? {opacity: "1", pointerEvents: "auto"} : {}}></div>
 
 
-    {/* Hotbar */}
+        {/* Hotbar */}
         <InventoryDiv className="hotbar-inventory inventory" style={isMobile ? {width: "60%"} : {}}
                       inventoryType={Inventories.Hotbar} ikey={"hi"}></InventoryDiv>
 
 
-    {/* Player Inventory */}
+        {/* Player Inventory */}
         <div className="player-inventory-container" style={playerInventoryOn[0] ? {scale: "1"} : {}}>
             <InventoryDiv className="inv-pp inventory" inventoryType={Inventories.Player}
                           ikey={"pp"}></InventoryDiv>
@@ -596,11 +600,11 @@ export function Client(O: {
         </div>
 
 
-    {/* Options */}
+        {/* Options */}
         <OptionsPopup showSaveAndQuit={true} opt={optionPopup}/>
 
 
-    {/* The screen that only pops up when saving */}
+        {/* The screen that only pops up when saving */}
         <div className="save-screen" style={
             saveScreen[0] ? {
                 opacity: "1",

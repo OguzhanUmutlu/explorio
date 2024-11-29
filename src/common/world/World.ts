@@ -383,7 +383,7 @@ export class World {
     broadcastPacketAt(x: number, pk: Packet, exclude: Player[] = [], immediate = false) {
         const chunkX = x >> ChunkLengthBits;
         for (const player of this.getChunkViewers(chunkX)) {
-            if (!exclude.includes(player)) player.network.sendPacket(pk, immediate);
+            if (!exclude.includes(player)) player.sendPacket(pk, immediate);
         }
     };
 
@@ -402,7 +402,7 @@ export class World {
         const entities = this.chunkEntities[chunkX].filter(i => i !== player).map(i => ({
             entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
         }));
-        player.network.sendPacket(new Packets.SChunk({
+        player.sendPacket(new Packets.SChunk({
             x: chunkX, data: chunk, entities, resetEntities: true
         }), true);
     };

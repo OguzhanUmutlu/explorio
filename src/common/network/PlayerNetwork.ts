@@ -6,6 +6,7 @@ import {PacketIds} from "../meta/PacketIds";
 import {getServer} from "../utils/Utils";
 import {ItemIds} from "@explorio/meta/ItemIds";
 import {Version} from "@explorio/Versions";
+import {Buffer} from "buffer";
 
 export class PlayerNetwork {
     batch: Packet[] = [];
@@ -76,11 +77,12 @@ export class PlayerNetwork {
         player.broadcastSpawn();
         printer.info(`${this.player.name}(${this.ip}) connected`);
         this.server.broadcastMessage(`§e${this.player.name} joined the server`);
-        player.network.sendPacket(new Packets.SHandshake({
+        this.sendPacket(new Packets.SHandshake({
             entityId: this.player.id,
             x: player.x,
             y: player.y
         }), true);
+        this.sendAttributes(true);
     };
 
     processCPlaceBlock({data: {x, y}}: PacketByName<"CPlaceBlock">) {
@@ -111,6 +113,10 @@ export class PlayerNetwork {
 
     sendMessage(message: string, immediate = false) {
         this.sendPacket(new Packets.SendMessage(message), immediate);
+    };
+
+    sendAttributes(immediate = false) {
+        this.sendPacket(new Packets.SSetAttributes(this.player), immediate);
     };
 
     sendPacket(pk: Packet, immediate = false) {

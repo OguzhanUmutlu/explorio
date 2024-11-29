@@ -47,7 +47,7 @@ export const DefaultServerConfig: ServerConfig = {
     packetCompression: false,
     maxMessageLength: 256,
     spamFilter: {
-        enabled: true,
+        enabled: false,
         threshold: 3,
         seconds: 5
     },
@@ -462,7 +462,7 @@ export class Server {
     broadcastPacket(pk: Packet, exclude: Player[] = [], immediate = false) {
         for (const name in this.players) {
             const player = this.players[name];
-            if (!exclude.includes(player)) player.network.sendPacket(pk, immediate);
+            if (!exclude.includes(player)) player.sendPacket(pk, immediate);
         }
     };
 

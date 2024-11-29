@@ -46,7 +46,6 @@ export class OriginPlayer extends CPlayer {
                 const block = this.world.getBlock(Mouse.rx, Mouse.ry);
                 // todo: handle tools
                 this.breakingTime = block.getHardness();
-                if (this.instantBreak) this.breakingTime = 0;
                 clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
             }
         } else {
@@ -57,8 +56,8 @@ export class OriginPlayer extends CPlayer {
         if (Mouse.right) {
             if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GRASS_BLOCK, 0)) {
                 clientNetwork.sendPacket(new Packets.CPlaceBlock({
-                    x: Mouse.x,
-                    y: Mouse.y
+                    x: Math.round(Mouse.x),
+                    y: Math.round(Mouse.y)
                 }));
                 //this.placeTime = this.placeCooldown;
             }

@@ -35,7 +35,7 @@ export abstract class Entity {
     jumpVelocity = DEFAULT_JUMP_VELOCITY;
     health = 20;
     maxHealth = 20;
-    gravity = 0;
+    gravity = DEFAULT_GRAVITY;
     canPhase = false;
     immobile = false;
 

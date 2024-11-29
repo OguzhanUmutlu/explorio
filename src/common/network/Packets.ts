@@ -4,6 +4,7 @@ import {getServer, zstdOptionalDecode} from "../utils/Utils";
 import {PacketIds} from "../meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
 import ChunkBlocksBin from "../structs/ChunkBlocksBin";
+import {PlayerAttributesStruct} from "@explorio/structs/entities/PlayerStruct";
 
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
@@ -113,6 +114,7 @@ export const PacketStructs = {
         volume: X.f32,
         path: X.string16
     }),
+    [PacketIds.SSetAttributes]: PlayerAttributesStruct.excludeKeys("immobile"),
 
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,

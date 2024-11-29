@@ -1,17 +1,17 @@
 import {Packet,} from "@explorio/network/Packet";
-import {ClientEntityClasses, getWSUrls, setServerOptions} from "../utils/Utils";
-import {DEFAULT_GRAVITY} from "@explorio/entity/Entity";
+import {ClientEntityClasses, getWSUrls, Options, setServerOptions} from "../utils/Utils";
 import {PacketByName, Packets, readPacket} from "@explorio/network/Packets";
 import {PacketError} from "@explorio/network/PacketError";
 import {ChunkLengthBits} from "@explorio/utils/Utils";
 import {CPlayer} from "../entity/types/CPlayer";
 import {CWorld} from "../world/CWorld";
 import {PacketIds} from "@explorio/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, ServerInfo} from "../../Client";
+import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "../../Client";
 // @ts-ignore
 import SocketWorker from "../worker/SocketWorker?worker";
 import {Version} from "@explorio/Versions";
 import {BM} from "@explorio/meta/ItemIds";
+import {LittleBlockParticle} from "@client/js/particle/types/LittleBlockParticle";
 
 export class ClientNetwork {
     worker: Worker;
@@ -87,7 +87,6 @@ export class ClientNetwork {
 
     processSHandshake({data}: PacketByName<"SHandshake">) {
         this.handshake = true;
-        clientPlayer.gravity = DEFAULT_GRAVITY;
         clientPlayer.immobile = false;
         clientPlayer.id = data.entityId;
         clientPlayer.x = data.x;
@@ -184,12 +183,22 @@ export class ClientNetwork {
 
     processSPlaceBlock({data: {x, y, fullId}}: PacketByName<"SPlaceBlock">) {
         const block = BM[fullId];
-        if (block.place) clientPlayer.playSoundAt(block.randomPlace(), x, y);
+        clientPlayer.playSoundAt(block.randomPlace(), x, y);
     };
 
     processSBreakBlock({data: {x, y, fullId}}: PacketByName<"SBreakBlock">) {
         const block = BM[fullId];
-        if (block.breakSound) clientPlayer.playSoundAt(block.randomBreak(), x, y);
+        clientPlayer.playSoundAt(block.randomBreak(), x, y);
+        const particleAmount = [0, 5, 25, 100][Options.particles];
+        for (let i = 0; i < particleAmount; i++) {
+            particleManager.add(new LittleBlockParticle(x + Math.random() / 10 - 0.05, y + Math.random() / 10 - 0.05, block));
+        }
+    };
+
+    processSSetAttributes({data}: PacketByName<"SSetAttributes">) {
+        for (const k in data) {
+            clientPlayer[k] = data[k];
+        }
     };
 
 

@@ -1,9 +1,6 @@
 import X from "stramp";
 
-export default X.object.struct({
-    x: X.f32,
-    y: X.f32,
-    tags: X.set.typed(X.string16),
+export const EntityAttributesStruct = X.object.struct({
     walkSpeed: X.f32,
     flySpeed: X.f32,
     jumpVelocity: X.f32,
@@ -13,3 +10,9 @@ export default X.object.struct({
     canPhase: X.bool,
     immobile: X.bool
 });
+
+export default X.object.struct({
+    x: X.f32,
+    y: X.f32,
+    tags: X.set.typed(X.string16)
+}).extend(EntityAttributesStruct);

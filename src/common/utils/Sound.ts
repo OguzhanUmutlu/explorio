@@ -1,11 +1,18 @@
 import {simplifyTexturePath} from "./Utils";
 
-const SoundVolumes: Record<string, number> = {};
+let ctx: AudioContext = null;
+let canCreateContext = false;
+
+function tryCreateAudioContext() {
+    if (ctx) return true;
+    if (!canCreateContext) return false;
+    ctx = new AudioContext();
+    canCreateContext = false;
+    ctx.resume().then(r => r);
+    return true;
+}
 
 export class Sound {
-    static ctx: AudioContext = null;
-    static canCreateContext = false;
-
     static sounds: Record<string, Sound> = {};
     static ambients: Record<string, SoundContext> = {};
     buffer: AudioBuffer | null = null;
@@ -19,6 +26,7 @@ export class Sound {
     };
 
     static get(src: string) {
+        if (!src) return;
         src = simplifyTexturePath(src);
         if (Sound.sounds[src]) return Sound.sounds[src];
         const startMs = Date.now();
@@ -42,35 +50,42 @@ export class Sound {
             resolve(await new Promise(k => reader.onload = () => {
                 const data = reader.result;
                 if (data instanceof ArrayBuffer) audioContext.decodeAudioData(data, a => k(a));
+                audioContext.close();
             }));
         })();
         return Sound.sounds[src] = new Sound(prom, src);
     };
 
     static play(src: string, volume = 1) {
-        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
-        this.get(src).play(volume);
+        if (!tryCreateAudioContext()) return;
+        const sound = this.get(src);
+        if (!sound) return;
+        sound.play(volume);
     };
 
     static async loadAmbientAsync(src: string, volume = 1) {
-        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
+        if (!tryCreateAudioContext()) return;
+
         if (this.ambients[src]) return this.ambients[src].gain.gain.value = volume;
         const sound = Sound.get(src);
+        if (!sound) return;
         await sound.wait();
-        const ctx = await sound.playAsync(volume, false);
-        this.ambients[src] = ctx;
-        ctx.loop = true;
+        const sCtx = await sound.playAsync(volume, false);
+        this.ambients[src] = sCtx;
+        sCtx.loop = true;
     };
 
     static async playAmbientAsync(src: string, volume = 1) {
-        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
+        if (!tryCreateAudioContext()) return;
+
         await Sound.stopAmbientAsync(src, volume);
         await this.loadAmbientAsync(src, volume);
         this.ambients[src].start();
     };
 
     static async stopAmbientAsync(src: string, volume = 1) {
-        if (!this.canCreateContext) return printer.warn("Audio context creation failed.");
+        if (!tryCreateAudioContext()) return;
+
         await this.loadAmbientAsync(src, volume);
         if (this.ambients[src]) this.ambients[src].stop();
         delete this.ambients[src];
@@ -85,19 +100,21 @@ export class Sound {
     };
 
     async playAsync(volume = 1, play = true): Promise<SoundContext> {
-        if (!Sound.canCreateContext) return new Promise(() => printer.warn("Audio context creation failed."));
+        if (!tryCreateAudioContext()) return;
+
         if (!this.loaded) await this.wait();
         let extraVol = 1;
-        if (this.actualSrc.startsWith("assets/sounds/"))
-            extraVol = SoundVolumes[this.actualSrc.substring("assets/sounds/".length).replaceAll(/^\d$/g, "")] ?? 1;
         return await new Promise(async r => {
-            if (!Sound.ctx) return r(new SoundContext(null, null));
-            const source = new AudioBufferSourceNode(Sound.ctx, {buffer: this.buffer});
-            const gainNode = new GainNode(Sound.ctx, {gain: volume * extraVol});
+            if (!ctx) return r(new SoundContext(null, null));
+            const source = new AudioBufferSourceNode(ctx, {buffer: this.buffer});
+            const gainNode = new GainNode(ctx, {gain: volume * extraVol});
             source.connect(gainNode);
-            gainNode.connect(Sound.ctx.destination);
-            if (play) source.start();
-            r(new SoundContext(source, gainNode));
+            gainNode.connect(ctx.destination);
+
+            const sCtx = new SoundContext(source, gainNode);
+            if (play) sCtx.start();
+
+            r(sCtx);
         });
     };
 
@@ -166,8 +183,6 @@ class SoundContext {
 }
 
 if (typeof addEventListener !== "undefined") addEventListener("mousedown", async () => {
-    if (Sound.ctx) return;
-    Sound.ctx = new AudioContext();
-    Sound.canCreateContext = true;
-    await Sound.ctx.resume();
+    canCreateContext = true;
+    tryCreateAudioContext();
 });

@@ -8,6 +8,7 @@ import {Packets} from "../../network/Packets";
 import {Inventories, InventorySizes} from "../../meta/Inventories";
 import {Item} from "../../item/Item";
 import EntitySaveStruct from "../../structs/EntitySaveStruct";
+import {Packet} from "@explorio/network/Packet";
 
 export class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
@@ -88,6 +89,7 @@ export class Player extends Entity implements CommandSender {
         this.viewingChunks = chunks;
 
         this.breakingTime = Math.max(0, this.breakingTime - dt);
+        if (this.instantBreak) this.breakingTime = 0;
 
         if (this.breaking && this.breakingTime === 0) {
             const bx = this.breaking[0];
@@ -199,6 +201,11 @@ export class Player extends Entity implements CommandSender {
     };
 
     playSoundAt(path: string, x: number, y: number, volume = 1) {
-        this.network.sendPacket(new Packets.SPlaySound({path, x, y, volume}));
+        this.sendPacket(new Packets.SPlaySound({path, x, y, volume}));
+    };
+
+    sendPacket(pk: Packet, immediate = false) {
+        if (!this.network) return;
+        this.network.sendPacket(pk, immediate);
     };
 }

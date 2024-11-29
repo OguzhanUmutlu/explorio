@@ -12,6 +12,8 @@ export function OptionsPopup(O: {
     const music = useState(Options.music);
     const sfx = useState(Options.sfx);
     const cameraSpeed = useState(Options.cameraSpeed);
+    const chatLimit = useState(Options.chatLimit);
+    const particles = useState(Options.particles);
 
     return <MainMenuPopup className="options-menu" state={O.opt} content={<>
         <div className="mid-title">Options</div>
@@ -53,6 +55,26 @@ export function OptionsPopup(O: {
                            saveOptions();
                        }}/>
                 <div className="option-value-text">{cameraSpeed[0]}</div>
+            </div>
+
+            <div className="option-key">Chat Message Limit</div>
+            <div className="option-value" data-option="chatLimit">
+                <input type="range" value={chatLimit[0]} min={1} max={100} step={1}
+                       onChange={e => {
+                           chatLimit[1](Options.chatLimit = +e.target.value);
+                           saveOptions();
+                       }}/>
+                <div className="option-value-text">{chatLimit[0]}</div>
+            </div>
+
+            <div className="option-key">Particles</div>
+            <div className="option-value" data-option="particles">
+                <input type="range" value={particles[0]} min={0} max={3} step={1}
+                       onChange={e => {
+                           particles[1](Options.particles = +e.target.value);
+                           saveOptions();
+                       }}/>
+                <div className="option-value-text">{["None", "Low", "Medium", "High"][particles[0]]}</div>
             </div>
         </div>
         <div className="save-and-quit btn" hidden={!O.showSaveAndQuit} onClick={terminateClient}>Save and Quit</div>

@@ -114,6 +114,7 @@ export type OptionsType = {
     tileSize: number;
     updatesPerSecond: number;
     chatLimit: number;
+    particles: number;
 };
 
 export let Options: OptionsType;
@@ -127,6 +128,7 @@ export function loadOptions() {
     Options.tileSize ??= 64;
     Options.updatesPerSecond ??= 60;
     Options.chatLimit ??= 100;
+    Options.particles ??= 2;
     return Options;
 }
 

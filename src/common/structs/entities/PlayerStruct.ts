@@ -1,8 +1,20 @@
 import X from "stramp";
 import {Inventories, InventorySizes} from "../../meta/Inventories";
-import EntityStruct from "../EntityStruct";
+import EntityStruct, {EntityAttributesStruct} from "../EntityStruct";
 import InventoryStruct from "../InventoryStruct";
 import WorldStruct from "../WorldStruct";
+
+export const PlayerAttributesStruct = X.object.struct({
+    xp: X.u32,
+    blockReach: X.f32,
+    attackReach: X.f32,
+    isFlying: X.bool,
+    canToggleFly: X.bool,
+    food: X.f32,
+    maxFood: X.f32,
+    placeCooldown: X.f32,
+    instantBreak: X.bool
+}).extend(EntityAttributesStruct);
 
 export default EntityStruct.extend({
     world: WorldStruct, // This is required because player files aren't located inside world folders
@@ -18,13 +30,4 @@ export default EntityStruct.extend({
     [Inventories.CraftingSmallResult]: new InventoryStruct(InventorySizes.craftingSmallResult),
     [Inventories.CraftingBig]: new InventoryStruct(InventorySizes.craftingBig),
     [Inventories.CraftingBigResult]: new InventoryStruct(InventorySizes.craftingBigResult),
-    xp: X.u32,
-    blockReach: X.f32,
-    attackReach: X.f32,
-    isFlying: X.bool,
-    canToggleFly: X.bool,
-    food: X.f32,
-    maxFood: X.f32,
-    placeCooldown: X.f32,
-    instantBreak: X.bool
-});
+}).extend(PlayerAttributesStruct);

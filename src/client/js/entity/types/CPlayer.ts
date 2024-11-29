@@ -14,6 +14,7 @@ export class CPlayer extends Player implements CEntity {
     name = "";
     ws = <any>null;
     breakingSoundTime = 0;
+    walkSoundTime = 0;
 
     // self explanatory properties:
     renderHeadRotation = 0; // IN DEGREES
@@ -52,11 +53,11 @@ export class CPlayer extends Player implements CEntity {
             //       the player, the entity would be behind the breaking animation.
 
             const bst = this.breakingSoundTime = Math.max(0, this.breakingSoundTime - dt);
-            if (bst === 0 && block.dig) {
+            if (bst === 0) {
                 this.world.playSound(block.randomDig(), this.breaking[0], this.breaking[1]);
                 this.breakingSoundTime = 0.2;
             }
-        } else this.breakingSoundTime = 0;
+        } else this.breakingSoundTime = 0.2;
 
         if (this.lastX !== this.x) {
             this.walkingRemaining = 0.2;
@@ -81,6 +82,15 @@ export class CPlayer extends Player implements CEntity {
         const isWalking = this.walkingRemaining > 0;
         const isSwinging = this.swingRemaining > 0;
         const isBreaking = this.breaking;
+
+        if (isWalking && this.onGround) {
+            this.walkSoundTime = Math.max(0, this.walkSoundTime - dt);
+            if (this.walkSoundTime === 0) {
+                const block = this.world.getBlock(this.x, this.y - 1);
+                this.world.playSound(block.randomStep(), this.x, this.y - 1);
+                this.walkSoundTime = 0.3;
+            }
+        } else this.walkSoundTime = 0;
 
         if (isWalking) {
             const f = getCurrentSwing();
