@@ -4,7 +4,7 @@ import {initCommon} from "@explorio/utils/Inits";
 import {Canvas} from "@explorio/utils/Texture";
 import {BoundingBox} from "@explorio/entity/BoundingBox";
 import {camera, canvas, ctx} from "../../Client";
-import {initBrowserFS, SoundFiles} from "@explorio/utils/Utils";
+import {initBrowserFS, rmdirRecursive, SoundFiles} from "@explorio/utils/Utils";
 import {ChangeEvent, useEffect, useState} from "react";
 
 export type Div = HTMLDivElement;
@@ -160,8 +160,13 @@ export function setWorldOptions(uuid: string, options: Partial<WorldData>) {
 }
 
 export function removeWorld(uuid: string) {
-    const worlds = getWorldList()
-        .filter(w => w.uuid !== uuid);
+    const worlds = getWorldList();
+    const world = worlds.find(i => i.uuid === uuid);
+    if (!world) return;
+
+    rmdirRecursive(bfs, "./singleplayer/" + uuid);
+
+    worlds.splice(worlds.indexOf(world), 1);
     localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
 }
 

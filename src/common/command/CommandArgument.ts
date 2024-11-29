@@ -37,6 +37,11 @@ export abstract class CommandArgument<T extends any = any> {
         return this;
     };
 
+    setOptional(optional = true) {
+        this.required = !optional;
+        return this;
+    };
+
     setSpread(spread = true) {
         this.spread = spread;
         return this;

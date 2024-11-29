@@ -2,6 +2,7 @@ import {CommandArgument} from "../CommandArgument";
 import {CommandAs} from "../CommandSender";
 import {Location} from "../../utils/Location";
 import {AnyToken} from "../CommandProcessor";
+import X from "stramp";
 
 export enum GameMode {
     Survival,
@@ -12,6 +13,8 @@ export enum GameMode {
 
 const GameModeNames = ["survival", "creative", "adventure", "spectator"];
 const GameModeValues = [GameMode.Survival, GameMode.Creative, GameMode.Adventure, GameMode.Spectator];
+
+export const GameModeStruct = X.any.ofValues(...GameModeValues);
 
 export class GameModeArgument extends CommandArgument<GameMode> {
     default = GameMode.Survival;

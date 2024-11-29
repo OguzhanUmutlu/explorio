@@ -74,8 +74,8 @@ export abstract class DefinitiveCommand extends Command {
 
             if (cmdInd !== cmdArgs.length) {
                 if (cmdArgs[cmdInd].required) continue;
-                for (let i = cmdInd; cmdInd < cmdArgs.length; i++) {
-                    resultArgs.push(cmdArgs[i].default);
+                for (; cmdInd < cmdArgs.length; cmdInd++) {
+                    resultArgs.push(cmdArgs[cmdInd].default);
                 }
             }
 

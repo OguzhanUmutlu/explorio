@@ -8,7 +8,7 @@ export default new class EntitySaveStruct extends Bin<Entity> {
 
     constructor() {
         super();
-        this.typeIdBin = <IntBaseBin>X.getTypeOf(Entities.__MAX__);
+        this.typeIdBin = <IntBaseBin>X.getNumberTypeOf(Entities.__MAX__);
     };
 
     unsafeWrite(bind: BufferIndex, entity: Entity) {

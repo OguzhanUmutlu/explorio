@@ -11,6 +11,7 @@ import {CommandAs, CommandSender} from "./CommandSender";
 import {Location} from "../utils/Location";
 import {EntityArgument} from "./arguments/EntityArgument";
 import {LabelArgument} from "./arguments/LabelArgument";
+import {EffectArgument} from "@explorio/command/arguments/EffectArgument";
 
 export type Append<T extends any[] | [], V> = T extends [] ? [V] : [...T, V];
 
@@ -34,6 +35,10 @@ export class CommandDefinition<T extends CommandArgument[] = []> {
 
     addGameModeArgument<M extends GameModeArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(NumberArgument, name, fn);
+    };
+
+    addEffectArgument<M extends EffectArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+        return this.addArgumentViaClass(EffectArgument, name, fn);
     };
 
     addPositionArgument<M extends PositionArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {

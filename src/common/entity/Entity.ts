@@ -4,6 +4,8 @@ import {EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
 import {getRotationTowards, Location} from "../utils/Location";
 import {Packets} from "../network/Packets";
 import EntitySaveStruct from "@explorio/structs/entity/EntitySaveStruct";
+import {EffectInstance} from "@explorio/effect/EffectInstance";
+import {Effect} from "@explorio/effect/Effect";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -29,6 +31,20 @@ export abstract class Entity {
     bb: BoundingBox;
     cacheState: any;
     tags = new Set<string>;
+    effects = new Set<EffectInstance>;
+
+    defaultAttributes: Record<string, any> = {
+        walkSpeed: DEFAULT_WALK_SPEED,
+        flySpeed: DEFAULT_FLY_SPEED,
+        jumpVelocity: DEFAULT_JUMP_VELOCITY,
+        health: 20,
+        maxHealth: 20,
+        gravity: DEFAULT_GRAVITY,
+        canPhase: false,
+        immobile: false,
+        invincible: false,
+        invisible: false
+    };
 
     walkSpeed = DEFAULT_WALK_SPEED;
     flySpeed = DEFAULT_FLY_SPEED;
@@ -38,6 +54,8 @@ export abstract class Entity {
     gravity = DEFAULT_GRAVITY;
     canPhase = false;
     immobile = false;
+    invincible = false;
+    invisible = false;
 
     server = getServer();
 
@@ -171,6 +189,13 @@ export abstract class Entity {
         this.onGround = this.vy <= 0 && hitGround;
         if (hitGround) this.vy = 0;
         if (this.x !== x || this.y !== y) this.onMovement();
+        for (const effect of Array.from(this.effects)) {
+            effect.time -= dt;
+            if (effect.time <= 0) {
+                this.effects.delete(effect);
+                effect.remove(this);
+            }
+        }
     };
 
     getChunkEntities() {
@@ -245,6 +270,20 @@ export abstract class Entity {
     };
 
     updateCollisionBox() {
+    };
+
+    applyEffects() {
+        for (const effect of this.effects) {
+            effect.apply(this);
+        }
+    };
+
+    applyAttributes() {
+        this.applyEffects();
+    };
+
+    addEffect(effect: Effect, amplifier: number, duration: number) {
+        this.effects.add(new EffectInstance(effect, amplifier, duration));
     };
 
     toString() {

@@ -9,6 +9,8 @@ import {Inventories, InventorySizes} from "../../meta/Inventories";
 import {Item} from "../../item/Item";
 import EntitySaveStruct from "@explorio/structs/entity/EntitySaveStruct";
 import {Packet} from "@explorio/network/Packet";
+import {GameMode} from "@explorio/command/arguments/GameModeArgument";
+import {Effect} from "@explorio/effect/Effect";
 
 export class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
@@ -28,22 +30,48 @@ export class Player extends Entity implements CommandSender {
     handIndex = 0;
 
     xp = 0;
+    gamemode = GameMode.Survival;
+    canBreak = true;
+    canPlace = true;
+    canAttack = true;
     blockReach = 5;
     attackReach = 5;
     isFlying = false;
     canToggleFly = false;
+    instantBreak = false;
+    placeCooldown = 0.3;
     food = 20;
     maxFood = 20;
-    placeCooldown = 0.3;
-    instantBreak = false;
 
     messageTimes: number[] = [];
+
+    constructor() {
+        super();
+
+        this.defaultAttributes = {
+            ...this.defaultAttributes,
+            xp: 0,
+            gamemode: GameMode.Survival,
+            canBreak: true,
+            canPlace: true,
+            canAttack: true,
+            blockReach: 5,
+            attackReach: 5,
+            isFlying: false,
+            canToggleFly: false,
+            instantBreak: false,
+            placeCooldown: 0.3,
+            food: 20,
+            maxFood: 20
+        };
+    };
 
     init() {
         for (const k in Inventories) {
             const v = Inventories[<keyof typeof Inventories>k];
             this[v] ??= new Inventory(InventorySizes[v]);
         }
+
         super.init();
     };
 
@@ -207,5 +235,99 @@ export class Player extends Entity implements CommandSender {
     sendPacket(pk: Packet, immediate = false) {
         if (!this.network) return;
         this.network.sendPacket(pk, immediate);
+    };
+
+    applyAttributes() {
+        this.applyGameModeAttributes();
+
+        super.applyAttributes();
+
+        this.network?.sendAttributes();
+    };
+
+    applyGameModeAttributes() {
+        switch (this.gamemode) {
+            case GameMode.Survival:
+                this.canBreak = true;
+                this.canPlace = true;
+                this.blockReach = 5;
+                this.attackReach = 5;
+                this.isFlying = false;
+                this.canToggleFly = false;
+                this.instantBreak = false;
+                this.placeCooldown = 0.3;
+                this.canPhase = true;
+                this.invincible = false;
+                this.invisible = false;
+                break;
+            case GameMode.Creative:
+                this.canBreak = true;
+                this.canPlace = true;
+                this.canAttack = true;
+                this.blockReach = 10;
+                this.attackReach = 10;
+                this.canToggleFly = true;
+                this.instantBreak = true;
+                this.placeCooldown = 0;
+                this.canPhase = false;
+                this.invincible = true;
+                break;
+            case GameMode.Adventure:
+                this.canBreak = false;
+                this.canPlace = false;
+                this.canAttack = true;
+                this.blockReach = 0;
+                this.attackReach = 5;
+                this.isFlying = false;
+                this.canToggleFly = false;
+                this.instantBreak = false;
+                this.placeCooldown = 0;
+                this.canPhase = false;
+                this.invincible = false;
+                break;
+            case GameMode.Spectator:
+                this.canBreak = false;
+                this.canPlace = false;
+                this.canAttack = false;
+                this.blockReach = 0;
+                this.attackReach = 0;
+                this.isFlying = true;
+                this.canToggleFly = false;
+                this.instantBreak = false;
+                this.placeCooldown = 0;
+                this.canPhase = true;
+                this.invincible = true;
+                break;
+        }
+    };
+
+    addEffect(effect: Effect, amplifier: number, duration: number) {
+        super.addEffect(effect, amplifier, duration);
+        this.applyEffects();
+    };
+
+    setGameMode(gamemode: GameMode) {
+        this.gamemode = gamemode;
+        this.applyAttributes();
+    };
+
+    setFood(food: number) {
+        this.food = food;
+        this.network?.sendAttributes();
+    };
+
+    setMaxFood(maxFood: number) {
+        this.maxFood = maxFood;
+        this.network?.sendAttributes();
+    };
+
+    setHealth(health: number) {
+        this.health = health;
+        this.network?.sendAttributes();
+    };
+
+    setMaxHealth(maxHealth: number) {
+        this.maxHealth = maxHealth;
+        this.network?.sendAttributes();
     };
 }

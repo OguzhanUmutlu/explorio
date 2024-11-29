@@ -6,6 +6,8 @@ export class LittleBlockParticle extends Particle {
     t = this.tm;
     vx = 0;
     vy = 0
+    // pixel: Canvas;
+    // color: string;
 
     constructor(x: number, y: number, public block: ItemMetadata) {
         super(x, y);
@@ -15,6 +17,12 @@ export class LittleBlockParticle extends Particle {
 
         this.vx = Math.min(0.5, Math.max(-0.5, 0.005 / cx));
         this.vy = Math.min(0.5, 0.005 / cy) * 2.5;
+
+        // const texture = block.getTexture();
+        //
+        // const xv = Math.floor(Math.random() * 4);
+        // this.color = texture.pixelValue(xv, 0);
+        // this.pixel = texture.pixel(Math.floor(Math.random() * 4), 0);
     };
 
     update(dt: number) {
@@ -32,7 +40,13 @@ export class LittleBlockParticle extends Particle {
         const r = tileSize / 10;
         ctx.save();
         ctx.globalAlpha = this.t / this.tm;
-        this.block.render(ctx, x - r / 2, y - r / 2, r, r);
+        const x0 = x - r / 2;
+        const y0 = y - r / 2;
+        // ctx.fillStyle = this.color;
+        // console.log(this.color)
+        // ctx.drawImage(this.pixel, x0, y0, r, r);
+        // ctx.fillRect(x0, y0, r, r);
+        this.block.render(ctx, x0, y0, r, r);
         ctx.restore();
     };
 }

@@ -3,7 +3,7 @@ import {I} from "../../meta/ItemIds";
 import {Item} from "../../item/Item";
 
 export default X.object.struct({
-    id: X.getTypeOf(I.__MAX__),
+    id: X.getNumberTypeOf(I.__MAX__),
     meta: X.u8,
     count: X.u8,
     nbt: X.object

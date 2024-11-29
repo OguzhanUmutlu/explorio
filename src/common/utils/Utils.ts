@@ -205,3 +205,17 @@ export function checkLag(label: string, ms = 30) {
         lags[label] = Date.now();
     }
 }
+
+export function rmdirRecursive(fs: any, path: string) {
+    const files = fs.readdirSync(path);
+    for (const file of files) {
+        const curPath = `${path}/${file}`;
+        if (fs.statSync(curPath).isDirectory()) rmdirRecursive(fs, curPath);
+        else fs.unlinkSync(curPath);
+    }
+    fs.rmdirSync(path);
+}
+
+export function splitByUnderscore(str: string) {
+    return str.split("_").map(i => i[0] + i.slice(1).toLowerCase());
+}

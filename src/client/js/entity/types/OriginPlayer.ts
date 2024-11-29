@@ -72,9 +72,10 @@ export class OriginPlayer extends CPlayer {
     };
 
     playSoundAt(path: string, x: number, y: number, volume = 1) {
+        if (!Options.sfx) return;
         const distance = clientPlayer.distance(x, y);
         if (distance > 20) return;
-        const lastVolume = volume * (1 - (distance / 20));
+        const lastVolume = volume * (1 - (distance / 20)) * Options.sfx / 100;
         Sound.play(path, lastVolume);
     };
 
@@ -94,7 +95,7 @@ export class OriginPlayer extends CPlayer {
         // i = italics
         // k = obfuscated
         let parent = <any>div;
-        const sep = message.split(/(§[\da-fbusik]|:[a-z]+:)/);
+        const sep = message.split(/(§[\da-flusik]|:[a-z]+:)/);
         for (const part of sep) {
             if (/^§§[\da-f]|§[\da-fbusik]$/.test(part)) {
                 const dv = document.createElement("div");
@@ -104,7 +105,7 @@ export class OriginPlayer extends CPlayer {
                 if (/^§[\da-f]$/.test(part)) {
                     dv.style.color = `var(--color-${part[1]})`;
                 } else switch (part[1]) {
-                    case "b":
+                    case "l":
                         dv.style.fontWeight = "bold";
                         break;
                     case "u":

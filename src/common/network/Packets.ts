@@ -4,7 +4,7 @@ import {getServer, zstdOptionalDecode} from "../utils/Utils";
 import {PacketIds} from "../meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
 import ChunkBlocksBin from "@explorio/structs/world/ChunkBlocksBin";
-import {PlayerAttributesStruct} from "@explorio/structs/entity/PlayerStruct";
+import {GameModeStruct} from "@explorio/command/arguments/GameModeArgument";
 
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
@@ -114,7 +114,32 @@ export const PacketStructs = {
         volume: X.f32,
         path: X.string16
     }),
-    [PacketIds.SSetAttributes]: PlayerAttributesStruct.excludeKeys("immobile"),
+    [PacketIds.SSetAttributes]: X.object.struct({
+        walkSpeed: X.f32,
+        flySpeed: X.f32,
+        jumpVelocity: X.f32,
+        health: X.f32,
+        maxHealth: X.f32,
+        gravity: X.f32,
+        canPhase: X.bool,
+        // immobile: X.bool,
+        invincible: X.bool,
+        invisible: X.bool,
+
+        xp: X.u32,
+        gamemode: GameModeStruct,
+        canBreak: X.bool,
+        canPlace: X.bool,
+        canAttack: X.bool,
+        blockReach: X.f32,
+        attackReach: X.f32,
+        isFlying: X.bool,
+        canToggleFly: X.bool,
+        food: X.f32,
+        maxFood: X.f32,
+        placeCooldown: X.f32,
+        instantBreak: X.bool
+    }),
 
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,

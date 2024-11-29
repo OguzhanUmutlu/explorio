@@ -177,7 +177,7 @@ export class ItemMetadata {
         const url = this.metas[meta % this.metas.length];
         if (!url) return texturePlaceholder;
         const urlV = url.texture;
-        if (urlV instanceof Texture) return url.texture = urlV;
+        if (urlV instanceof Texture) return urlV;
         if (typeof urlV === "string") return url.texture = Texture.get(urlV);
         if (typeof urlV === "function") return url.texture = urlV();
         return new Texture("", urlV);

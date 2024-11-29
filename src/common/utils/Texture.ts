@@ -96,6 +96,8 @@ export class Texture {
     _stairsTopRight: Canvas | null = null;
     _stairsBottomLeft: Canvas | null = null;
     _stairsBottomRight: Canvas | null = null;
+    _pixels: Canvas[] = [];
+    _pixelValues: string[] = [];
 
     constructor(public actualSrc: string, known?: Promise<Canvas> | Canvas | null) {
         if (this.actualSrc.endsWith("undefined.png")) throw new Error("sa")
@@ -215,6 +217,31 @@ export class Texture {
     skin() {
         if (!this.loaded) return null;
         return this._skin ??= Texture.readSkin(this.image);
+    };
+
+    pixel(x: number, y: number) {
+        if (!this.loaded) return null;
+        const i = x + y * this.image.width;
+        if (this._pixels[i]) return this._pixels[i];
+        const canvas = createCanvas(1, 1);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(<any>this.image, x, y, 1, 1, 0, 0, 1, 1);
+        return this._pixels[i] = canvas;
+    };
+
+    pixelValue(x: number, y: number) {
+        if (!this.loaded) return null;
+        const i = x + y * this.image.width;
+        if (this._pixelValues[i]) return this._pixelValues[i];
+        const canvas = createCanvas(1, 1);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(<any>this.image, x, y, 1, 1, 0, 0, 1, 1);
+        return this._pixelValues[i] = "#" + Array.from(ctx
+            .getImageData(0, 0, 1, 1)
+            .data
+            .slice(0, 3))
+            .map((i: number) => i.toString(16).padStart(2, "0"))
+            .join("");
     };
 
     async wait() {

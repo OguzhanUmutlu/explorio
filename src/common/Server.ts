@@ -14,6 +14,9 @@ import {Packet} from "./network/Packet";
 import {PermissionCommand} from "./command/defaults/PermissionCommand";
 import {z} from "zod";
 import {Plugin, PluginMetadata, ZPluginMetadata} from "./plugin/Plugin";
+import {GameModeCommand} from "@explorio/command/defaults/GameModeCommand";
+import {EffectCommand} from "@explorio/command/defaults/EffectCommand";
+import {HelpCommand} from "@explorio/command/defaults/HelpCommand";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -68,6 +71,7 @@ export class Server {
     pluginPromise: Promise<void> | null;
     intervalId: any = 0;
     terminated = false;
+    pausedUpdates = false;
 
     constructor(public fs: typeof import("fs"), public path: string) {
         setServer(this);
@@ -114,7 +118,10 @@ export class Server {
             ListCommand,
             TeleportCommand,
             ExecuteCommand,
-            PermissionCommand
+            PermissionCommand,
+            GameModeCommand,
+            EffectCommand,
+            HelpCommand
         ]) this.registerCommand(new clazz());
 
         this.createDirectory(this.path);
@@ -442,6 +449,7 @@ export class Server {
 
 
     update(dt: number) {
+        if (this.pausedUpdates) return;
         checkLag("server update", 10);
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
@@ -480,7 +488,7 @@ export class Server {
 
     executeCommandLabel(sender: CommandSender, as: CommandAs, at: Location, label: string) {
         const split = label.split(" ");
-        const commandLabel = split[0];
+        const commandLabel = split[0].toLowerCase();
         const command = this.commands[commandLabel];
         if (!command) {
             sender.sendMessage(`§cUnknown command: ${commandLabel}. Type /help for a list of commands`);
@@ -506,6 +514,9 @@ export class Server {
     };
 
     processMessage(sender: CommandSender, message: string) {
+        message = cleanText(message).substring(0, this.config.maxMessageLength);
+        if (!message) return;
+
         if (this.config.spamFilter.enabled && sender instanceof Player) {
             sender.messageTimes = sender.messageTimes.filter(i => i + 1000 * this.config.spamFilter.seconds > Date.now());
             sender.messageTimes.push(Date.now());
@@ -513,7 +524,6 @@ export class Server {
                 sender.kick("Kicked for spam");
             }
         }
-        message = cleanText(message).substring(0, this.config.maxMessageLength);
         if (message[0] === "/") {
             this.executeCommandLabel(
                 sender,
