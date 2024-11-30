@@ -1,11 +1,11 @@
-import {BoundingBox} from "./BoundingBox";
-import {World} from "../world/World";
-import {EntityStructs, getServer, zstdOptionalDecode} from "../utils/Utils";
-import {getRotationTowards, Location} from "../utils/Location";
-import {Packets} from "../network/Packets";
-import EntitySaveStruct from "@explorio/structs/entity/EntitySaveStruct";
-import {EffectInstance} from "@explorio/effect/EffectInstance";
-import {Effect} from "@explorio/effect/Effect";
+import BoundingBox from "$/entity/BoundingBox";
+import World from "$/world/World";
+import {EntityStructs, getServer, zstdOptionalDecode} from "$/utils/Utils";
+import Location, {getRotationTowards} from "$/utils/Location";
+import {Packets} from "$/network/Packets";
+import EntitySaveStruct from "$/structs/entity/EntitySaveStruct";
+import EffectInstance from "$/effect/EffectInstance";
+import Effect from "$/effect/Effect";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -14,7 +14,7 @@ export const DEFAULT_GRAVITY = 18;
 
 let _entity_id = 0;
 
-export abstract class Entity {
+export default abstract class Entity {
     abstract typeId: number;
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes

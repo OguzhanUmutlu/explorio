@@ -1,4 +1,4 @@
-import {simplifyTexturePath} from "./Utils";
+import {simplifyTexturePath} from "$/utils/Utils";
 
 let ctx: AudioContext = null;
 let canCreateContext = false;
@@ -12,7 +12,7 @@ function tryCreateAudioContext() {
     return true;
 }
 
-export class Sound {
+export default class Sound {
     static sounds: Record<string, Sound> = {};
     static ambients: Record<string, SoundContext> = {};
     buffer: AudioBuffer | null = null;

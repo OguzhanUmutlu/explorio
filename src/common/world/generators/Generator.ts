@@ -1,6 +1,6 @@
-import {World} from "../World";
+import World from "$/world/World";
 
-export abstract class Generator {
+export default abstract class Generator {
     world: World;
 
     protected constructor() {

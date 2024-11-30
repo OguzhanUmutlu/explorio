@@ -1,7 +1,7 @@
-import {DefinitiveCommand} from "../DefinitiveCommand";
-import {CommandDefinition} from "../CommandDefinition";
+import DefinitiveCommand from "$/command/DefinitiveCommand";
+import CommandDefinition from "$/command/CommandDefinition";
 
-export class HelpCommand extends DefinitiveCommand {
+export default class HelpCommand extends DefinitiveCommand {
     constructor() {
         super("help", "Opens the help menu.", ["?"]);
     };

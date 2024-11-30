@@ -1,9 +1,9 @@
-import {Generator} from "./Generator";
-import {B, I} from "../../meta/ItemIds";
+import Generator from "$/world/generators/Generator";
+import {B, I} from "$/meta/ItemIds";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
-import {ChunkData, World} from "../World";
-import {CaveScale, ChunkLength, SurfaceHeight} from "../../utils/Utils";
+import World, {ChunkData} from "$/world/World";
+import {CaveScale, ChunkLength, SurfaceHeight} from "$/utils/Utils";
 
 export const TreeShape = [
     [0, 0],
@@ -20,7 +20,7 @@ export const TreeShape = [
     [1, 1]
 ];
 
-export class DefaultGenerator extends Generator {
+export default class DefaultGenerator extends Generator {
     noise: NoiseFunction2D;
     noiseCoal: NoiseFunction2D;
     noiseIron: NoiseFunction2D;

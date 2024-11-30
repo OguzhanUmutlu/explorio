@@ -1,7 +1,7 @@
-import {Particle} from "@client/js/particle/Particle";
-import {ItemMetadata} from "@explorio/meta/Items";
+import Particle from "$c/particle/Particle";
+import {ItemMetadata} from "$/meta/Items";
 
-export class LittleBlockParticle extends Particle {
+export default class LittleBlockParticle extends Particle {
     tm = 1.5;
     t = this.tm;
     vx = 0;

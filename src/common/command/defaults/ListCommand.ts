@@ -1,7 +1,7 @@
-import {DefinitiveCommand} from "../DefinitiveCommand";
-import {CommandDefinition} from "../CommandDefinition";
+import DefinitiveCommand from "$/command/DefinitiveCommand";
+import CommandDefinition from "$/command/CommandDefinition";
 
-export class ListCommand extends DefinitiveCommand {
+export default class ListCommand extends DefinitiveCommand {
     constructor() {
         super("list", "Lists given selector's result.", ["list"]);
     };

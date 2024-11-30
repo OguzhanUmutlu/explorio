@@ -1,12 +1,12 @@
-import {CPlayer} from "./CPlayer";
-import {Containers} from "@explorio/meta/Inventories";
-import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@client/Client";
-import {Options} from "../../utils/Utils";
-import {Sound} from "@explorio/utils/Sound";
-import {I} from "@explorio/meta/ItemIds";
-import {Packets} from "@explorio/network/Packets";
+import CPlayer from "$c/entity/types/CPlayer";
+import {Containers} from "$/meta/Inventories";
+import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "$dom/Client";
+import {Options} from "$c/utils/Utils";
+import Sound from "$/utils/Sound";
+import {I} from "$/meta/ItemIds";
+import {Packets} from "$/network/Packets";
 
-export class OriginPlayer extends CPlayer {
+export default class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
     placeTime = 0;
     name = "";

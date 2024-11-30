@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from "react";
 import "./css/common.css";
-import {Index} from "./Index";
-import {Client, terminateClient} from "./Client";
-import {getHash, isMobileByAgent, useEventListener} from "./js/utils/Utils";
+import {Index} from "$c/../Index";
+import {Client, terminateClient} from "$dom/Client";
+import {getHash, isMobileByAgent, useEventListener} from "$c/utils/Utils";
 
 export function Main() {
     const clientUUID = useState(getHash);

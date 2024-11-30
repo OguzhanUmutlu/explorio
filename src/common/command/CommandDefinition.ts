@@ -1,23 +1,23 @@
-import {CommandArgument} from "./CommandArgument";
-import {NumberArgument} from "./arguments/NumberArgument";
-import {GameModeArgument} from "./arguments/GameModeArgument";
-import {PositionArgument} from "./arguments/PositionArgument";
-import {EntitiesArgument} from "./arguments/EntitiesArgument";
-import {TextArgument} from "./arguments/TextArgument";
-import {BoolArgument} from "./arguments/BoolArgument";
-import {ObjectArgument} from "./arguments/ObjectArgument";
-import {ArrayArgument} from "./arguments/ArrayArgument";
-import {CommandAs, CommandSender} from "./CommandSender";
-import {Location} from "../utils/Location";
-import {EntityArgument} from "./arguments/EntityArgument";
-import {LabelArgument} from "./arguments/LabelArgument";
-import {EffectArgument} from "@explorio/command/arguments/EffectArgument";
+import CommandArgument from "$/command/CommandArgument";
+import NumberArgument from "$/command/arguments/NumberArgument";
+import GameModeArgument from "$/command/arguments/GameModeArgument";
+import PositionArgument from "$/command/arguments/PositionArgument";
+import EntitiesArgument from "$/command/arguments/EntitiesArgument";
+import TextArgument from "$/command/arguments/TextArgument";
+import BoolArgument from "$/command/arguments/BoolArgument";
+import ObjectArgument from "$/command/arguments/ObjectArgument";
+import ArrayArgument from "$/command/arguments/ArrayArgument";
+import CommandSender, {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
+import EntityArgument from "$/command/arguments/EntityArgument";
+import LabelArgument from "$/command/arguments/LabelArgument";
+import EffectArgument from "$/command/arguments/EffectArgument";
 
 export type Append<T extends any[] | [], V> = T extends [] ? [V] : [...T, V];
 
 export type CommandDefinitionType = CommandDefinition<CommandArgument[]>;
 
-export class CommandDefinition<T extends CommandArgument[] = []> {
+export default class CommandDefinition<T extends CommandArgument[] = []> {
     permission: string | false = false;
     arguments: CommandArgument[] = <any>[];
     run: (sender: CommandSender, as: CommandAs | null, at: Location, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => any | void;

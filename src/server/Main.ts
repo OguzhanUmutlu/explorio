@@ -1,11 +1,11 @@
 import {WebSocketServer} from "ws";
 import Printer from "fancy-printer";
-import {Location} from "@explorio/utils/Location";
-import {PlayerNetwork} from "@explorio/network/PlayerNetwork";
+import Location from "$/utils/Location";
+import PlayerNetwork from "$/network/PlayerNetwork";
 import * as fs from "fs";
-import {Server} from "@explorio/Server";
-import {initCommon} from "@explorio/utils/Inits";
-import {readdirRecursive, SoundFiles} from "@explorio/utils/Utils";
+import Server from "$/Server";
+import {initCommon} from "$/utils/Inits";
+import {readdirRecursive, SoundFiles} from "$/utils/Utils";
 import path from "path";
 import {fileURLToPath} from "node:url";
 

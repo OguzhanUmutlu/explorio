@@ -1,4 +1,4 @@
-import {simplifyTexturePath} from "./Utils";
+import {simplifyTexturePath} from "$/utils/Utils";
 
 const pseudoCanvas = <any>{getContext: () => ({fillRect: (r: any) => r})};
 
@@ -82,7 +82,7 @@ function loadImage(src: string): Promise<Image> {
     });
 }
 
-export class Texture {
+export default class Texture {
     static textures: Record<string, Texture> = {};
 
     image: Canvas = imagePlaceholder;

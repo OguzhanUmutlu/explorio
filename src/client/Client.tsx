@@ -12,22 +12,22 @@ import {
     saveOptions,
     ServerData,
     WorldData
-} from "./js/utils/Utils";
-import {CServer} from "./js/CServer";
-import {ClientNetwork} from "./js/network/ClientNetwork";
-import {OriginPlayer} from "./js/entity/types/OriginPlayer";
-import {OptionsPopup} from "./components/OptionsPopup";
-import {CWorld} from "./js/world/CWorld";
+} from "$c/utils/Utils";
+import CServer from "$c/CServer";
+import ClientNetwork from "$c/network/ClientNetwork";
+import OriginPlayer from "$c/entity/types/OriginPlayer";
+import {OptionsPopup} from "$dom/components/OptionsPopup";
+import CWorld from "$c/world/CWorld";
 import "fancy-printer";
-import InventoryDiv, {animateInventories} from "./components/InventoryDiv";
-import {Inventories} from "@explorio/meta/Inventories";
-import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@explorio/utils/Utils";
-import {I} from "@explorio/meta/ItemIds";
-import {Packets} from "@explorio/network/Packets";
+import InventoryDiv, {animateInventories} from "$dom/components/InventoryDiv";
+import {Inventories} from "$/meta/Inventories";
+import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "$/utils/Utils";
+import {I} from "$/meta/ItemIds";
+import {Packets} from "$/network/Packets";
 import Buffer from "buffer";
-import {DefaultServerConfig, Server} from "@explorio/Server";
-import {PlayerNetwork} from "@explorio/network/PlayerNetwork";
-import {ParticleManager} from "@client/js/particle/ParticleManager";
+import Server, {DefaultServerConfig} from "$/Server";
+import PlayerNetwork from "$/network/PlayerNetwork";
+import ParticleManager from "$c/particle/ParticleManager";
 
 declare global {
     interface Window {

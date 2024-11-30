@@ -1,13 +1,7 @@
-import {CommandAs, CommandSender} from "./CommandSender";
-import {Location} from "../utils/Location";
+import CommandSender, {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
 
-export class CommandError extends Error {
-    constructor(public message: string) {
-        super(message);
-    };
-}
-
-export abstract class Command {
+export default abstract class Command {
     usageMessage: string;
 
     protected constructor(

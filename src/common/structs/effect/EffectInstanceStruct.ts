@@ -1,7 +1,7 @@
 import X, {Bin, BufferIndex} from "stramp";
 import {StrampProblem} from "stramp/src/StrampProblem";
-import {EffectIds, Effects} from "@explorio/utils/Effects";
-import {EffectInstance} from "@explorio/effect/EffectInstance";
+import {EffectIds, Effects} from "$/utils/Effects";
+import {EffectInstance} from "$/effect/EffectInstance";
 
 const BaseStruct = X.object.struct({
     id: X.any.ofValues(...(<EffectIds[]><any>Object.keys(EffectIds))),

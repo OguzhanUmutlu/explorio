@@ -1,8 +1,8 @@
-import {DefinitiveCommand} from "../DefinitiveCommand";
-import {CommandDefinition} from "../CommandDefinition";
-import {Player} from "@explorio/entity/types/Player";
+import DefinitiveCommand from "$/command/DefinitiveCommand";
+import CommandDefinition from "$/command/CommandDefinition";
+import Player from "$/entity/types/Player";
 
-export class GameModeCommand extends DefinitiveCommand {
+export default class GameModeCommand extends DefinitiveCommand {
     constructor() {
         super("gamemode", "Sets the game mode of a player.", ["gm"], "command.gamemode");
     };

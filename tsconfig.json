@@ -16,13 +16,19 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@client/*": [
+      "$c/*": [
+        "./src/client/js/*"
+      ],
+      "$dom/*": [
         "./src/client/*"
       ],
-      "@server/*": [
+      "$s/*": [
         "./src/server/*"
       ],
-      "@explorio/*": [
+      "$a/*": [
+        "./src/auth/*"
+      ],
+      "$/*": [
         "./src/common/*"
       ]
     }

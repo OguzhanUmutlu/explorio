@@ -1,4 +1,4 @@
-import {ItemMetadata} from "./Items";
+import {ItemMetadata} from "$/meta/Items";
 
 export const ITEM_META_BITS = 4;
 

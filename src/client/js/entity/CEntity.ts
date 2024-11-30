@@ -1,6 +1,6 @@
-import {Entity} from "@explorio/entity/Entity";
+import Entity from "$/entity/Entity";
 
-export interface CEntity extends Entity {
+export default interface CEntity extends Entity {
     typeId: number;
     typeName: string;
     name: string;

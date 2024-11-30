@@ -1,7 +1,7 @@
-import {CommandArgument} from "../CommandArgument";
-import {CommandAs} from "../CommandSender";
-import {Location} from "../../utils/Location";
-import {AnyToken} from "../CommandProcessor";
+import CommandArgument from "$/command/CommandArgument";
+import {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
+import {AnyToken} from "$/command/CommandProcessor";
 import X from "stramp";
 
 export enum GameMode {
@@ -16,7 +16,7 @@ const GameModeValues = [GameMode.Survival, GameMode.Creative, GameMode.Adventure
 
 export const GameModeStruct = X.any.ofValues(...GameModeValues);
 
-export class GameModeArgument extends CommandArgument<GameMode> {
+export default class GameModeArgument extends CommandArgument<GameMode> {
     default = GameMode.Survival;
 
     read(_: CommandAs, __: Location, args: AnyToken[], index: number) {

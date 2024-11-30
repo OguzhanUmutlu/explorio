@@ -1,10 +1,10 @@
-import {PacketError} from "./PacketError";
-import {Packet} from "./Packet";
-import {getServer, zstdOptionalDecode} from "../utils/Utils";
-import {PacketIds} from "../meta/PacketIds";
+import PacketError from "$/network/PacketError";
+import Packet from "$/network/Packet";
+import {getServer, zstdOptionalDecode} from "$/utils/Utils";
+import {PacketIds} from "$/meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
-import ChunkBlocksBin from "@explorio/structs/world/ChunkBlocksBin";
-import {GameModeStruct} from "@explorio/command/arguments/GameModeArgument";
+import ChunkBlocksBin from "$/structs/world/ChunkBlocksBin";
+import {GameModeStruct} from "$/command/arguments/GameModeArgument";
 
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,

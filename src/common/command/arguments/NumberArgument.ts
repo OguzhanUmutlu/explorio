@@ -1,9 +1,9 @@
-import {CommandArgument} from "../CommandArgument";
-import {CommandAs} from "../CommandSender";
-import {Location} from "../../utils/Location";
-import {AnyToken} from "../CommandProcessor";
+import CommandArgument from "$/command/CommandArgument";
+import {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
+import {AnyToken} from "$/command/CommandProcessor";
 
-export class NumberArgument extends CommandArgument<number> {
+export default class NumberArgument extends CommandArgument<number> {
     default = 0;
 
     read(_: CommandAs, __: Location, args: AnyToken[], index: number) {

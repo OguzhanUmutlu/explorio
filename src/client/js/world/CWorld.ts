@@ -1,10 +1,10 @@
-import {All3Rings, Ring3, World} from "@explorio/world/World";
-import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "@explorio/utils/Utils";
-import {CSubChunk} from "./CSubChunk";
-import {Packet} from "@explorio/network/Packet";
-import {Player} from "@explorio/entity/types/Player";
+import World, {All3Rings, Ring3} from "$/world/World";
+import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "$/utils/Utils";
+import CSubChunk from "$c/world/CSubChunk";
+import Packet from "$/network/Packet";
+import Player from "$/entity/types/Player";
 
-export class CWorld extends World {
+export default class CWorld extends World {
     subChunkRenders: Record<number, CSubChunk[]> = {};
 
     broadcastPacketAt(_0: number, _1: Packet, _2: Player[] = [], _3: boolean = false) {

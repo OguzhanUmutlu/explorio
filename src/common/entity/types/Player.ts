@@ -1,18 +1,18 @@
-import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
-import {Inventory} from "../../item/Inventory";
-import {CommandSender} from "../../command/CommandSender";
-import {ChunkLengthBits, getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "../../utils/Utils";
-import {PlayerNetwork} from "../../network/PlayerNetwork";
-import {Entity} from "../Entity";
-import {Packets} from "../../network/Packets";
-import {Inventories, InventorySizes} from "../../meta/Inventories";
-import {Item} from "../../item/Item";
-import EntitySaveStruct from "@explorio/structs/entity/EntitySaveStruct";
-import {Packet} from "@explorio/network/Packet";
-import {GameMode} from "@explorio/command/arguments/GameModeArgument";
-import {Effect} from "@explorio/effect/Effect";
+import {Entities, EntityBoundingBoxes} from "$/meta/Entities";
+import Inventory from "$/item/Inventory";
+import CommandSender from "$/command/CommandSender";
+import {ChunkLengthBits, getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "$/utils/Utils";
+import PlayerNetwork from "$/network/PlayerNetwork";
+import Entity from "$/entity/Entity";
+import {Packets} from "$/network/Packets";
+import {Inventories, InventorySizes} from "$/meta/Inventories";
+import Item from "$/item/Item";
+import EntitySaveStruct from "$/structs/entity/EntitySaveStruct";
+import Packet from "$/network/Packet";
+import {GameMode} from "$/command/arguments/GameModeArgument";
+import Effect from "$/effect/Effect";
 
-export class Player extends Entity implements CommandSender {
+export default class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
     typeName = "player";
 

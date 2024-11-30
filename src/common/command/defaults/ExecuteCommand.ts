@@ -1,10 +1,12 @@
-import {Command, CommandError} from "../Command";
-import {SelectorToken, skipWhitespace, splitParameters} from "../CommandProcessor";
-import {PositionArgument} from "../arguments/PositionArgument";
-import {CommandAs, CommandSender} from "../CommandSender";
-import {Location} from "../../utils/Location";
+import Command from "$/command/Command";
+import CommandError from "$/command/CommandError";
+import {skipWhitespace, splitParameters} from "$/command/CommandProcessor";
+import SelectorToken from "$/command/token/SelectorToken";
+import PositionArgument from "$/command/arguments/PositionArgument";
+import CommandSender, {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
 
-export class ExecuteCommand extends Command {
+export default class ExecuteCommand extends Command {
     posArg = new PositionArgument("position");
 
     constructor() {

@@ -1,5 +1,5 @@
 import React from "react";
-import {ReactState} from "@client/js/utils/Utils";
+import {ReactState} from "$c/utils/Utils";
 
 export function StateInput(o: { state: ReactState<any>, [k: string]: any }) {
     return <input {...o} value={o.state[0]} onChange={e => {

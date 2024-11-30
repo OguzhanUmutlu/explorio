@@ -1,14 +1,14 @@
-import {initItems} from "../meta/Items";
-import {Packets} from "../network/Packets";
-import {PacketIds} from "../meta/PacketIds";
-import {Packet} from "../network/Packet";
+import {initItems} from "$/meta/Items";
+import {Packets} from "$/network/Packets";
+import {PacketIds} from "$/meta/PacketIds";
+import Packet from "$/network/Packet";
 import {ZstdInit} from "@oneidentity/zstd-js";
-import {Entities, EntityClasses} from "../meta/Entities";
-import {Player} from "../entity/types/Player";
-import {Effects} from "@explorio/utils/Effects";
-import {Effect} from "@explorio/effect/Effect";
-import {SpeedEffect} from "@explorio/effect/types/SpeedEffect";
-import {SlownessEffect} from "@explorio/effect/types/SlownessEffect";
+import {Entities, EntityClasses} from "$/meta/Entities";
+import Player from "$/entity/types/Player";
+import {Effects} from "$/utils/Effects";
+import Effect from "$/effect/Effect";
+import SpeedEffect from "$/effect/types/SpeedEffect";
+import SlownessEffect from "$/effect/types/SlownessEffect";
 
 export function initEffects() {
     for (const clazz of [

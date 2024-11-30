@@ -1,10 +1,10 @@
-import {Entity} from "../../entity/Entity";
-import {EntitiesArgument} from "./EntitiesArgument";
-import {CommandAs} from "../CommandSender";
-import {Location} from "../../utils/Location";
-import {AnyToken} from "../CommandProcessor";
+import Entity from "$/entity/Entity";
+import EntitiesArgument from "$/command/arguments/EntitiesArgument";
+import {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
+import {AnyToken} from "$/command/CommandProcessor";
 
-export class EntityArgument<T extends Entity = Entity> extends EntitiesArgument<T> {
+export default class EntityArgument<T extends Entity = Entity> extends EntitiesArgument<T> {
     default = <T>null;
 
     getDefault() {

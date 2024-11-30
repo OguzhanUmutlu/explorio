@@ -1,10 +1,10 @@
-import {Entity} from "../Entity";
-import {BoundingBox} from "../BoundingBox";
-import {Entities, EntityBoundingBoxes} from "../../meta/Entities";
-import {Item} from "../../item/Item";
-import {Player} from "@explorio/entity/types/Player";
+import Entity from "$/entity/Entity";
+import BoundingBox from "$/entity/BoundingBox";
+import {Entities, EntityBoundingBoxes} from "$/meta/Entities";
+import Item from "$/item/Item";
+import Player from "$/entity/types/Player";
 
-export class ItemEntity extends Entity {
+export default class ItemEntity extends Entity {
     typeId = Entities.ITEM;
     typeName = "item";
     name = "Item";

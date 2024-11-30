@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {Server} from "@explorio/Server";
+import Server from "$/Server";
 
 export const ZPluginMetadata = z.object({
     name: z.string(),
@@ -17,7 +17,7 @@ export const ZPluginMetadata = z.object({
 
 export type PluginMetadata = z.infer<typeof ZPluginMetadata>;
 
-export abstract class Plugin {
+export default abstract class Plugin {
     protected constructor(readonly server: Server, readonly metadata: PluginMetadata) {
     };
 

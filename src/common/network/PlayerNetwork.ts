@@ -1,14 +1,14 @@
-import {Packet} from "./Packet";
-import {Entities} from "../meta/Entities";
-import {Player} from "../entity/types/Player";
-import {PacketByName, Packets, readPacket} from "./Packets";
-import {PacketIds} from "../meta/PacketIds";
-import {getServer} from "../utils/Utils";
-import {ItemIds} from "@explorio/meta/ItemIds";
-import {Version} from "@explorio/Versions";
+import Packet from "$/network/Packet";
+import {Entities} from "$/meta/Entities";
+import Player from "$/entity/types/Player";
+import {PacketByName, Packets, readPacket} from "$/network/Packets";
+import {PacketIds} from "$/meta/PacketIds";
+import {getServer} from "$/utils/Utils";
+import {ItemIds} from "$/meta/ItemIds";
+import {Version} from "$/Versions";
 import {Buffer} from "buffer";
 
-export class PlayerNetwork {
+export default class PlayerNetwork {
     batch: Packet[] = [];
     uuid = crypto.randomUUID();
     player: Player;

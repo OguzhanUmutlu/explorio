@@ -1,4 +1,4 @@
-import {BoundingBox} from "../entity/BoundingBox";
+import BoundingBox from "$/entity/BoundingBox";
 
 export enum Entities {
     UNKNOWN,

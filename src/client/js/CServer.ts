@@ -1,6 +1,6 @@
-import {Server} from "@explorio/Server";
+import Server from "$/Server";
 
-export class CServer extends Server {
+export default class CServer extends Server {
     constructor() {
         super(null, "");
     };

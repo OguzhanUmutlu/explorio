@@ -1,8 +1,8 @@
 import X from "stramp";
-import WorldStruct from "@explorio/structs/world/WorldStruct";
-import EntityStruct from "@explorio/structs/entity/EntityStruct";
-import {Inventories, InventorySizes} from "@explorio/meta/Inventories";
-import InventoryStruct from "@explorio/structs/item/InventoryStruct";
+import WorldStruct from "$/structs/world/WorldStruct";
+import EntityStruct from "$/structs/entity/EntityStruct";
+import {Inventories, InventorySizes} from "$/meta/Inventories";
+import InventoryStruct from "$/structs/item/InventoryStruct";
 
 export default EntityStruct.extend({
     world: WorldStruct, // This is required because player files aren't located inside world folders

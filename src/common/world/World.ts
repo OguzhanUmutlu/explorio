@@ -1,11 +1,11 @@
-import {im2f, ItemMetadata} from "../meta/Items";
-import {B, BM, I} from "../meta/ItemIds";
-import {BoundingBox} from "../entity/BoundingBox";
-import {Generator} from "./generators/Generator";
-import {FlatGenerator} from "./generators/FlatGenerator";
-import {DefaultGenerator} from "./generators/DefaultGenerator";
-import {FlowerLandGenerator} from "./generators/FlowerLandGenerator";
-import {CustomGenerator} from "./generators/CustomGenerator";
+import {im2f, ItemMetadata} from "$/meta/Items";
+import {B, BM, I} from "$/meta/ItemIds";
+import BoundingBox from "$/entity/BoundingBox";
+import Generator from "$/world/generators/Generator";
+import FlatGenerator from "$/world/generators/FlatGenerator";
+import DefaultGenerator from "$/world/generators/DefaultGenerator";
+import FlowerLandGenerator from "$/world/generators/FlowerLandGenerator";
+import CustomGenerator from "$/world/generators/CustomGenerator";
 import {
     ChunkLength,
     ChunkLengthBits,
@@ -13,13 +13,13 @@ import {
     WorldHeight,
     zstdOptionalDecode,
     zstdOptionalEncode
-} from "../utils/Utils";
-import {Player} from "../entity/types/Player";
-import {Packet} from "../network/Packet";
-import {Entity} from "../entity/Entity";
-import {Server} from "../Server";
-import {Packets} from "../network/Packets";
-import ChunkStruct from "@explorio/structs/world/ChunkStruct";
+} from "$/utils/Utils";
+import Player from "$/entity/types/Player";
+import Packet from "$/network/Packet";
+import Entity from "$/entity/Entity";
+import Server from "$/Server";
+import {Packets} from "$/network/Packets";
+import ChunkStruct from "$/structs/world/ChunkStruct";
 import {z} from "zod";
 
 export function getRandomSeed() {
@@ -75,7 +75,7 @@ export const DefaultWorldMetadata: WorldMetaData = {
 // relX = The chunk-relative x position that goes from 0 to CHUNK_LENGTH-1
 // relY = The chunk-relative y position that goes from 0 to CHUNK_LENGTH-1
 
-export class World {
+export default class World {
     path: string;
     chunks: Record<number, ChunkData> = {};
     chunkEntities: Record<number, Entity[]> = {};

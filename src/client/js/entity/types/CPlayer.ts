@@ -1,7 +1,7 @@
-import {Texture} from "@explorio/utils/Texture";
-import {getClientPosition, Options, renderPlayerModel} from "../../utils/Utils";
-import {CEntity} from "../CEntity";
-import {Player} from "@explorio/entity/types/Player";
+import Texture from "$/utils/Texture";
+import {getClientPosition, Options, renderPlayerModel} from "$c/utils/Utils";
+import CEntity from "$c/entity/CEntity";
+import Player from "$/entity/types/Player";
 
 export function getCurrentSwing() {
     const p = 400;
@@ -9,7 +9,7 @@ export function getCurrentSwing() {
     return (mod > p / 2 ? -1 : 1) * Math.PI / 4;
 }
 
-export class CPlayer extends Player implements CEntity {
+export default class CPlayer extends Player implements CEntity {
     skin = Texture.get("assets/steve.png");
     name = "";
     ws = <any>null;

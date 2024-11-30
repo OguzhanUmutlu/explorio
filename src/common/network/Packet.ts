@@ -1,10 +1,10 @@
 import {Bin, BufferIndex} from "stramp";
-import {getServer, zstdOptionalEncode} from "../utils/Utils";
-import {PacketStructs} from "./Packets";
+import {getServer, zstdOptionalEncode} from "$/utils/Utils";
+import {PacketStructs} from "$/network/Packets";
 
 export const CompressPackets = true;
 
-export class Packet<T extends Bin = Bin> {
+export default class Packet<T extends Bin = Bin> {
     constructor(public packetId: number, public data: T["__TYPE__"]) {
     };
 

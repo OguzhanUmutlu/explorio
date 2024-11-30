@@ -1,12 +1,10 @@
-import {Entities} from "../meta/Entities";
-import {Entity} from "../entity/Entity";
+import {Entities} from "$/meta/Entities";
+import Entity from "$/entity/Entity";
 import {ZstdSimple} from "@oneidentity/zstd-js";
-import {Server} from "../Server";
-import {Location} from "./Location";
-import PlayerStruct from "@explorio/structs/entity/PlayerStruct";
-import ItemStruct from "@explorio/structs/item/ItemStruct";
-import {WebStorage} from "@zenfs/dom";
-import {configureSingle, fs} from "@zenfs/core";
+import Server from "$/Server";
+import Location from "$/utils/Location";
+import PlayerStruct from "$/structs/entity/PlayerStruct";
+import ItemStruct from "$/structs/item/ItemStruct";
 
 let server: Server;
 
@@ -183,13 +181,6 @@ export function zstdOptionalDecode(buffer: Buffer) {
     return sliced;
 }
 
-export async function initBrowserFS() {
-    if (!self.bfs) {
-        await configureSingle(WebStorage);
-        self.bfs = <any>fs;
-    }
-}
-
 const lags = <Record<string, number>>{};
 
 export function checkLag(label: string, ms = 30) {
@@ -200,16 +191,6 @@ export function checkLag(label: string, ms = 30) {
     } else {
         lags[label] = Date.now();
     }
-}
-
-export function rmdirRecursive(fs: any, path: string) {
-    const files = fs.readdirSync(path);
-    for (const file of files) {
-        const curPath = `${path}/${file}`;
-        if (fs.statSync(curPath).isDirectory()) rmdirRecursive(fs, curPath);
-        else fs.unlinkSync(curPath);
-    }
-    fs.rmdirSync(path);
 }
 
 export function readdirRecursive(fs: any, path: string) {

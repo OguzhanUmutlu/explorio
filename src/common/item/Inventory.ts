@@ -1,8 +1,9 @@
-import {Item, ItemDescriptor} from "./Item";
-import {World} from "../world/World";
-import {IM} from "../meta/ItemIds";
+import Item from "$/item/Item";
+import World from "$/world/World";
+import {IM} from "$/meta/ItemIds";
+import ItemDescriptor from "$/item/ItemDescriptor";
 
-export class Inventory {
+export default class Inventory {
     cleanDirty = false;
     dirtyIndexes = new Set<number>;
     // _tile: ContainerTile | null = null;

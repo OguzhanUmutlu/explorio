@@ -1,8 +1,8 @@
-import {StateInput} from "../StateInput";
-import {addWorld, ReactState} from "../../js/utils/Utils";
-import {MainMenuPopup} from "../MainMenuPopup";
+import {StateInput} from "$dom/components/StateInput";
+import {addWorld, ReactState} from "$c/utils/Utils";
+import {MainMenuPopup} from "$dom/components/MainMenuPopup";
+import {getRandomSeed} from "$/world/World";
 import React, {useState} from "react";
-import {getRandomSeed} from "@explorio/world/World";
 
 export function NewWorldPopup(O: {
     nw: ReactState<boolean>,

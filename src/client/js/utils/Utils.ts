@@ -1,11 +1,13 @@
-import {Entities, EntityBoundingBoxes} from "@explorio/meta/Entities";
-import {CPlayer} from "../entity/types/CPlayer";
-import {initCommon} from "@explorio/utils/Inits";
-import {Canvas} from "@explorio/utils/Texture";
-import {BoundingBox} from "@explorio/entity/BoundingBox";
-import {camera, canvas, ctx} from "../../Client";
-import {initBrowserFS, rmdirRecursive, SoundFiles} from "@explorio/utils/Utils";
+import {Entities, EntityBoundingBoxes} from "$/meta/Entities";
+import CPlayer from "$c/entity/types/CPlayer";
+import {initCommon} from "$/utils/Inits";
+import {Canvas} from "$/utils/Texture";
+import BoundingBox from "$/entity/BoundingBox";
+import {camera, canvas, ctx} from "$dom/Client";
+import {getServer, SoundFiles} from "$/utils/Utils";
 import {ChangeEvent, useEffect, useState} from "react";
+import {configure, fs} from "@zenfs/core";
+import {WebStorage} from "@zenfs/dom";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
@@ -89,6 +91,17 @@ export async function initClientThings() {
     await initBrowserFS();
 }
 
+export async function initBrowserFS() {
+    if (!self.bfs) {
+        await configure({
+            mounts: {
+                "/": WebStorage.create({storage: localStorage})
+            }
+        });
+        self.bfs = <any>fs;
+    }
+}
+
 export function initClientEntities() {
     ClientEntityClasses[Entities.PLAYER] = CPlayer;
 }
@@ -164,7 +177,7 @@ export function removeWorld(uuid: string) {
     const world = worlds.find(i => i.uuid === uuid);
     if (!world) return;
 
-    rmdirRecursive(bfs, "./singleplayer/" + uuid);
+    getServer().deleteFile("./singleplayer/" + uuid);
 
     worlds.splice(worlds.indexOf(world), 1);
     localStorage.setItem("explorio.worlds", JSON.stringify(worlds));

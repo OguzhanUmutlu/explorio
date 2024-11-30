@@ -1,10 +1,10 @@
-import {CommandArgument} from "../CommandArgument";
-import {Vector2} from "../../utils/Vector2";
-import {CommandAs} from "../CommandSender";
-import {Location} from "../../utils/Location";
-import {AnyToken} from "../CommandProcessor";
+import CommandArgument from "$/command/CommandArgument";
+import Vector2 from "$/utils/Vector2";
+import {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
+import {AnyToken} from "$/command/CommandProcessor";
 
-export class PositionArgument extends CommandArgument<Vector2> {
+export default class PositionArgument extends CommandArgument<Vector2> {
     default = new Vector2(0, 0);
 
     read(_: CommandAs, at: Location, args: AnyToken[], index: number) {

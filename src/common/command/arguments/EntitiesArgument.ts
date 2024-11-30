@@ -1,11 +1,12 @@
-import {CommandArgument} from "../CommandArgument";
-import {AnyToken, SelectorToken} from "../CommandProcessor";
-import {Entity} from "../../entity/Entity";
-import {CommandError} from "../Command";
-import {CommandAs} from "../CommandSender";
-import {Location} from "../../utils/Location";
+import CommandArgument from "$/command/CommandArgument";
+import {AnyToken} from "$/command/CommandProcessor";
+import SelectorToken from "$/command/token/SelectorToken";
+import Entity from "$/entity/Entity";
+import CommandError from "$/command/CommandError";
+import {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
 
-export class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
+export default class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
     default = <T>[];
     filter = null;
 

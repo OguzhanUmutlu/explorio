@@ -1,8 +1,8 @@
-import {Inventory} from "./Inventory";
-import {Item} from "@explorio/item/Item";
+import Inventory from "$/item/Inventory";
+import Item from "$/item/Item";
 
 // This is for double chests etc.
-export class CombinedContainer extends Inventory {
+export default class CombinedContainer extends Inventory {
     inventories: Inventory[];
 
     constructor(inventories: Inventory[] = [], extra: any = null) {

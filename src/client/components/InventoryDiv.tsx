@@ -1,7 +1,7 @@
 import React from "react";
-import {Inventories, InventorySizes} from "@explorio/meta/Inventories";
-import {clientPlayer} from "../Client";
-import {Div} from "../js/utils/Utils";
+import {Inventories, InventorySizes} from "$/meta/Inventories";
+import {clientPlayer} from "$dom/Client";
+import {Div} from "$c/utils/Utils";
 
 const InventoryDivs: Record<string, [Inventories, HTMLCanvasElement[], Div[]]> = {};
 

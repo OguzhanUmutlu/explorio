@@ -1,7 +1,7 @@
-import {Particle} from "@client/js/particle/Particle";
-import {getClientPosition, Options} from "@client/js/utils/Utils";
+import Particle from "$c/particle/Particle";
+import {getClientPosition, Options} from "$c/utils/Utils";
 
-export class ParticleManager {
+export default class ParticleManager {
     particles = new Set<Particle>;
 
     add(particle: Particle) {

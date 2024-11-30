@@ -1,10 +1,10 @@
-import {Server} from "../Server";
-import {Entity} from "../entity/Entity";
-import {Location} from "../utils/Location";
+import Server from "$/Server";
+import Entity from "$/entity/Entity";
+import Location from "$/utils/Location";
 
 export type CommandAs = Entity | CommandSender;
 
-export interface CommandSender {
+export default interface CommandSender {
     id: number
     server: Server;
     name: string;

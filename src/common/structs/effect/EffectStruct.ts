@@ -1,7 +1,7 @@
 import {Bin, BufferIndex} from "stramp";
-import {Effect} from "@explorio/effect/Effect";
+import Effect from "$/effect/Effect";
 import {StrampProblem} from "stramp/src/StrampProblem";
-import {EffectIds, Effects} from "@explorio/utils/Effects";
+import {EffectIds, Effects} from "$/utils/Effects";
 
 export const EffectStruct = new class extends Bin<Effect> {
     name = "Effect";

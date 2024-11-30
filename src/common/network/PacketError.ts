@@ -1,7 +1,7 @@
-import {Packet} from "./Packet";
+import Packet from "$/network/Packet";
 import {BufferIndex} from "stramp";
 
-export class PacketError extends Error {
+export default class PacketError extends Error {
     constructor(message: string, packet: Packet | Buffer | BufferIndex) {
         let str: string;
         if (packet instanceof Packet) str = JSON.stringify(packet.data);

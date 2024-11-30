@@ -1,8 +1,8 @@
-import {CommandSender} from "./CommandSender";
-import {Location} from "../utils/Location";
-import {getServer} from "../utils/Utils";
+import CommandSender from "$/command/CommandSender";
+import Location from "$/utils/Location";
+import {getServer} from "$/utils/Utils";
 
-export class ConsoleCommandSender implements CommandSender {
+export default class ConsoleCommandSender implements CommandSender {
     static instance: ConsoleCommandSender;
 
     id = -1;

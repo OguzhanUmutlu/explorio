@@ -1,19 +1,19 @@
-import {Packet,} from "@explorio/network/Packet";
-import {ClientEntityClasses, getWSUrls, Options, setServerOptions} from "../utils/Utils";
-import {PacketByName, Packets, readPacket} from "@explorio/network/Packets";
-import {PacketError} from "@explorio/network/PacketError";
-import {ChunkLengthBits} from "@explorio/utils/Utils";
-import {CPlayer} from "../entity/types/CPlayer";
-import {CWorld} from "../world/CWorld";
-import {PacketIds} from "@explorio/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "../../Client";
+import Packet from "$/network/Packet";
+import {ClientEntityClasses, getWSUrls, Options, setServerOptions} from "$c/utils/Utils";
+import {PacketByName, Packets, readPacket} from "$/network/Packets";
+import PacketError from "$/network/PacketError";
+import {ChunkLengthBits} from "$/utils/Utils";
+import CPlayer from "$c/entity/types/CPlayer";
+import CWorld from "$c/world/CWorld";
+import {PacketIds} from "$/meta/PacketIds";
+import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "$dom/Client";
 // @ts-ignore
-import SocketWorker from "../worker/SocketWorker?worker";
-import {Version} from "@explorio/Versions";
-import {BM} from "@explorio/meta/ItemIds";
-import {LittleBlockParticle} from "@client/js/particle/types/LittleBlockParticle";
+import SocketWorker from "$c/worker/SocketWorker?worker";
+import {Version} from "$/Versions";
+import {BM} from "$/meta/ItemIds";
+import LittleBlockParticle from "$c/particle/types/LittleBlockParticle";
 
-export class ClientNetwork {
+export default class ClientNetwork {
     worker: Worker;
     connected = false;
     connectCb: Function;

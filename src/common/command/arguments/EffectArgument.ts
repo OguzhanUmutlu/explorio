@@ -1,11 +1,11 @@
-import {CommandArgument} from "../CommandArgument";
-import {CommandAs} from "../CommandSender";
-import {Location} from "../../utils/Location";
-import {AnyToken} from "../CommandProcessor";
-import {Effect} from "@explorio/effect/Effect";
-import {EffectIds, Effects} from "@explorio/utils/Effects";
+import CommandArgument from "$/command/CommandArgument";
+import {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
+import {AnyToken} from "$/command/CommandProcessor";
+import Effect from "$/effect/Effect";
+import {EffectIds, Effects} from "$/utils/Effects";
 
-export class EffectArgument extends CommandArgument<Effect> {
+export default class EffectArgument extends CommandArgument<Effect> {
     default = Effects[0];
 
     read(_: CommandAs, __: Location, args: AnyToken[], index: number) {

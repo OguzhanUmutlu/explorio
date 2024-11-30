@@ -1,9 +1,9 @@
-import {CommandArgument} from "../CommandArgument";
-import {AnyToken} from "../CommandProcessor";
-import {CommandAs} from "../CommandSender";
-import {Location} from "../../utils/Location";
+import CommandArgument from "$/command/CommandArgument";
+import {AnyToken} from "$/command/CommandProcessor";
+import {CommandAs} from "$/command/CommandSender";
+import Location from "$/utils/Location";
 
-export class BoolArgument extends CommandArgument<boolean> {
+export default class BoolArgument extends CommandArgument<boolean> {
     default = false;
 
     read(_: CommandAs, __: Location, args: AnyToken[], index: number) {

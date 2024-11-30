@@ -1,22 +1,24 @@
-import {Generators, getRandomSeed, World, WorldMetaData, ZWorldMetaData} from "./world/World";
-import {Player} from "./entity/types/Player";
-import {Command, CommandError} from "./command/Command";
-import {CommandAs, CommandSender} from "./command/CommandSender";
-import {cleanText, SelectorToken} from "./command/CommandProcessor";
-import {Location} from "./utils/Location";
-import {Entity} from "./entity/Entity";
-import {TeleportCommand} from "./command/defaults/TeleportCommand";
-import {checkLag, SelectorSorters, setServer} from "./utils/Utils";
-import {ListCommand} from "./command/defaults/ListCommand";
-import {ConsoleCommandSender} from "./command/ConsoleCommandSender";
-import {ExecuteCommand} from "./command/defaults/ExecuteCommand";
-import {Packet} from "./network/Packet";
-import {PermissionCommand} from "./command/defaults/PermissionCommand";
+import World, {Generators, getRandomSeed, WorldMetaData, ZWorldMetaData} from "$/world/World";
+import Player from "$/entity/types/Player";
+import Command from "$/command/Command";
+import CommandError from "$/command/CommandError";
+import CommandSender, {CommandAs} from "$/command/CommandSender";
+import {cleanText} from "$/command/CommandProcessor";
+import SelectorToken from "$/command/token/SelectorToken";
+import Location from "$/utils/Location";
+import Entity from "$/entity/Entity";
+import TeleportCommand from "$/command/defaults/TeleportCommand";
+import {checkLag, SelectorSorters, setServer} from "$/utils/Utils";
+import ListCommand from "$/command/defaults/ListCommand";
+import ConsoleCommandSender from "$/command/ConsoleCommandSender";
+import ExecuteCommand from "$/command/defaults/ExecuteCommand";
+import Packet from "$/network/Packet";
+import PermissionCommand from "$/command/defaults/PermissionCommand";
+import Plugin, {PluginMetadata, ZPluginMetadata} from "$/plugin/Plugin";
+import GameModeCommand from "$/command/defaults/GameModeCommand";
+import EffectCommand from "$/command/defaults/EffectCommand";
+import HelpCommand from "$/command/defaults/HelpCommand";
 import {z} from "zod";
-import {Plugin, PluginMetadata, ZPluginMetadata} from "./plugin/Plugin";
-import {GameModeCommand} from "@explorio/command/defaults/GameModeCommand";
-import {EffectCommand} from "@explorio/command/defaults/EffectCommand";
-import {HelpCommand} from "@explorio/command/defaults/HelpCommand";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -57,7 +59,7 @@ export const DefaultServerConfig: ServerConfig = {
     saveIntervalSeconds: 45
 };
 
-export class Server {
+export default class Server {
     worlds: Record<string, World> = {};
     defaultWorld: World;
     players: Record<string, Player> = {};
@@ -78,7 +80,7 @@ export class Server {
     };
 
     deleteFile(path: string) {
-        this.fs.rmSync(path);
+        if (this.fileExists(path)) this.fs.rmSync(path, {recursive: true});
     };
 
     fileExists(path: string): boolean {

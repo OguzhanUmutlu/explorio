@@ -1,8 +1,8 @@
-import {createCanvas} from "@explorio/utils/Texture";
-import {ChunkLength, ChunkLengthBits} from "@explorio/utils/Utils";
-import {clientPlayer} from "../../Client";
-import {BM} from "@explorio/meta/ItemIds";
-import {World} from "@explorio/world/World";
+import {createCanvas} from "$/utils/Texture";
+import {ChunkLength, ChunkLengthBits} from "$/utils/Utils";
+import {clientPlayer} from "$dom/Client";
+import {BM} from "$/meta/ItemIds";
+import World from "$/world/World";
 
 const renderScale = 16; // Blocks are rendered as 16x16
 const renderSize = renderScale * ChunkLength;
@@ -40,7 +40,7 @@ function __renderShadow(
     ctx.restore();
 }
 
-export class CSubChunk {
+export default class CSubChunk {
     bCanvas = createCanvas(renderSize, renderSize);
     bCtx = this.bCanvas.getContext("2d");
     bDone = false;
