@@ -1,0 +1,7 @@
+{
+  "out": "client-dist/docs",
+  "entryPoints": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ]
+}

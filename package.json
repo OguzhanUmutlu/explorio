@@ -1,5 +1,5 @@
 {
-  "name": "2dmc",
+  "name": "explorio",
   "version": "1.0.0",
   "description": "",
   "type": "module",
@@ -9,7 +9,7 @@
     "authserver": "cd src/authserver && tsx Main.ts",
     "test": "tsx tests/test.ts",
     "build:client": "vite build",
-    "build:docs": "typedoc --out client-dist/docs src/**/*.ts src/**/*.tsx"
+    "build:docs": "typedoc"
   },
   "keywords": [],
   "author": "OguzhanUmutlu",
