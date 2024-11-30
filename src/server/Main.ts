@@ -67,11 +67,9 @@ process.on("unhandledRejection", onCrash);
 process.on("SIGINT", exit);
 
 
-const soundPath = path.resolve(`${__dirname}/../client/assets/sounds`).replaceAll("\\", "/");
+const soundPath = path.resolve(`${__dirname}/../client/assets/sounds`);
 SoundFiles.push(...readdirRecursive(fs, soundPath)
-    .map(i => i.substring(soundPath.length - "assets/sounds".length)));
-
-console.log(SoundFiles)
+    .map(i => i.replaceAll("\\", "/").substring(soundPath.length - "assets/sounds".length)));
 
 await initCommon();
 

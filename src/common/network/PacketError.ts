@@ -6,7 +6,7 @@ export class PacketError extends Error {
         let str: string;
         if (packet instanceof Packet) str = JSON.stringify(packet.data);
         else {
-            const buf = packet instanceof Buffer ? packet : packet.getBuffer();
+            const buf = packet instanceof Buffer ? packet : (<BufferIndex>packet).getBuffer();
             str = buf.toString("hex");
         }
         super(message + ": " + str);
