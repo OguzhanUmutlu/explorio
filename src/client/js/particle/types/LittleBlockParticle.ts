@@ -5,7 +5,7 @@ export class LittleBlockParticle extends Particle {
     tm = 1.5;
     t = this.tm;
     vx = 0;
-    vy = 0
+    vy = 0;
     // pixel: Canvas;
     // color: string;
 

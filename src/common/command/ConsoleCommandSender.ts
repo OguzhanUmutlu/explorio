@@ -36,7 +36,7 @@ export class ConsoleCommandSender implements CommandSender {
         printer.info(message);
     };
 
-    hasPermission(permission: string): boolean {
+    hasPermission(): boolean {
         return true;
     };
 }

@@ -31,13 +31,10 @@ import {ParticleManager} from "@client/js/particle/ParticleManager";
 
 declare global {
     interface Window {
-        fsr: any;
         bfs: typeof import("fs");
-        Buffer: typeof import("node:buffer");
     }
 
     const bfs: typeof import("fs");
-    const fsr: Record<any, any>;
 }
 
 let playerInventoryOn: ReactState<boolean>;
@@ -245,7 +242,7 @@ addEventListener("wheel", e => {
 
 function onPressKey(e: KeyboardEvent) {
     if (isAnyUIOpen()) {
-        if (e.key === "e") {
+        if (!isInChat() && e.key === "e") {
             playerInventoryOn[1](false); // todo: every inventory should be set to false here.
             clientNetwork.sendPacket(new Packets.CCloseContainer(null));
         }
@@ -269,7 +266,7 @@ function onPressKey(e: KeyboardEvent) {
         }
 
         if (e.key === "e") {
-            playerInventoryOn[1](!playerInventoryOn[0]);
+            playerInventoryOn[1](true);
         }
 
         if (e.key === "Escape") {

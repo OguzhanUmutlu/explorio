@@ -3,9 +3,10 @@ import {Entity} from "../entity/Entity";
 import {ZstdSimple} from "@oneidentity/zstd-js";
 import {Server} from "../Server";
 import {Location} from "./Location";
-import * as BrowserFS from "browserfs";
 import PlayerStruct from "@explorio/structs/entity/PlayerStruct";
 import ItemStruct from "@explorio/structs/item/ItemStruct";
+import {WebStorage} from "@zenfs/dom";
+import {configureSingle, fs} from "@zenfs/core";
 
 let server: Server;
 
@@ -184,13 +185,8 @@ export function zstdOptionalDecode(buffer: Buffer) {
 
 export async function initBrowserFS() {
     if (!self.bfs) {
-        self.fsr = {};
-        BrowserFS.install(self.fsr);
-        await new Promise(r => BrowserFS.configure({fs: "LocalStorage", options: {}}, e => {
-            if (e) printer.error(e);
-            else r(null);
-        }));
-        self.bfs = self.fsr.require("fs");
+        await configureSingle(WebStorage);
+        self.bfs = <any>fs;
     }
 }
 
@@ -214,6 +210,17 @@ export function rmdirRecursive(fs: any, path: string) {
         else fs.unlinkSync(curPath);
     }
     fs.rmdirSync(path);
+}
+
+export function readdirRecursive(fs: any, path: string) {
+    const files = fs.readdirSync(path);
+    const res = [];
+    for (const file of files) {
+        const curPath = `${path}/${file}`;
+        if (fs.statSync(curPath).isDirectory()) res.push(...readdirRecursive(fs, curPath));
+        else res.push(curPath);
+    }
+    return res;
 }
 
 export function splitByUnderscore(str: string) {

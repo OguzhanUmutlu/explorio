@@ -5,8 +5,7 @@ import {PlayerNetwork} from "@explorio/network/PlayerNetwork";
 import * as fs from "fs";
 import {Server} from "@explorio/Server";
 import {initCommon} from "@explorio/utils/Inits";
-import {SoundFiles} from "@explorio/utils/Utils";
-import fg from "fast-glob";
+import {readdirRecursive, SoundFiles} from "@explorio/utils/Utils";
 import path from "path";
 import {fileURLToPath} from "node:url";
 
@@ -68,9 +67,11 @@ process.on("unhandledRejection", onCrash);
 process.on("SIGINT", exit);
 
 
-const soundPath = path.resolve(`${__dirname}/../client/assets/sounds`);
-SoundFiles.push(...(await fg(soundPath.replaceAll("\\", "/") + "/**/*"))
+const soundPath = path.resolve(`${__dirname}/../client/assets/sounds`).replaceAll("\\", "/");
+SoundFiles.push(...readdirRecursive(fs, soundPath)
     .map(i => i.substring(soundPath.length - "assets/sounds".length)));
+
+console.log(SoundFiles)
 
 await initCommon();
 

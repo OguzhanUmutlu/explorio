@@ -30,8 +30,10 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install
-      - name: Build
-        run: npm run build-client
+      - name: Build Client
+        run: npm run build:client
+      - name: Build Docs
+        run: npm run build:docs
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
