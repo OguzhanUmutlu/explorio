@@ -1,10 +1,10 @@
-import DefinitiveCommand from "$/command/DefinitiveCommand";
-import CommandDefinition from "$/command/CommandDefinition";
-import Effect from "$/effect/Effect";
-import {EffectIds} from "$/utils/Effects";
-import {splitByUnderscore} from "$/utils/Utils";
-import Entity from "$/entity/Entity";
-import CommandSender from "$/command/CommandSender";
+import DefinitiveCommand from "@/command/DefinitiveCommand";
+import CommandDefinition from "@/command/CommandDefinition";
+import Effect from "@/effect/Effect";
+import {EffectIds} from "@/utils/Effects";
+import {splitByUnderscore} from "@/utils/Utils";
+import Entity from "@/entity/Entity";
+import CommandSender from "@/command/CommandSender";
 
 function getEffectName(effect: Effect) {
     return splitByUnderscore(Object.keys(EffectIds).find(i => effect.id === EffectIds[i]));

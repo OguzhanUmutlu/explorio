@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from "react";
 import "./css/common.css";
-import {Index} from "$c/../Index";
-import {Client, terminateClient} from "$dom/Client";
-import {getHash, isMobileByAgent, useEventListener} from "$c/utils/Utils";
+import {Index} from "@c/../Index";
+import {Client, terminateClient} from "@dom/Client";
+import {getHash, isMobileByAgent} from "@c/utils/Utils";
 
 export function Main() {
     const clientUUID = useState(getHash);
@@ -19,22 +19,23 @@ export function Main() {
             clientUUID[1](getHash());
         }
 
+        function onContextMenu(e: MouseEvent) {
+            if (e.composedPath()[0] instanceof HTMLInputElement) return;
+            e.preventDefault();
+        }
+
         addEventListener("popstate", handlePopState);
 
         addEventListener("click", onClick);
 
+        addEventListener("contextmenu", onContextMenu);
+
         return () => {
             removeEventListener("click", onClick);
             removeEventListener("popstate", handlePopState);
+            removeEventListener("contextmenu", onContextMenu);
         };
     }, []);
-
-    function onContextMenu(e: MouseEvent) {
-        if (e.composedPath()[0] instanceof HTMLInputElement) return;
-        e.preventDefault();
-    }
-
-    useEventListener(window, "contextmenu", onContextMenu);
 
     if (!clientUUID[0]) {
         terminateClient();

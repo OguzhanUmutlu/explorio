@@ -1,14 +1,16 @@
-import {Entities} from "$/meta/Entities";
-import Entity from "$/entity/Entity";
+import {Entities} from "@/meta/Entities";
+import Entity from "@/entity/Entity";
 import {ZstdSimple} from "@oneidentity/zstd-js";
-import Server from "$/Server";
-import Location from "$/utils/Location";
-import PlayerStruct from "$/structs/entity/PlayerStruct";
-import ItemStruct from "$/structs/item/ItemStruct";
+import Server from "@/Server";
+import Location from "@/utils/Location";
+import PlayerStruct from "@/structs/entity/PlayerStruct";
+import ItemStruct from "@/structs/item/ItemStruct";
 
 let server: Server;
 
-export let SoundFiles = [];
+export type ClassOf<T, K = unknown> = new (...args: K[]) => T;
+
+export const SoundFiles = [];
 
 export function getServer() {
     return server;
@@ -22,13 +24,12 @@ export function getUTCDate() {
     return Date.now() + new Date().getTimezoneOffset() * 60 * 1000;
 }
 
-export function simpleTypeChecker(sample: any, any: any) {
+export function simpleTypeChecker(sample: unknown, any: unknown) {
     if ((sample === null) !== (any === null)) return false;
     if (sample === null) return true;
-    const t = typeof sample;
-    if (t !== typeof any) return false;
-    if (sample.prototype !== any.prototype) return false;
-    if (t === "object") {
+    if (typeof sample !== typeof any) return false;
+    if (typeof any === "object" && typeof sample === "object") {
+        if (!("prototype" in any) || !("prototype" in sample) || sample.prototype !== any.prototype) return false;
         for (const key in sample) {
             if (!simpleTypeChecker(sample[key], any[key])) return false;
         }
@@ -68,16 +69,6 @@ export function deserializeUint16Array(size: number, buffer: Buffer, offset: num
     return chunk;
 }
 
-export const WorldHeightExp = 9;
-export const WorldHeight = 1 << WorldHeightExp;
-export const ChunkLengthBits = 4;
-export const ChunkLength = 1 << ChunkLengthBits;
-export const ChunkLengthN = ChunkLength - 1;
-export const SubChunkAmount = WorldHeight / ChunkLength;
-
-export const SurfaceHeight = 172;
-export const CaveScale = 40;
-
 export const EntityStructs = {
     [Entities.PLAYER]: PlayerStruct,
     [Entities.ITEM]: ItemStruct
@@ -101,18 +92,17 @@ export function permissionCheck(permissions: Set<string>, wanted: string) {
     return false;
 }
 
-export function checkAny(source: any, target: any) {
+export function checkAny(source: unknown, target: unknown) {
     if (source === target) return true;
 
     if (typeof source === "object" && source !== null) {
         if ((Array.isArray(source) && !checkArray(source, target)) || !checkObject(source, target)) return false;
-        else if (!checkObject(source, target)) return false;
     }
 
     return true;
 }
 
-export function checkArray(source: any[], target: any) {
+export function checkArray(source: unknown[], target: unknown) {
     if (!Array.isArray(target)) return false;
     if (source.length !== target.length) return false;
     for (let i = 0; i < source.length; i++) {
@@ -121,7 +111,7 @@ export function checkArray(source: any[], target: any) {
     return true;
 }
 
-export function checkObject(source: Record<string, any>, target: any) {
+export function checkObject(source: object, target: unknown) {
     if (typeof target !== "object" || target === null || target.constructor !== Object) return false;
     for (const k in source) {
         const v = source[k];
@@ -193,7 +183,7 @@ export function checkLag(label: string, ms = 30) {
     }
 }
 
-export function readdirRecursive(fs: any, path: string) {
+export function readdirRecursive(fs: typeof import("fs"), path: string) {
     const files = fs.readdirSync(path);
     const res = [];
     for (const file of files) {

@@ -1,9 +1,9 @@
 import React from "react";
-import {Inventories, InventorySizes} from "$/meta/Inventories";
-import {clientPlayer} from "$dom/Client";
-import {Div} from "$c/utils/Utils";
+import {Inventories, InventorySizes} from "@/meta/Inventories";
+import {clientPlayer} from "@dom/Client";
+import {Div} from "@c/utils/Utils";
 
-const InventoryDivs: Record<string, [Inventories, HTMLCanvasElement[], Div[]]> = {};
+const InventoryDivs: Record<string, [typeof Inventories[keyof typeof Inventories], HTMLCanvasElement[], Div[]]> = {};
 
 export function animateInventories() {
     for (const key in InventoryDivs) {
@@ -37,9 +37,9 @@ export function animateInventories() {
 }
 
 export default React.memo(function InventoryDiv(O: {
-    inventoryType: Inventories,
+    inventoryType: typeof Inventories[keyof typeof Inventories],
     ikey: string,
-    [_: string]: any
+    [k: string]: unknown
 }) {
     const canvases = [] as HTMLCanvasElement[];
     const counts = [] as Div[];

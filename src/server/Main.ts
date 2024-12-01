@@ -1,11 +1,11 @@
 import {WebSocketServer} from "ws";
 import Printer from "fancy-printer";
-import Location from "$/utils/Location";
-import PlayerNetwork from "$/network/PlayerNetwork";
+import Location from "@/utils/Location";
+import PlayerNetwork from "@/network/PlayerNetwork";
 import * as fs from "fs";
-import Server from "$/Server";
-import {initCommon} from "$/utils/Inits";
-import {readdirRecursive, SoundFiles} from "$/utils/Utils";
+import Server from "@/Server";
+import {initCommon} from "@/utils/Inits";
+import {readdirRecursive, SoundFiles} from "@/utils/Utils";
 import path from "path";
 import {fileURLToPath} from "node:url";
 
@@ -52,6 +52,8 @@ function exit() {
     try {
         server.close();
     } catch (e) {
+        printer.error("Got an error while closing the server. Terminating the process anyways.");
+        printer.error(e);
     }
     process.exit(1);
 }

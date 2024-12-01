@@ -1,4 +1,4 @@
-import World from "$/world/World";
+import World from "@/world/World";
 
 export default abstract class Generator {
     world: World;

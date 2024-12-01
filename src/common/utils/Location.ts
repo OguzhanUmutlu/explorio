@@ -1,5 +1,5 @@
-import Vector2 from "$/utils/Vector2";
-import World from "$/world/World";
+import Vector2 from "@/utils/Vector2";
+import World from "@/world/World";
 
 export function getRotationTowards(x1: number, y1: number, x2: number, y2: number) {
     return Math.atan2(x2 - x1, y2 - y1) / Math.PI * 180 - 90;
@@ -18,7 +18,7 @@ export default class Location extends Vector2 {
         this.x = loc.x;
         this.y = loc.y;
         this.rotation = loc.rotation;
-        this.world = <any>loc.world;
+        this.world = loc.world;
     };
 
     getRotationTowards(x: number, y: number, xOffset = 0, yOffset = 0) {

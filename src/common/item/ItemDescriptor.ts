@@ -1,4 +1,4 @@
-import Item from "$/item/Item";
+import Item from "@/item/Item";
 
 export default class ItemDescriptor {
     chance: number | null = null;
@@ -7,7 +7,7 @@ export default class ItemDescriptor {
         public id: number,
         public meta: number | [number, number] | null = null,
         public count: number | [number, number] | null = null,
-        public nbt: Record<string, any> | null = null
+        public nbt: object | null = null
     ) {
     };
 

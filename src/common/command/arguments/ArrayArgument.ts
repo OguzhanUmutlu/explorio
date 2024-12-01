@@ -1,7 +1,7 @@
-import CommandArgument from "$/command/CommandArgument";
-import {AnyToken, TokenValue} from "$/command/CommandProcessor";
-import {CommandAs} from "$/command/CommandSender";
-import Location from "$/utils/Location";
+import CommandArgument from "@/command/CommandArgument";
+import {AnyToken, TokenValue} from "@/command/CommandProcessor";
+import {CommandAs} from "@/command/CommandSender";
+import Location from "@/utils/Location";
 
 export default class ArrayArgument extends CommandArgument<TokenValue[]> {
     default = [];

@@ -1,4 +1,4 @@
-import {ItemMetadata} from "$/meta/Items";
+import {ItemMetadata} from "@/meta/Items";
 
 export const ITEM_META_BITS = 4;
 
@@ -76,12 +76,12 @@ export enum ItemIds {
     __MAX__
 }
 
-export const I: Record<keyof typeof ItemIds, number> = <any>{};         // I.REDSTONE = item id
-export const IS: Record<keyof typeof ItemIds, ItemMetadata> = <any>{};  // IS.REDSTONE = item metadata
-export const IM: Record<number, ItemMetadata> = <any>{};                // IM[item id] = item metadata (with meta=0)
+export const I = <Record<keyof typeof ItemIds, number>>{};         // I.REDSTONE = item id
+export const IS = <Record<keyof typeof ItemIds, ItemMetadata>>{};  // IS.REDSTONE = item metadata
+export const IM = <Record<number, ItemMetadata>>{};                // IM[item id] = item metadata (with meta=0)
 
-export const B: Record<keyof typeof ItemIds, number> = <any>{};         // B.REDSTONE = block full id
-export const BM: Record<number, ItemMetadata> = <any>{};                // BM[im2f(I.REDSTONE, 5)] = block metadata
+export const B = <Record<keyof typeof ItemIds, number>>{};         // B.REDSTONE = block full id
+export const BM = <Record<number, ItemMetadata>>{};                // BM[im2f(I.REDSTONE, 5)] = block metadata
 
 export const ItemsByAccess: Record<string, ItemMetadata> = {};          // ItemsByAccess["stone"] = item/block metadata
 

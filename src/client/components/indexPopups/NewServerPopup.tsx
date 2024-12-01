@@ -1,6 +1,6 @@
-import {StateInput} from "$dom/components/StateInput";
-import {addServer, ReactState} from "$c/utils/Utils";
-import {MainMenuPopup} from "$dom/components/MainMenuPopup";
+import {StateInput} from "@dom/components/StateInput";
+import {addServer, ReactState} from "@c/utils/Utils";
+import {MainMenuPopup} from "@dom/components/MainMenuPopup";
 import React, {useState} from "react";
 
 export function NewServerPopup(O: {

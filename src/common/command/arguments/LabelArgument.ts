@@ -1,7 +1,7 @@
-import CommandArgument from "$/command/CommandArgument";
-import {CommandAs} from "$/command/CommandSender";
-import Location from "$/utils/Location";
-import {AnyToken} from "$/command/CommandProcessor";
+import CommandArgument from "@/command/CommandArgument";
+import {CommandAs} from "@/command/CommandSender";
+import Location from "@/utils/Location";
+import {AnyToken} from "@/command/CommandProcessor";
 
 export default class LabelArgument extends CommandArgument<undefined> {
     default = undefined;

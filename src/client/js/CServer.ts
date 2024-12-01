@@ -1,4 +1,4 @@
-import Server from "$/Server";
+import Server from "@/Server";
 
 export default class CServer extends Server {
     constructor() {

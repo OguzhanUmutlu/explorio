@@ -1,11 +1,11 @@
-import Generator from "$/world/generators/Generator";
-import {I} from "$/meta/ItemIds";
-import World from "$/world/World";
+import Generator from "@/world/generators/Generator";
+import {I} from "@/meta/ItemIds";
+import World from "@/world/World";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
-import DefaultGenerator from "$/world/generators/DefaultGenerator";
-import {im2f} from "$/meta/Items";
-import {ChunkLength} from "$/utils/Utils";
+import DefaultGenerator from "@/world/generators/DefaultGenerator";
+import {im2f} from "@/meta/Items";
+import {ChunkLength} from "@/meta/WorldConstants";
 
 export default class CustomGenerator extends Generator {
     processedPattern: [number, number | string][][];

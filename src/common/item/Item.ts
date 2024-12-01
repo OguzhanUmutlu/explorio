@@ -1,14 +1,15 @@
-import {BM, I} from "$/meta/ItemIds";
-import {im2f} from "$/meta/Items";
-import {Canvas} from "$/utils/Texture";
-import ItemStruct from "$/structs/item/ItemStruct";
+import {BM} from "@/meta/ItemIds";
+import {im2f} from "@/meta/Items";
+import {Canvas} from "@/utils/Texture";
+import ItemStruct from "@/structs/item/ItemStruct";
+import {ItemNBT} from "@/structs/item/ItemNBTStruct";
 
 export default class Item {
     constructor(
         public id: number,
         public meta: number = 0,
         public count: number = 1,
-        public nbt: Record<string, any> = {}
+        public nbt: ItemNBT = {}
     ) {
     };
 
@@ -45,9 +46,5 @@ export default class Item {
 
     clone(count: number) {
         return new Item(this.id, this.meta, count ?? this.count, JSON.parse(JSON.stringify(this.nbt)))
-    };
-
-    static deserialize(data: any) {
-        return data && data.id !== I.AIR ? new Item(data.id, data.meta, data.count, data.nbt) : null;
     };
 }

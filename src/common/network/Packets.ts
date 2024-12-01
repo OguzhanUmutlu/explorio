@@ -1,10 +1,10 @@
-import PacketError from "$/network/PacketError";
-import Packet from "$/network/Packet";
-import {getServer, zstdOptionalDecode} from "$/utils/Utils";
-import {PacketIds} from "$/meta/PacketIds";
+import PacketError from "@/network/PacketError";
+import Packet from "@/network/Packet";
+import {getServer, zstdOptionalDecode} from "@/utils/Utils";
+import {PacketIds} from "@/meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
-import ChunkBlocksBin from "$/structs/world/ChunkBlocksBin";
-import {GameModeStruct} from "$/command/arguments/GameModeArgument";
+import ChunkBlocksBin from "@/structs/world/ChunkBlocksBin";
+import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
@@ -40,7 +40,7 @@ const BatchStruct = new class BatchStruct extends Bin<Packet[]> {
         return value.reduce((acc, p) => acc + p.getSize() + 1, 0) + 1;
     };
 
-    findProblem(value: any) {
+    findProblem(value: unknown) {
         if (!Array.isArray(value)) return this.makeProblem("Expected an array of packets");
         for (const p of value) {
             if (!(p instanceof Packet)) return this.makeProblem("Expected an array of packets");
@@ -61,7 +61,7 @@ export type PacketNameToPacket<N extends keyof typeof PacketIds> = {
     __STRUCT__: PkStr<N>; // for typings
 };
 
-export const Packets: { [Name in keyof typeof PacketIds]: PacketNameToPacket<Name> } = <any>{};
+export const Packets = <{ [Name in keyof typeof PacketIds]: PacketNameToPacket<Name> }>{};
 
 export type AnyPacketConstructor = typeof Packets[keyof typeof Packets];
 

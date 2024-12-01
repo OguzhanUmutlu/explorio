@@ -1,13 +1,15 @@
-import {Entities, EntityBoundingBoxes} from "$/meta/Entities";
-import CPlayer from "$c/entity/types/CPlayer";
-import {initCommon} from "$/utils/Inits";
-import {Canvas} from "$/utils/Texture";
-import BoundingBox from "$/entity/BoundingBox";
-import {camera, canvas, ctx} from "$dom/Client";
-import {getServer, SoundFiles} from "$/utils/Utils";
-import {ChangeEvent, useEffect, useState} from "react";
+import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
+import CPlayer from "@c/entity/types/CPlayer";
+import {initCommon} from "@/utils/Inits";
+import {Canvas} from "@/utils/Texture";
+import BoundingBox from "@/entity/BoundingBox";
+import {camera, canvas, ctx} from "@dom/Client";
+import {ClassOf, getServer, SoundFiles} from "@/utils/Utils";
+import {useState} from "react";
 import {configure, fs} from "@zenfs/core";
 import {WebStorage} from "@zenfs/dom";
+import Entity from "@/entity/Entity";
+import {Buffer} from "buffer";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
@@ -23,22 +25,6 @@ export function useGroupState<K extends string[], T>(names: K, default_: T) {
         obj[k] = useState(default_);
     }
     return obj as { [k in K[number]]: ReturnType<typeof useState<T>> };
-}
-
-export function stateChanger(state: ReactState<any>) {
-    return function (e: ChangeEvent<HTMLInputElement>) {
-        state[1](e.target.value);
-    };
-}
-
-export function useEventListener<
-    T extends Element | Window,
-    K extends keyof (ElementEventMap & GlobalEventHandlersEventMap)
->(el: T, event: K, cb: (ev: (ElementEventMap & GlobalEventHandlersEventMap)[K]) => any) {
-    useEffect(() => {
-        el.addEventListener(event, cb);
-        return () => el.removeEventListener(event, cb);
-    }, [el, event, cb]);
 }
 
 export async function requestFullscreen() {
@@ -79,10 +65,9 @@ function initClientPrinter() {
     printer.tags.error.textColor = "none";
 }
 
-export const ClientEntityClasses: Record<Entities, any> = <any>{};
+export const ClientEntityClasses = <Record<Entities, ClassOf<Entity>>>{};
 
 export async function initClientThings() {
-    // @ts-ignore
     SoundFiles.push(...Object.keys(import.meta.glob("../../client/assets/sounds/**/*")));
     initClientPrinter();
     loadOptions();
@@ -98,7 +83,8 @@ export async function initBrowserFS() {
                 "/": WebStorage.create({storage: localStorage})
             }
         });
-        self.bfs = <any>fs;
+        self.bfs = <typeof import("fs")><unknown>fs;
+        self.Buffer = Buffer;
     }
 }
 
@@ -107,8 +93,8 @@ export function initClientEntities() {
 }
 
 export function getWSUrls(ip: string, port: number): string[] {
-    let isHttps = ip.startsWith("https://");
-    let isHttp = ip.startsWith("http://");
+    const isHttps = ip.startsWith("https://");
+    const isHttp = ip.startsWith("http://");
     let url = ip;
     if (isHttps) url = url.substring(8);
     else if (isHttp) url = url.substring(7);
@@ -214,7 +200,7 @@ export async function pingServer(ip: string, port: number): Promise<string> {
 }
 
 export function renderPlayerModel(
-    ctx: any, {
+    ctx: CanvasRenderingContext2D, {
         SIZE, bbPos, skin, bodyRotation,
         leftArmRotation, leftLegRotation, rightLegRotation, rightArmRotation,
         headRotation, handItem
@@ -250,7 +236,7 @@ export function renderPlayerModel(
     ctx.drawImage(side.back_leg, -leg[2] / 2, 0, leg[2], leg[3]);
     ctx.restore();
 
-    ctx.drawImage(side.body, ...armBody);
+    ctx.drawImage(side.body, armBody[0], armBody[1], armBody[2], armBody[3]);
 
     ctx.save();
     ctx.translate(leg[0] + leg[2] / 2, leg[1]);

@@ -1,5 +1,5 @@
 import X, {Bin, BufferIndex} from "stramp";
-import {ChunkLength, WorldHeight} from "$/utils/Utils";
+import {ChunkLength, WorldHeight} from "@/meta/WorldConstants";
 
 function findSmallPatterns(array: Uint16Array, max = 255) {
     const result = [];
@@ -77,7 +77,7 @@ export default new class ChunkBlocksBin extends Bin<Uint16Array> {
         return blocksToBuffer(value).length + 1
     };
 
-    findProblem(value: any, strict?: boolean) {
+    findProblem(value: Uint16Array, strict?: boolean) {
         return baseBlocks.findProblem(value, strict);
     };
 

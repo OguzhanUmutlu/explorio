@@ -1,4 +1,4 @@
-import Entity from "$/entity/Entity";
+import Entity from "@/entity/Entity";
 
 export default abstract class Effect {
     abstract id: number;

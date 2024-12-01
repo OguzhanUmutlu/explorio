@@ -1,5 +1,5 @@
-import Particle from "$c/particle/Particle";
-import {ItemMetadata} from "$/meta/Items";
+import Particle from "@c/particle/Particle";
+import {ItemMetadata} from "@/meta/Items";
 
 export default class LittleBlockParticle extends Particle {
     tm = 1.5;
@@ -16,7 +16,7 @@ export default class LittleBlockParticle extends Particle {
         const cy = Math.abs(y - Math.round(y));
 
         this.vx = Math.min(0.5, Math.max(-0.5, 0.005 / cx));
-        this.vy = Math.min(0.5, 0.005 / cy) * 2.5;
+        this.vy = Math.min(0.5, 0.005 / cy);
 
         // const texture = block.getTexture();
         //

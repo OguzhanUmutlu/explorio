@@ -1,10 +1,10 @@
-import CPlayer from "$c/entity/types/CPlayer";
-import {Containers} from "$/meta/Inventories";
-import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "$dom/Client";
-import {Options} from "$c/utils/Utils";
-import Sound from "$/utils/Sound";
-import {I} from "$/meta/ItemIds";
-import {Packets} from "$/network/Packets";
+import CPlayer from "@c/entity/types/CPlayer";
+import {Containers} from "@/meta/Inventories";
+import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@dom/Client";
+import {Options} from "@c/utils/Utils";
+import Sound from "@/utils/Sound";
+import {I} from "@/meta/ItemIds";
+import {Packets} from "@/network/Packets";
 
 export default class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
@@ -75,7 +75,7 @@ export default class OriginPlayer extends CPlayer {
         if (!Options.sfx) return;
         const distance = clientPlayer.distance(x, y);
         if (distance > 20) return;
-        const lastVolume = volume * (1 - (distance / 20)) * Options.sfx / 100;
+        const lastVolume = volume * (1 - (distance / 20)) * 0.5 * Options.sfx / 100;
         Sound.play(path, lastVolume);
     };
 
@@ -94,7 +94,7 @@ export default class OriginPlayer extends CPlayer {
         // s = strikethrough
         // i = italics
         // k = obfuscated
-        let parent = <any>div;
+        let parent = div;
         const sep = message.split(/(§[\da-flusik]|:[a-z]+:)/);
         for (const part of sep) {
             if (/^§§[\da-f]|§[\da-fbusik]$/.test(part)) {

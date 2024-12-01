@@ -1,9 +1,9 @@
-import Command from "$/command/Command";
-import {CommandDefinitionType} from "$/command/CommandDefinition";
-import {AnyToken, splitParameters} from "$/command/CommandProcessor";
-import CommandArgument from "$/command/CommandArgument";
-import CommandSender, {CommandAs} from "$/command/CommandSender";
-import Location from "$/utils/Location";
+import Command from "@/command/Command";
+import {CommandDefinitionType} from "@/command/CommandDefinition";
+import {AnyToken, splitParameters} from "@/command/CommandProcessor";
+import CommandArgument from "@/command/CommandArgument";
+import CommandSender, {CommandAs} from "@/command/CommandSender";
+import Location from "@/utils/Location";
 
 export default abstract class DefinitiveCommand extends Command {
     abstract definitions: CommandDefinitionType[];
@@ -29,7 +29,7 @@ export default abstract class DefinitiveCommand extends Command {
         const params = labelSpl.slice(1).join(" ");
         const args = splitParameters(params);
 
-        let maxPass = 0;
+        const maxPass = 0;
         let maxPassCmd: CommandDefinitionType | null = null;
         let maxPassArg: CommandArgument | null = null;
         let maxPassToken: AnyToken | null = null;

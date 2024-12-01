@@ -1,23 +1,22 @@
-import Packet from "$/network/Packet";
-import {ClientEntityClasses, getWSUrls, Options, setServerOptions} from "$c/utils/Utils";
-import {PacketByName, Packets, readPacket} from "$/network/Packets";
-import PacketError from "$/network/PacketError";
-import {ChunkLengthBits} from "$/utils/Utils";
-import CPlayer from "$c/entity/types/CPlayer";
-import CWorld from "$c/world/CWorld";
-import {PacketIds} from "$/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "$dom/Client";
-// @ts-ignore
-import SocketWorker from "$c/worker/SocketWorker?worker";
-import {Version} from "$/Versions";
-import {BM} from "$/meta/ItemIds";
-import LittleBlockParticle from "$c/particle/types/LittleBlockParticle";
+import Packet from "@/network/Packet";
+import {ClientEntityClasses, getWSUrls, Options, setServerOptions} from "@c/utils/Utils";
+import {PacketByName, Packets, readPacket} from "@/network/Packets";
+import PacketError from "@/network/PacketError";
+import CPlayer from "@c/entity/types/CPlayer";
+import CWorld from "@c/world/CWorld";
+import {PacketIds} from "@/meta/PacketIds";
+import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "@dom/Client";
+import SocketWorker from "@c/worker/SocketWorker?worker";
+import {Version} from "@/Versions";
+import {BM} from "@/meta/ItemIds";
+import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
+import {ChunkLengthBits} from "@/meta/WorldConstants";
 
 export default class ClientNetwork {
-    worker: Worker;
+    worker: { postMessage(e: Buffer): void, terminate(): void };
     connected = false;
-    connectCb: Function;
-    connectPromise = new Promise(r => this.connectCb = r);
+    connectCb: () => void;
+    connectPromise = new Promise(r => this.connectCb = () => r(null));
     batch: Packet[] = [];
     immediate: Packet[] = [];
     handshake = false;
@@ -95,7 +94,7 @@ export default class ClientNetwork {
         if (this.handshakeCb) this.handshakeCb();
     };
 
-    spawnEntityFromData(data: any) {
+    spawnEntityFromData(data: PacketByName<"SChunk">["data"]["entities"][number]) {
         const entity = new ClientEntityClasses[data.typeId](clientPlayer.world);
         entity.id = data.entityId;
         for (const k in data.props) {
@@ -128,7 +127,7 @@ export default class ClientNetwork {
     };
 
     processSEntityUpdate({data}: PacketByName<"SEntityUpdate">) {
-        let entity = clientPlayer.world.entities[data.entityId];
+        const entity = clientPlayer.world.entities[data.entityId];
         if (!entity) return this.spawnEntityFromData(data);
         delete data.entityId;
         delete data.typeId;

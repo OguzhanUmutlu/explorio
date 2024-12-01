@@ -1,5 +1,5 @@
 import {z} from "zod";
-import Server from "$/Server";
+import Server from "@/Server";
 
 export const ZPluginMetadata = z.object({
     name: z.string(),

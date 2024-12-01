@@ -1,6 +1,6 @@
-import {StateInput} from "$dom/components/StateInput";
-import {ReactState, removeWorld, WorldData} from "$c/utils/Utils";
-import {MainMenuPopup} from "$dom/components/MainMenuPopup";
+import {StateInput} from "@dom/components/StateInput";
+import {ReactState, removeWorld, WorldData} from "@c/utils/Utils";
+import {MainMenuPopup} from "@dom/components/MainMenuPopup";
 import React, {useState} from "react";
 
 export function SinglePlayerPopup(O: {

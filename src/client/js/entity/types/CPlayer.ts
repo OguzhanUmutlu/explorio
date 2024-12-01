@@ -1,7 +1,7 @@
-import Texture from "$/utils/Texture";
-import {getClientPosition, Options, renderPlayerModel} from "$c/utils/Utils";
-import CEntity from "$c/entity/CEntity";
-import Player from "$/entity/types/Player";
+import Texture from "@/utils/Texture";
+import {getClientPosition, Options, renderPlayerModel} from "@c/utils/Utils";
+import CEntity from "@c/entity/CEntity";
+import Player from "@/entity/types/Player";
 
 export function getCurrentSwing() {
     const p = 400;
@@ -12,7 +12,7 @@ export function getCurrentSwing() {
 export default class CPlayer extends Player implements CEntity {
     skin = Texture.get("assets/steve.png");
     name = "";
-    ws = <any>null;
+    ws = <unknown>null;
     breakingSoundTime = 0;
     walkSoundTime = 0;
 

@@ -1,4 +1,6 @@
-import BoundingBox from "$/entity/BoundingBox";
+import BoundingBox from "@/entity/BoundingBox";
+import {ClassOf} from "@/utils/Utils";
+import Entity from "@/entity/Entity";
 
 export enum Entities {
     UNKNOWN,
@@ -12,4 +14,4 @@ export const EntityBoundingBoxes: Record<number, BoundingBox> = {
     [Entities.ITEM]: new BoundingBox(0, 0, 0.3, 0.3)
 };
 
-export const EntityClasses: Record<Entities, any> = <any>{};
+export const EntityClasses = <Record<Entities, ClassOf<Entity>>>{};

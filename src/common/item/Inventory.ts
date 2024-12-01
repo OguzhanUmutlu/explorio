@@ -1,7 +1,7 @@
-import Item from "$/item/Item";
-import World from "$/world/World";
-import {IM} from "$/meta/ItemIds";
-import ItemDescriptor from "$/item/ItemDescriptor";
+import Item from "@/item/Item";
+import World from "@/world/World";
+import {IM} from "@/meta/ItemIds";
+import ItemDescriptor from "@/item/ItemDescriptor";
 
 export default class Inventory {
     cleanDirty = false;
@@ -9,7 +9,7 @@ export default class Inventory {
     // _tile: ContainerTile | null = null;
     private contents: (Item | null)[] = [];
 
-    constructor(public readonly size: number, public extra: any = null) {
+    constructor(public readonly size: number) {
         this.contents = new Array(this.size).fill(null);
     };
 

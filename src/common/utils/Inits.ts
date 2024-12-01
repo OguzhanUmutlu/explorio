@@ -1,14 +1,15 @@
-import {initItems} from "$/meta/Items";
-import {Packets} from "$/network/Packets";
-import {PacketIds} from "$/meta/PacketIds";
-import Packet from "$/network/Packet";
+import {initItems} from "@/meta/Items";
+import {Packets} from "@/network/Packets";
+import {PacketIds} from "@/meta/PacketIds";
+import Packet from "@/network/Packet";
 import {ZstdInit} from "@oneidentity/zstd-js";
-import {Entities, EntityClasses} from "$/meta/Entities";
-import Player from "$/entity/types/Player";
-import {Effects} from "$/utils/Effects";
-import Effect from "$/effect/Effect";
-import SpeedEffect from "$/effect/types/SpeedEffect";
-import SlownessEffect from "$/effect/types/SlownessEffect";
+import {Entities, EntityClasses} from "@/meta/Entities";
+import Player from "@/entity/types/Player";
+import {Effects} from "@/utils/Effects";
+import Effect from "@/effect/Effect";
+import SpeedEffect from "@/effect/types/SpeedEffect";
+import SlownessEffect from "@/effect/types/SlownessEffect";
+import {Bin} from "stramp";
 
 export function initEffects() {
     for (const clazz of [
@@ -25,9 +26,9 @@ export function initPackets() {
         const name = PacketIds[id];
         const pId = parseInt(id);
         if (isNaN(pId)) continue;
-        // @ts-ignore
-        Packets[id] = Packets[name] = class extends Packet {
-            constructor(data: any) {
+        // @ts-expect-error It is readonly so it throws an error.
+        Packets[id] = Packets[name] = class<T extends Bin> extends Packet<T> {
+            constructor(data: T["__TYPE__"]) {
                 super(pId, data);
             };
         };

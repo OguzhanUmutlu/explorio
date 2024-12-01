@@ -1,13 +1,15 @@
-import {simplifyTexturePath} from "$/utils/Utils";
+import {simplifyTexturePath} from "@/utils/Utils";
 
-const pseudoCanvas = <any>{getContext: () => ({fillRect: (r: any) => r})};
+const pseudoCanvas = <Canvas><unknown>{getContext: () => ({fillRect: () => 0})};
 
-// You can optionally install canvas to be able to process assets in the server-side.
-// @ts-ignore
-let nodeCanvas: import("canvas") = null;
+let nodeCanvas = <{
+    createCanvas(w: number, h: number): Canvas,
+    loadImage(url: string): Promise<Image>
+}>null;
 try {
     nodeCanvas = await import(/* @vite-ignore */ eval("'canvas'"));
 } catch (e) {
+    void e;
 }
 
 export const imagePlaceholder = createCanvas(1, 1);
@@ -34,8 +36,8 @@ const SKIN_PARTS = {
     back_leg: [[16, 52, 4, 12], [8, 20, 4, 12]]
 };
 
-export type Canvas = HTMLCanvasElement | CanvasImageSource & Record<any, any>;
-export type Image = HTMLImageElement;
+export type Canvas = HTMLCanvasElement;
+export type Image = HTMLImageElement | Canvas;
 
 export function createCanvas(width: number, height: number): Canvas {
     if (typeof document === "undefined") {
@@ -51,14 +53,14 @@ export function createCanvas(width: number, height: number): Canvas {
 function cropImage(image: Canvas | Image, x: number, y: number, width: number, height: number) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(<any>image, x, y, width, height, 0, 0, width, height);
+    ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
     return canvas;
 }
 
 function copyImage(image: Canvas | Image) {
     const canvas = createCanvas(image.width, image.height);
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(<any>image, 0, 0);
+    ctx.drawImage(image, 0, 0);
     return canvas;
 }
 
@@ -77,7 +79,7 @@ function loadImage(src: string): Promise<Image> {
             image.onerror = reject;
             image.src = src;
         } else {
-            nodeCanvas.loadImage(src).then((image: any) => resolve(image)).catch(reject);
+            nodeCanvas.loadImage(src).then((image: Image) => resolve(image)).catch(reject);
         }
     });
 }
@@ -85,11 +87,12 @@ function loadImage(src: string): Promise<Image> {
 export default class Texture {
     static textures: Record<string, Texture> = {};
 
-    image: Canvas = imagePlaceholder;
+    image: Canvas | Image = imagePlaceholder;
+    _promise: Promise<Image>;
+
     _flipped: [Canvas, Canvas] = [null, null];
     _rotated: Record<number, Canvas> = {};
     _skin: Record<keyof typeof SKIN_PARTS, Canvas>[];
-    _promise: Promise<Canvas>;
     _slabTop: Canvas | null = null;
     _slabBottom: Canvas | null = null;
     _stairsTopLeft: Canvas | null = null; // removes top left part of the block
@@ -104,7 +107,7 @@ export default class Texture {
         this.actualSrc = simplifyTexturePath(this.actualSrc);
 
         if (!known || known instanceof Promise) {
-            this._promise = (<Promise<Canvas>>known || loadImage(this.actualSrc))
+            this._promise = (<Promise<Image>>known || loadImage(this.actualSrc))
                 .then((image: Image) => {
                     this.image = image;
                     printer.debug("%cLoaded " + this.actualSrc, "color: #00ff00");
@@ -137,7 +140,7 @@ export default class Texture {
         ctx.translate(canvas.width, 0);
         if (way === 1) ctx.scale(-1, 1);
         else ctx.scale(1, -1);
-        ctx.drawImage(<any>image, 0, 0);
+        ctx.drawImage(image, 0, 0);
         ctx.restore();
         return canvas;
     };
@@ -150,7 +153,7 @@ export default class Texture {
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate((degrees * Math.PI) / 180);
-        ctx.drawImage(<any>image, -canvas.width / 2, -canvas.height / 2);
+        ctx.drawImage(image, -canvas.width / 2, -canvas.height / 2);
         ctx.restore();
         return canvas;
     };
@@ -225,7 +228,7 @@ export default class Texture {
         if (this._pixels[i]) return this._pixels[i];
         const canvas = createCanvas(1, 1);
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(<any>this.image, x, y, 1, 1, 0, 0, 1, 1);
+        ctx.drawImage(this.image, x, y, 1, 1, 0, 0, 1, 1);
         return this._pixels[i] = canvas;
     };
 
@@ -235,7 +238,7 @@ export default class Texture {
         if (this._pixelValues[i]) return this._pixelValues[i];
         const canvas = createCanvas(1, 1);
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(<any>this.image, x, y, 1, 1, 0, 0, 1, 1);
+        ctx.drawImage(this.image, x, y, 1, 1, 0, 0, 1, 1);
         return this._pixelValues[i] = "#" + Array.from(ctx
             .getImageData(0, 0, 1, 1)
             .data

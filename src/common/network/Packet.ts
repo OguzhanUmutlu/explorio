@@ -1,11 +1,16 @@
 import {Bin, BufferIndex} from "stramp";
-import {getServer, zstdOptionalEncode} from "$/utils/Utils";
-import {PacketStructs} from "$/network/Packets";
+import {getServer, zstdOptionalEncode} from "@/utils/Utils";
+import {PacketStructs} from "@/network/Packets";
 
 export const CompressPackets = true;
 
+type Receivable = { send(data: Buffer): void; }
+    | { postMessage(data: Buffer): void; };
+
 export default class Packet<T extends Bin = Bin> {
-    constructor(public packetId: number, public data: T["__TYPE__"]) {
+    __TYPE__: T["__TYPE__"];
+
+    constructor(public packetId: number, public data: typeof this["__TYPE__"]) {
     };
 
     get struct(): T {
@@ -13,10 +18,10 @@ export default class Packet<T extends Bin = Bin> {
     };
 
     static read(bind: BufferIndex) {
-        // @ts-ignore
-        const pk = <this>new this(0, null);
+        const pk = new this(0, null);
         pk.data = pk.struct.read(bind);
-        return pk;
+        // @ts-expect-error It gives a TS error, I say no.
+        return <this>pk;
     };
 
     write(bind: BufferIndex) {
@@ -42,8 +47,7 @@ export default class Packet<T extends Bin = Bin> {
         return getServer().config.packetCompression ? zstdOptionalEncode(bind.buffer) : bind.buffer;
     };
 
-    send(ws: any) {
-        if ("sendImmediate" in ws) return ws.sendImmediate(this);
+    send(ws: Receivable) {
         const buf = this.serialize();
         if ("send" in ws) ws.send(buf);
         else ws.postMessage(buf);

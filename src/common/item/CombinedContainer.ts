@@ -1,13 +1,13 @@
-import Inventory from "$/item/Inventory";
-import Item from "$/item/Item";
+import Inventory from "@/item/Inventory";
+import Item from "@/item/Item";
 
 // This is for double chests etc.
 export default class CombinedContainer extends Inventory {
     inventories: Inventory[];
 
-    constructor(inventories: Inventory[] = [], extra: any = null) {
+    constructor(inventories: Inventory[] = []) {
         const size = inventories.reduce((a, b) => a + b.size, 0);
-        super(size, extra);
+        super(size);
         this.inventories = inventories;
     };
 

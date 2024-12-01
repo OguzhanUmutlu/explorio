@@ -1,12 +1,23 @@
-import Packet from "$/network/Packet";
-import {Entities} from "$/meta/Entities";
-import Player from "$/entity/types/Player";
-import {PacketByName, Packets, readPacket} from "$/network/Packets";
-import {PacketIds} from "$/meta/PacketIds";
-import {getServer} from "$/utils/Utils";
-import {ItemIds} from "$/meta/ItemIds";
-import {Version} from "$/Versions";
-import {Buffer} from "buffer";
+import Packet from "@/network/Packet";
+import {Entities} from "@/meta/Entities";
+import Player from "@/entity/types/Player";
+import {PacketByName, Packets, readPacket} from "@/network/Packets";
+import {PacketIds} from "@/meta/PacketIds";
+import {getServer} from "@/utils/Utils";
+import {ItemIds} from "@/meta/ItemIds";
+import {Version} from "@/Versions";
+
+type WSLike = {
+    send(data: Buffer): void;
+    close(): void;
+    kick?: (reason: string) => void;
+};
+
+type ReqLike = {
+    socket: {
+        remoteAddress?: string;
+    };
+};
 
 export default class PlayerNetwork {
     batch: Packet[] = [];
@@ -16,7 +27,7 @@ export default class PlayerNetwork {
     kickReason: string;
     server = getServer();
 
-    constructor(public ws: any, public req: any) {
+    constructor(public ws: WSLike, public req: ReqLike) {
         this.ip = req.socket.remoteAddress;
     };
 
@@ -142,7 +153,7 @@ export default class PlayerNetwork {
                 return this.kick("Invalid auth");
             }
 
-            this.processCAuth(<any>pk);
+            this.processCAuth(<PacketByName<"CAuth">>pk);
         } else {
             try {
                 await this.processPacket(pk);

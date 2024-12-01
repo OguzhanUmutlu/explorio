@@ -16,21 +16,22 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "$c/*": [
+      "@c/*": [
         "./src/client/js/*"
       ],
-      "$dom/*": [
+      "@dom/*": [
         "./src/client/*"
       ],
-      "$s/*": [
+      "@s/*": [
         "./src/server/*"
       ],
-      "$a/*": [
+      "@a/*": [
         "./src/auth/*"
       ],
-      "$/*": [
+      "@/*": [
         "./src/common/*"
       ]
     }
-  }
+  },
+  "exclude": []
 }

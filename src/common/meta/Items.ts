@@ -1,8 +1,8 @@
-import Texture, {Canvas, texturePlaceholder} from "$/utils/Texture";
-import Item from "$/item/Item";
-import {default as ID} from "$/item/ItemDescriptor";
-import {default as IPool} from "$/item/ItemPool";
-import {B, BM, I, IM, IS, ITEM_META_BITS} from "$/meta/ItemIds";
+import Texture, {Canvas, texturePlaceholder} from "@/utils/Texture";
+import Item from "@/item/Item";
+import {default as ID} from "@/item/ItemDescriptor";
+import {default as IPool} from "@/item/ItemPool";
+import {B, BM, I, IM, IS, ITEM_META_BITS} from "@/meta/ItemIds";
 
 export type Side = "bottom" | "top" | "left" | "right";
 export type ToolType = "none" | "sword" | "axe" | "pickaxe" | "shovel" | "hoe" | "shears";
@@ -142,7 +142,7 @@ export class ItemMetadata {
         return this.id;
     };
 
-    private randRepl(s: any) {
+    private randRepl(s: readonly [string, number]) {
         if (!s) return null;
         return s[0].replace("$", Math.floor(Math.random() * s[1]) + 1 + "");
     };

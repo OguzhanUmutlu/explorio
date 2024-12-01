@@ -1,4 +1,4 @@
-import {simplifyTexturePath} from "$/utils/Utils";
+import {simplifyTexturePath} from "@/utils/Utils";
 
 let ctx: AudioContext = null;
 let canCreateContext = false;
@@ -31,9 +31,8 @@ export default class Sound {
         if (Sound.sounds[src]) return Sound.sounds[src];
         const startMs = Date.now();
         if (!src) throw new Error("Invalid sound src.");
-        let resolve: (buffer: AudioBuffer) => void = r => r;
-        const prom: Promise<AudioBuffer> = new Promise(r => resolve = r);
-        (async () => {
+
+        const prom = <Promise<AudioBuffer>>(async function () {
             const blob = await fetch(src).then(async response => {
                 printer.debug("%cLoaded " + src + " in " + Math.floor(Date.now() - startMs) + "ms.", "color: #00ff00");
                 return response.blob();
@@ -41,18 +40,28 @@ export default class Sound {
                 printer.fail("%cFailed to load " + src, "color: #ff0000");
                 return null;
             });
+
             if (blob === null) {
                 return;
             }
+
+            if (!blob.type.startsWith("audio/")) {
+                throw new Error(`Invalid sound src: ${src}`);
+            }
+
             const reader = new FileReader();
             reader.readAsArrayBuffer(blob);
             const audioContext = new AudioContext();
-            resolve(await new Promise(k => reader.onload = () => {
+
+            return await new Promise(k => reader.onload = () => {
                 const data = reader.result;
-                if (data instanceof ArrayBuffer) audioContext.decodeAudioData(data, a => k(a));
+                if (data instanceof ArrayBuffer) {
+                    audioContext.decodeAudioData(data, a => k(a));
+                }
                 audioContext.close();
-            }));
+            });
         })();
+
         return Sound.sounds[src] = new Sound(prom, src);
     };
 
@@ -103,19 +112,18 @@ export default class Sound {
         if (!tryCreateAudioContext()) return;
 
         if (!this.loaded) await this.wait();
-        let extraVol = 1;
-        return await new Promise(async r => {
-            if (!ctx) return r(new SoundContext(null, null));
-            const source = new AudioBufferSourceNode(ctx, {buffer: this.buffer});
-            const gainNode = new GainNode(ctx, {gain: volume * extraVol});
-            source.connect(gainNode);
-            gainNode.connect(ctx.destination);
+        const extraVol = 1;
 
-            const sCtx = new SoundContext(source, gainNode);
-            if (play) sCtx.start();
+        if (!ctx) return new SoundContext(null, null);
+        const source = new AudioBufferSourceNode(ctx, {buffer: this.buffer});
+        const gainNode = new GainNode(ctx, {gain: volume * extraVol});
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
 
-            r(sCtx);
-        });
+        const sCtx = new SoundContext(source, gainNode);
+        if (play) sCtx.start();
+
+        return sCtx;
     };
 
     play(volume = 1, cb = () => void 0) {

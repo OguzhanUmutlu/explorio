@@ -1,12 +1,12 @@
-import {getServerList, getWorldList, isMobileByAgent, ReactState, useGroupState} from "$c/utils/Utils";
+import {getServerList, getWorldList, isMobileByAgent, ReactState, useGroupState} from "@c/utils/Utils";
 import React, {useState} from "react";
-import {SinglePlayerPopup} from "$dom/components/indexPopups/SinglePlayerPopup";
-import {MultiPlayerPopup} from "$dom/components/indexPopups/MultiPlayerPopup";
-import {NewWorldPopup} from "$dom/components/indexPopups/NewWorldPopup";
-import {NewServerPopup} from "$dom/components/indexPopups/NewServerPopup";
-import {OptionsPopup} from "$dom/components/OptionsPopup";
-import "$dom/css/index.css";
-import {VersionString} from "$/Versions";
+import {SinglePlayerPopup} from "@dom/components/indexPopups/SinglePlayerPopup";
+import {MultiPlayerPopup} from "@dom/components/indexPopups/MultiPlayerPopup";
+import {NewWorldPopup} from "@dom/components/indexPopups/NewWorldPopup";
+import {NewServerPopup} from "@dom/components/indexPopups/NewServerPopup";
+import {OptionsPopup} from "@dom/components/OptionsPopup";
+import "@dom/css/index.css";
+import {VersionString} from "@/Versions";
 
 export function Index(O: {
     clientUUID: ReactState<string>

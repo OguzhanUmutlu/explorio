@@ -1,8 +1,8 @@
-import World, {All3Rings, Ring3} from "$/world/World";
-import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "$/utils/Utils";
-import CSubChunk from "$c/world/CSubChunk";
-import Packet from "$/network/Packet";
-import Player from "$/entity/types/Player";
+import World, {All3Rings, Ring3} from "@/world/World";
+import CSubChunk from "@c/world/CSubChunk";
+import Packet from "@/network/Packet";
+import Player from "@/entity/types/Player";
+import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "@/meta/WorldConstants";
 
 export default class CWorld extends World {
     subChunkRenders: Record<number, CSubChunk[]> = {};

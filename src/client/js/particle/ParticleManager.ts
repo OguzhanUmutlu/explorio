@@ -1,5 +1,5 @@
-import Particle from "$c/particle/Particle";
-import {getClientPosition, Options} from "$c/utils/Utils";
+import Particle from "@c/particle/Particle";
+import {getClientPosition, Options} from "@c/utils/Utils";
 
 export default class ParticleManager {
     particles = new Set<Particle>;

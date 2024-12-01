@@ -1,6 +1,6 @@
-import DefinitiveCommand from "$/command/DefinitiveCommand";
-import CommandDefinition from "$/command/CommandDefinition";
-import Player from "$/entity/types/Player";
+import DefinitiveCommand from "@/command/DefinitiveCommand";
+import CommandDefinition from "@/command/CommandDefinition";
+import Player from "@/entity/types/Player";
 
 export default class GameModeCommand extends DefinitiveCommand {
     constructor() {

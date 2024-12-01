@@ -1,4 +1,4 @@
-import Packet from "$/network/Packet";
+import Packet from "@/network/Packet";
 import {BufferIndex} from "stramp";
 
 export default class PacketError extends Error {

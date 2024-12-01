@@ -1,9 +1,12 @@
-import Generator from "$/world/generators/Generator";
-import {B, I} from "$/meta/ItemIds";
+import Generator from "@/world/generators/Generator";
+import {B, I} from "@/meta/ItemIds";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
-import World, {ChunkData} from "$/world/World";
-import {CaveScale, ChunkLength, SurfaceHeight} from "$/utils/Utils";
+import World, {ChunkData} from "@/world/World";
+import {ChunkLength} from "@/meta/WorldConstants";
+
+export const SurfaceHeight = 172;
+export const CaveScale = 40;
 
 export const TreeShape = [
     [0, 0],

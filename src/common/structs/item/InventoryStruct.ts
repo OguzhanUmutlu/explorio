@@ -1,7 +1,7 @@
 import X, {Bin, BufferIndex} from "stramp";
-import Inventory from "$/item/Inventory";
-import Item from "$/item/Item";
-import ItemStruct from "$/structs/item/ItemStruct";
+import Inventory from "@/item/Inventory";
+import Item from "@/item/Item";
+import ItemStruct from "@/structs/item/ItemStruct";
 
 export default class InventoryStruct extends Bin<Inventory> {
     name: string;
@@ -14,7 +14,7 @@ export default class InventoryStruct extends Bin<Inventory> {
         this.name = `Inventory<${size}>`;
     };
 
-    unsafeWrite(bind: BufferIndex, value: any): void {
+    unsafeWrite(bind: BufferIndex, value: Inventory): void {
         this.listBin.write(bind, value.getContents());
     };
 
@@ -22,15 +22,15 @@ export default class InventoryStruct extends Bin<Inventory> {
         return new Inventory(this.size).setContents(this.listBin.read(bind));
     };
 
-    unsafeSize(value: any): number {
+    unsafeSize(value: Inventory): number {
         return this.listBin.getSize(value.getContents());
     };
 
-    findProblem(value: any, strict?: boolean) {
+    findProblem(value: Inventory, strict?: boolean) {
         return this.listBin.findProblem(value.getContents(), strict);
     };
 
-    get sample(): any {
+    get sample() {
         return new Inventory(this.size);
     };
 }

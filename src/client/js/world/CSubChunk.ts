@@ -1,8 +1,8 @@
-import {createCanvas} from "$/utils/Texture";
-import {ChunkLength, ChunkLengthBits} from "$/utils/Utils";
-import {clientPlayer} from "$dom/Client";
-import {BM} from "$/meta/ItemIds";
-import World from "$/world/World";
+import {createCanvas} from "@/utils/Texture";
+import {clientPlayer} from "@dom/Client";
+import {BM} from "@/meta/ItemIds";
+import World from "@/world/World";
+import {ChunkLength, ChunkLengthBits} from "@/meta/WorldConstants";
 
 const renderScale = 16; // Blocks are rendered as 16x16
 const renderSize = renderScale * ChunkLength;

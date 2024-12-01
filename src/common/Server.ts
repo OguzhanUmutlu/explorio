@@ -1,23 +1,23 @@
-import World, {Generators, getRandomSeed, WorldMetaData, ZWorldMetaData} from "$/world/World";
-import Player from "$/entity/types/Player";
-import Command from "$/command/Command";
-import CommandError from "$/command/CommandError";
-import CommandSender, {CommandAs} from "$/command/CommandSender";
-import {cleanText} from "$/command/CommandProcessor";
-import SelectorToken from "$/command/token/SelectorToken";
-import Location from "$/utils/Location";
-import Entity from "$/entity/Entity";
-import TeleportCommand from "$/command/defaults/TeleportCommand";
-import {checkLag, SelectorSorters, setServer} from "$/utils/Utils";
-import ListCommand from "$/command/defaults/ListCommand";
-import ConsoleCommandSender from "$/command/ConsoleCommandSender";
-import ExecuteCommand from "$/command/defaults/ExecuteCommand";
-import Packet from "$/network/Packet";
-import PermissionCommand from "$/command/defaults/PermissionCommand";
-import Plugin, {PluginMetadata, ZPluginMetadata} from "$/plugin/Plugin";
-import GameModeCommand from "$/command/defaults/GameModeCommand";
-import EffectCommand from "$/command/defaults/EffectCommand";
-import HelpCommand from "$/command/defaults/HelpCommand";
+import World, {Generators, getRandomSeed, WorldMetaData, ZWorldMetaData} from "@/world/World";
+import Player from "@/entity/types/Player";
+import Command from "@/command/Command";
+import CommandError from "@/command/CommandError";
+import CommandSender, {CommandAs} from "@/command/CommandSender";
+import {cleanText} from "@/command/CommandProcessor";
+import SelectorToken from "@/command/token/SelectorToken";
+import Location from "@/utils/Location";
+import Entity from "@/entity/Entity";
+import TeleportCommand from "@/command/defaults/TeleportCommand";
+import {checkLag, SelectorSorters, setServer} from "@/utils/Utils";
+import ListCommand from "@/command/defaults/ListCommand";
+import ConsoleCommandSender from "@/command/ConsoleCommandSender";
+import ExecuteCommand from "@/command/defaults/ExecuteCommand";
+import Packet from "@/network/Packet";
+import PermissionCommand from "@/command/defaults/PermissionCommand";
+import Plugin, {PluginMetadata, ZPluginMetadata} from "@/plugin/Plugin";
+import GameModeCommand from "@/command/defaults/GameModeCommand";
+import EffectCommand from "@/command/defaults/EffectCommand";
+import HelpCommand from "@/command/defaults/HelpCommand";
 import {z} from "zod";
 
 export const ZServerConfig = z.object({
@@ -71,7 +71,7 @@ export default class Server {
     pluginMetas: Record<string, PluginMetadata> = {};
     plugins: Record<string, Plugin> = {};
     pluginPromise: Promise<void> | null;
-    intervalId: any = 0;
+    intervalId: NodeJS.Timeout | number = 0;
     terminated = false;
     pausedUpdates = false;
 
@@ -91,7 +91,7 @@ export default class Server {
         if (!this.fileExists(path)) this.fs.mkdirSync(path, {recursive: true, mode: 0o777});
     };
 
-    writeFile(path: string, contents: any) {
+    writeFile(path: string, contents: Buffer | string) {
         this.fs.writeFileSync(path, contents);
     };
 
@@ -187,7 +187,7 @@ export default class Server {
 
                 this.pluginMetas[meta.name] = meta;
                 const mainPath = `${this.path}/plugins/${folder}/${meta.main}`;
-                let exp = await import(/* @vite-ignore */ url.pathToFileURL(mainPath).toString());
+                const exp = await import(/* @vite-ignore */ url.pathToFileURL(mainPath).toString());
                 if (!("default" in exp) || typeof exp.default !== "function") {
                     throw new Error("Plugin main file doesn't have a default function export.");
                 }
@@ -287,7 +287,7 @@ export default class Server {
 
         for (const k in selector.filters) {
             const token = selector.filters[k];
-            const val = <any>token.value;
+            const val = token.value;
             const bm = 1 - token.yes;
             switch (k) {
                 case "x":
@@ -337,14 +337,14 @@ export default class Server {
                     }
 
                     entities = entities.filter(entity => {
-                        return bm - +(entity.tags.has(val));
+                        return bm - +(entity.tags.has(<string>val));
                     });
                     break;
                 case "nbt":
                     if (token.type !== "object") throw new CommandError(`Invalid 'nbt' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        for (const k in val) {
+                        for (const k in <Record<string, unknown>>val) {
                             if (!entity.struct.keys().includes(k)) return false;
                             if (!val[k].equalsValue(entity[k])) return false;
                         }
@@ -373,12 +373,12 @@ export default class Server {
                     });
                     break;
                 case "permissions":
-                    if (token.type !== "array" || val.some((i: any) => typeof i !== "string")) {
+                    if (token.type !== "array" || (<unknown[]>val).some((i: unknown) => typeof i !== "string")) {
                         throw new CommandError(`Invalid 'permissions' attribute for the selector`);
                     }
 
                     entities = entities.filter(entity => {
-                        return bm - +(entity instanceof Player && val.every((perm: string) => entity.hasPermission(perm)));
+                        return bm - +(entity instanceof Player && (<unknown[]>val).every((perm: string) => entity.hasPermission(perm)));
                     });
                     break;
                 case "limit":
@@ -431,7 +431,7 @@ export default class Server {
     loadWorld(folder: string): World | null {
         const data = this.getWorldData(folder);
         if (!data) return null;
-        const gen = <any>Generators[data.generator];
+        const gen = Generators[data.generator];
         const world = new World(
             this, data.name, folder, data.seed, new gen(data.generatorOptions),
             new Set(this.getWorldChunkList(folder))
@@ -469,7 +469,7 @@ export default class Server {
         checkLag("server update");
     };
 
-    broadcastPacket(pk: Packet, exclude: Player[] = [], immediate = false) {
+    broadcastPacket(pk: Packet, exclude: Entity[] = [], immediate = false) {
         for (const name in this.players) {
             const player = this.players[name];
             if (!exclude.includes(player)) player.sendPacket(pk, immediate);
@@ -530,7 +530,7 @@ export default class Server {
             this.executeCommandLabel(
                 sender,
                 sender,
-                sender instanceof Entity ? (<any>sender).location : new Location(0, 0, 0, this.defaultWorld),
+                sender instanceof Entity ? (<Entity>sender).location : new Location(0, 0, 0, this.defaultWorld),
                 message.substring(1)
             );
         } else this.processChat(sender, message);

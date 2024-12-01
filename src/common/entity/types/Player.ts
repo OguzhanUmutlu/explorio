@@ -1,16 +1,17 @@
-import {Entities, EntityBoundingBoxes} from "$/meta/Entities";
-import Inventory from "$/item/Inventory";
-import CommandSender from "$/command/CommandSender";
-import {ChunkLengthBits, getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "$/utils/Utils";
-import PlayerNetwork from "$/network/PlayerNetwork";
-import Entity from "$/entity/Entity";
-import {Packets} from "$/network/Packets";
-import {Inventories, InventorySizes} from "$/meta/Inventories";
-import Item from "$/item/Item";
-import EntitySaveStruct from "$/structs/entity/EntitySaveStruct";
-import Packet from "$/network/Packet";
-import {GameMode} from "$/command/arguments/GameModeArgument";
-import Effect from "$/effect/Effect";
+import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
+import Inventory from "@/item/Inventory";
+import CommandSender from "@/command/CommandSender";
+import {getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
+import PlayerNetwork from "@/network/PlayerNetwork";
+import Entity from "@/entity/Entity";
+import {Packets} from "@/network/Packets";
+import {Inventories, InventorySizes} from "@/meta/Inventories";
+import Item from "@/item/Item";
+import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
+import Packet from "@/network/Packet";
+import {GameMode} from "@/command/arguments/GameModeArgument";
+import Effect from "@/effect/Effect";
+import {ChunkLengthBits} from "@/meta/WorldConstants";
 
 export default class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
@@ -45,27 +46,6 @@ export default class Player extends Entity implements CommandSender {
 
     messageTimes: number[] = [];
 
-    constructor() {
-        super();
-
-        this.defaultAttributes = {
-            ...this.defaultAttributes,
-            xp: 0,
-            gamemode: GameMode.Survival,
-            canBreak: true,
-            canPlace: true,
-            canAttack: true,
-            blockReach: 5,
-            attackReach: 5,
-            isFlying: false,
-            canToggleFly: false,
-            instantBreak: false,
-            placeCooldown: 0.3,
-            food: 20,
-            maxFood: 20
-        };
-    };
-
     init() {
         for (const k in Inventories) {
             const v = Inventories[<keyof typeof Inventories>k];
@@ -75,7 +55,7 @@ export default class Player extends Entity implements CommandSender {
         super.init();
     };
 
-    getMovementData(): any {
+    getMovementData() {
         return {
             ...super.getMovementData(),
             rotation: this.rotation
@@ -104,7 +84,7 @@ export default class Player extends Entity implements CommandSender {
             this.world.ensureChunk(x);
             if (!this.sentChunks.has(x)) {
                 this.sentChunks.add(x);
-                this.world.sendChunk(<any>this, x);
+                this.world.sendChunk(this, x);
             }
             ++this.world.chunkReferees[x];
         }

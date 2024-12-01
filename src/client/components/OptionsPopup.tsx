@@ -1,7 +1,7 @@
-import {MainMenuPopup} from "$dom/components/MainMenuPopup";
+import {MainMenuPopup} from "@dom/components/MainMenuPopup";
 import React, {useState} from "react";
-import {loadOptions, Options, ReactState, saveOptions} from "$c/utils/Utils";
-import {terminateClient} from "$dom/Client";
+import {loadOptions, Options, ReactState, saveOptions} from "@c/utils/Utils";
+import {terminateClient} from "@dom/Client";
 
 export function OptionsPopup(O: {
     opt: ReactState<boolean>,

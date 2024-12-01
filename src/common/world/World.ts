@@ -1,26 +1,23 @@
-import {im2f, ItemMetadata} from "$/meta/Items";
-import {B, BM, I} from "$/meta/ItemIds";
-import BoundingBox from "$/entity/BoundingBox";
-import Generator from "$/world/generators/Generator";
-import FlatGenerator from "$/world/generators/FlatGenerator";
-import DefaultGenerator from "$/world/generators/DefaultGenerator";
-import FlowerLandGenerator from "$/world/generators/FlowerLandGenerator";
-import CustomGenerator from "$/world/generators/CustomGenerator";
+import {im2f, ItemMetadata} from "@/meta/Items";
+import {B, BM, I} from "@/meta/ItemIds";
+import BoundingBox from "@/entity/BoundingBox";
+import Generator from "@/world/generators/Generator";
+import FlatGenerator from "@/world/generators/FlatGenerator";
+import DefaultGenerator from "@/world/generators/DefaultGenerator";
+import FlowerLandGenerator from "@/world/generators/FlowerLandGenerator";
+import CustomGenerator from "@/world/generators/CustomGenerator";
 import {
-    ChunkLength,
-    ChunkLengthBits,
-    ChunkLengthN,
-    WorldHeight,
     zstdOptionalDecode,
     zstdOptionalEncode
-} from "$/utils/Utils";
-import Player from "$/entity/types/Player";
-import Packet from "$/network/Packet";
-import Entity from "$/entity/Entity";
-import Server from "$/Server";
-import {Packets} from "$/network/Packets";
-import ChunkStruct from "$/structs/world/ChunkStruct";
+} from "@/utils/Utils";
+import Player from "@/entity/types/Player";
+import Packet from "@/network/Packet";
+import Entity from "@/entity/Entity";
+import Server from "@/Server";
+import {Packets} from "@/network/Packets";
+import ChunkStruct from "@/structs/world/ChunkStruct";
 import {z} from "zod";
+import {ChunkLength, ChunkLengthBits, ChunkLengthN, WorldHeight} from "@/meta/WorldConstants";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -227,14 +224,14 @@ export default class World {
     };
 
     save() {
-        for (let x of this.dirtyChunks) {
+        for (const x of this.dirtyChunks) {
             this.saveChunk(x);
         }
         this.dirtyChunks.clear();
     };
 
     unload() {
-        for (let x in this.chunks) {
+        for (const x in this.chunks) {
             this.unloadChunk(parseInt(x));
         }
     };
@@ -380,14 +377,14 @@ export default class World {
         return players;
     };
 
-    broadcastPacketAt(x: number, pk: Packet, exclude: Player[] = [], immediate = false) {
+    broadcastPacketAt(x: number, pk: Packet, exclude: Entity[] = [], immediate = false) {
         const chunkX = x >> ChunkLengthBits;
         for (const player of this.getChunkViewers(chunkX)) {
             if (!exclude.includes(player)) player.sendPacket(pk, immediate);
         }
     };
 
-    broadcastBlockAt(x: number, y: number, fullId = null, exclude: Player[] = [], immediate = false) {
+    broadcastBlockAt(x: number, y: number, fullId = null, exclude: Entity[] = [], immediate = false) {
         if (this.server.isClientSide()) return;
         const chunkX = x >> ChunkLengthBits;
         fullId ??= this.getFullBlockAt(x, y);

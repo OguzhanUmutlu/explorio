@@ -1,5 +1,5 @@
-import {ItemsByAccess} from "$/meta/ItemIds";
-import ItemDescriptor from "$/item/ItemDescriptor";
+import {ItemsByAccess} from "@/meta/ItemIds";
+import ItemDescriptor from "@/item/ItemDescriptor";
 
 export default class ItemPool {
     chance: number;

@@ -1,4 +1,4 @@
-import CustomGenerator from "$/world/generators/CustomGenerator";
+import CustomGenerator from "@/world/generators/CustomGenerator";
 
 export default class FlatGenerator extends CustomGenerator {
     constructor() {

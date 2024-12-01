@@ -1,4 +1,4 @@
-import Effect from "$/effect/Effect";
+import Effect from "@/effect/Effect";
 
 export enum EffectIds {
     Speed,

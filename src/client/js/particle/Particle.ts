@@ -1,4 +1,4 @@
-import Vector2 from "$/utils/Vector2";
+import Vector2 from "@/utils/Vector2";
 
 export default abstract class Particle extends Vector2 {
     done = false;

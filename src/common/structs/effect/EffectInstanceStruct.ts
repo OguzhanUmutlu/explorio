@@ -1,10 +1,10 @@
 import X, {Bin, BufferIndex} from "stramp";
 import {StrampProblem} from "stramp/src/StrampProblem";
-import {EffectIds, Effects} from "$/utils/Effects";
-import {EffectInstance} from "$/effect/EffectInstance";
+import {EffectIds, Effects} from "@/utils/Effects";
+import EffectInstance from "@/effect/EffectInstance";
 
 const BaseStruct = X.object.struct({
-    id: X.any.ofValues(...(<EffectIds[]><any>Object.keys(EffectIds))),
+    id: X.any.ofValues(...<EffectIds[]>Object.values(EffectIds)),
     amplifier: X.u8,
     time: X.u32
 });
@@ -25,7 +25,7 @@ export const EffectInstanceStruct = new class extends Bin<EffectInstance> {
         return 1;
     };
 
-    findProblem(value: any): StrampProblem | void {
+    findProblem(value: EffectInstance): StrampProblem | void {
         if (!(value instanceof EffectInstance)) return this.makeProblem("Not an Effect");
     };
 

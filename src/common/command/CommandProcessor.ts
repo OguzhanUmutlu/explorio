@@ -4,9 +4,9 @@
 // @e - every entity in all worlds
 // @c - every entity in the current chunk
 
-import CommandError from "$/command/CommandError";
-import Token from "$/command/token/Token";
-import SelectorToken from "$/command/token/SelectorToken";
+import CommandError from "@/command/CommandError";
+import Token from "@/command/token/Token";
+import SelectorToken from "@/command/token/SelectorToken";
 
 export const SelectorTags = ["a", "p", "s", "e", "c"] as const;
 export type SelectorTagName = typeof SelectorTags[number];
@@ -132,17 +132,21 @@ export function readRange(text: string, index: number) {
 
 export function readObject<isRaw extends boolean>(
     text: string, index: number, allowSelector = false,
-    raw: isRaw): isRaw extends true ? Token<"rawObject"> : Token<"object"> {
+    raw: isRaw) {
     const char = text[index];
     if (char !== "{") return null;
 
-    const object: Record<string, any> = {};
+    const object = {};
     const startIndex = index;
     index++;
     index = skipWhitespace(text, index);
     for (let i = index; i < text.length;) {
         const char = text[i];
-        if (char === "}") return <any>new Token(text, startIndex, i + 1, raw ? "rawObject" : "object", object);
+        if (char === "}") {
+            return <isRaw extends true ? Token<"rawObject"> : Token<"object">>new Token(
+                text, startIndex, i + 1, raw ? "rawObject" : "object", object);
+        }
+
         if (char === ",") {
             i++;
             continue;
@@ -175,15 +179,15 @@ export function readObject<isRaw extends boolean>(
         }
         i = skipWhitespace(text, value.end);
         if (not) value.yes = 0;
-        object[key.value] = raw ? <any>value : value.value;
+        object[key.value] = raw ? value : value.value;
     }
 
-    throw new Error(`Unclosed object at ${startIndex + 1}th character`)
+    throw new Error(`Unclosed object at ${startIndex + 1}th character`);
 }
 
 export function readArray<isRaw extends boolean>(
     text: string, index: number, allowSelector = false,
-    raw: isRaw): isRaw extends true ? Token<"rawArray"> : Token<"array"> {
+    raw: isRaw) {
     const char = text[index];
     if (char !== "[") return null;
 
@@ -193,7 +197,9 @@ export function readArray<isRaw extends boolean>(
 
     for (let i = index; i < text.length; i++) {
         const char = text[i];
-        if (char === "]") return <any>new Token(text, startIndex, i + 1, raw ? "rawArray" : "array", array);
+        if (char === "]") {
+            return <isRaw extends true ? Token<"rawArray"> : Token<"array">>new Token(text, startIndex, i + 1, raw ? "rawArray" : "array", array);
+        }
 
         const value = (allowSelector ? readSelector(text, i) : null) || readAny(text, i, allowSelector, raw);
         if (!value) throw new Error(`Invalid value at ${i + 1}th character`);
@@ -244,5 +250,5 @@ export function splitParameters(params: string) {
 }
 
 export function cleanText(text: string) {
-    return text.replaceAll(/[\x00-\x1f\x7f-\xa6\xa8-\uffff]/g, "").trim();
+    return text.replaceAll(/\p{C}/gu, "").trim();
 }

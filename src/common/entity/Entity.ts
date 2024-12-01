@@ -1,11 +1,11 @@
-import BoundingBox from "$/entity/BoundingBox";
-import World from "$/world/World";
-import {EntityStructs, getServer, zstdOptionalDecode} from "$/utils/Utils";
-import Location, {getRotationTowards} from "$/utils/Location";
-import {Packets} from "$/network/Packets";
-import EntitySaveStruct from "$/structs/entity/EntitySaveStruct";
-import EffectInstance from "$/effect/EffectInstance";
-import Effect from "$/effect/Effect";
+import BoundingBox from "@/entity/BoundingBox";
+import World from "@/world/World";
+import {EntityStructs, getServer, zstdOptionalDecode} from "@/utils/Utils";
+import Location, {getRotationTowards} from "@/utils/Location";
+import {Packets} from "@/network/Packets";
+import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
+import EffectInstance from "@/effect/EffectInstance";
+import Effect from "@/effect/Effect";
 
 export const DEFAULT_WALK_SPEED = 5;
 export const DEFAULT_FLY_SPEED = 10;
@@ -29,11 +29,11 @@ export default abstract class Entity {
     vy = 0;
     onGround = true;
     bb: BoundingBox;
-    cacheState: any;
+    cacheState: string;
     tags = new Set<string>;
     effects = new Set<EffectInstance>;
 
-    defaultAttributes: Record<string, any> = {
+    attrBase = {
         walkSpeed: DEFAULT_WALK_SPEED,
         flySpeed: DEFAULT_FLY_SPEED,
         jumpVelocity: DEFAULT_JUMP_VELOCITY,
@@ -161,7 +161,7 @@ export default abstract class Entity {
 
     tryToMove(x: number, y: number, dt: number) {
         if (this.immobile) return false;
-        let already = this.getCollidingBlock();
+        const already = this.getCollidingBlock();
         if (already) {
             this.y += dt;
             this.onMovement();
@@ -180,7 +180,7 @@ export default abstract class Entity {
     };
 
     update(dt: number) {
-        let x = this.x, y = this.y;
+        const x = this.x, y = this.y;
         this.vx *= 0.999;
         this.vy *= 0.999;
         this.vy -= this.gravity * dt;
@@ -218,14 +218,14 @@ export default abstract class Entity {
         this.updateCollisionBox();
     };
 
-    getMovementData(): any {
+    getMovementData() {
         return {
             x: this.x,
             y: this.y
         };
     };
 
-    getSpawnData(): any {
+    getSpawnData() {
         return this.getMovementData();
     };
 
@@ -234,7 +234,7 @@ export default abstract class Entity {
             entityId: this.id,
             typeId: this.typeId,
             props: this.getMovementData()
-        }), [<any>this]);
+        }), [this]);
     };
 
     broadcastSpawn() {
@@ -242,11 +242,11 @@ export default abstract class Entity {
             entityId: this.id,
             typeId: this.typeId,
             props: this.getSpawnData()
-        }), [<any>this]);
+        }), [this]);
     };
 
     broadcastDespawn() {
-        this.world.broadcastPacketAt(this.x, new Packets.SEntityRemove(this.id), [<any>this]);
+        this.world.broadcastPacketAt(this.x, new Packets.SEntityRemove(this.id), [this]);
     };
 
     serverUpdate(_dt: number): void {
@@ -291,8 +291,8 @@ export default abstract class Entity {
     };
 
     static spawn(world: World) {
-        // @ts-ignore
-        const entity = <this>new (<any>this);
+        // @ts-expect-error Hello, there, you don't get to throw an error.
+        const entity = <this>new (this);
         entity.world = world;
         entity.init();
         return entity;

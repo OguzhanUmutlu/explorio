@@ -50,6 +50,7 @@ export enum PacketIds {
 
 export const PacketNames = <{ [key in keyof typeof PacketIds]: key }>{};
 
-for (const key in <any>PacketIds) {
+for (const key in PacketIds) {
+    // @ts-expect-error It is readonly so it throws an error.
     PacketNames[key] = key;
 }

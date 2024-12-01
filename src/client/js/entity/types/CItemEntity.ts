@@ -1,6 +1,6 @@
-import CEntity from "$c/entity/CEntity";
-import ItemEntity from "$/entity/types/ItemEntity";
-import {getClientPosition} from "$c/utils/Utils";
+import CEntity from "@c/entity/CEntity";
+import ItemEntity from "@/entity/types/ItemEntity";
+import {getClientPosition} from "@c/utils/Utils";
 
 export default class CItemEntity extends ItemEntity implements CEntity {
     itemId: number = 0;

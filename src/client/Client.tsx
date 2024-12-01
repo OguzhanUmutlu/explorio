@@ -12,22 +12,22 @@ import {
     saveOptions,
     ServerData,
     WorldData
-} from "$c/utils/Utils";
-import CServer from "$c/CServer";
-import ClientNetwork from "$c/network/ClientNetwork";
-import OriginPlayer from "$c/entity/types/OriginPlayer";
-import {OptionsPopup} from "$dom/components/OptionsPopup";
-import CWorld from "$c/world/CWorld";
+} from "@c/utils/Utils";
+import CServer from "@c/CServer";
+import ClientNetwork from "@c/network/ClientNetwork";
+import OriginPlayer from "@c/entity/types/OriginPlayer";
+import {OptionsPopup} from "@dom/components/OptionsPopup";
+import CWorld from "@c/world/CWorld";
 import "fancy-printer";
-import InventoryDiv, {animateInventories} from "$dom/components/InventoryDiv";
-import {Inventories} from "$/meta/Inventories";
-import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "$/utils/Utils";
-import {I} from "$/meta/ItemIds";
-import {Packets} from "$/network/Packets";
-import Buffer from "buffer";
-import Server, {DefaultServerConfig} from "$/Server";
-import PlayerNetwork from "$/network/PlayerNetwork";
-import ParticleManager from "$c/particle/ParticleManager";
+import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
+import {Inventories} from "@/meta/Inventories";
+import {I} from "@/meta/ItemIds";
+import {Packets} from "@/network/Packets";
+import Server, {DefaultServerConfig} from "@/Server";
+import PlayerNetwork from "@/network/PlayerNetwork";
+import ParticleManager from "@c/particle/ParticleManager";
+import Packet from "@/network/Packet";
+import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 
 declare global {
     interface Window {
@@ -46,6 +46,7 @@ export let canvas: HTMLCanvasElement;
 export let chatBox: Div;
 export let chatInput: Input;
 export let ctx: CanvasRenderingContext2D;
+export let f3On: ReactState<boolean>;
 export const f3 = {
     fps: null as ReactState<number>,
     x: null as ReactState<number>,
@@ -272,6 +273,11 @@ function onPressKey(e: KeyboardEvent) {
         if (e.key === "Escape") {
             optionPopup[1](true);
         }
+
+        if (e.key === "F3") {
+            f3On[1](!f3On[0]);
+            e.preventDefault();
+        }
     }
 }
 
@@ -375,7 +381,6 @@ function onChatKeyPress(e: KeyboardEvent) {
 
 export function initClient() {
     saveScreen[1](false);
-    self.Buffer = Buffer["Buffer"] as any;
     Mouse = {...DefaultMouse};
     resetKeyboard();
     Error.stackTraceLimit = 50;
@@ -428,8 +433,8 @@ export function initClient() {
         singlePlayerServer.init();
 
         const serverNetwork = new PlayerNetwork({
-            sendImmediate(data: any) {
-                clientNetwork.processPacketBuffer(data.serialize());
+            send(data: Buffer) {
+                clientNetwork.processPacketBuffer(data);
             },
             kick() {
                 printer.warn("Got kicked for some reason? did you kick yourself?");
@@ -442,18 +447,14 @@ export function initClient() {
 
         clientNetwork.connected = true;
         clientNetwork.worker = {
-            sendImmediate: (pk: any) => serverNetwork.processPacketBuffer(pk.serialize()),
+            postMessage: (e: Buffer) => serverNetwork.processPacketBuffer(e),
             terminate: () => null
-        } as any;
-        clientNetwork.sendPacket = pk => serverNetwork.processPacketBuffer(pk.serialize());
+        };
+        clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPacketBuffer(pk.serialize());
 
         clientNetwork.sendAuth(true);
 
-        clientNetwork.handshakeCb = () => {
-            if (serverNetwork.player) {
-                serverNetwork.player.permissions.add("*");
-            }
-        };
+        serverNetwork.player.permissions.add("*");
     }
 
     Mouse._x = innerWidth / 2;
@@ -461,7 +462,7 @@ export function initClient() {
     Mouse._xSmooth = Mouse._x;
     Mouse._ySmooth = Mouse._y;
 
-    window["$"] = (x: any) => {
+    window["$"] = (x: string | [string]) => {
         if (Array.isArray(x)) x = x[0];
         clientNetwork.sendMessage("/" + x);
     };
@@ -552,6 +553,7 @@ export function Client(O: {
     playerInventoryOn = useState(false);
     chatContainer = useState(false);
     clientUUID = O.clientUUID;
+    f3On = useState(false);
 
     useEffect(() => {
         initClient();
@@ -569,13 +571,13 @@ export function Client(O: {
 
     return <>
         {/* F3 Menu */}
-        <div className="f3-menu">
+        {f3On[0] ? <div className="f3-menu">
             FPS: <span className="f3-fps">{f3.fps[0]}</span><br/>
             X: <span className="f3-x">{f3.x[0]}</span><br/>
             Y: <span className="f3-y">{f3.y[0]}</span><br/>
             VX: <span className="f3-vx">{f3.vx[0]}</span><br/>
             VY: <span className="f3-vy">{f3.vy[0]}</span>
-        </div>
+        </div> : <></>}
 
 
         {/* The game's canvas */}

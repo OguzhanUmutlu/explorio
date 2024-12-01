@@ -1,9 +1,9 @@
-import CommandArgument from "$/command/CommandArgument";
-import {CommandAs} from "$/command/CommandSender";
-import Location from "$/utils/Location";
-import {AnyToken} from "$/command/CommandProcessor";
-import Effect from "$/effect/Effect";
-import {EffectIds, Effects} from "$/utils/Effects";
+import CommandArgument from "@/command/CommandArgument";
+import {CommandAs} from "@/command/CommandSender";
+import Location from "@/utils/Location";
+import {AnyToken} from "@/command/CommandProcessor";
+import Effect from "@/effect/Effect";
+import {EffectIds, Effects} from "@/utils/Effects";
 
 export default class EffectArgument extends CommandArgument<Effect> {
     default = Effects[0];

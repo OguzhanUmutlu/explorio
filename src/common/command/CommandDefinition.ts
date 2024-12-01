@@ -1,75 +1,75 @@
-import CommandArgument from "$/command/CommandArgument";
-import NumberArgument from "$/command/arguments/NumberArgument";
-import GameModeArgument from "$/command/arguments/GameModeArgument";
-import PositionArgument from "$/command/arguments/PositionArgument";
-import EntitiesArgument from "$/command/arguments/EntitiesArgument";
-import TextArgument from "$/command/arguments/TextArgument";
-import BoolArgument from "$/command/arguments/BoolArgument";
-import ObjectArgument from "$/command/arguments/ObjectArgument";
-import ArrayArgument from "$/command/arguments/ArrayArgument";
-import CommandSender, {CommandAs} from "$/command/CommandSender";
-import Location from "$/utils/Location";
-import EntityArgument from "$/command/arguments/EntityArgument";
-import LabelArgument from "$/command/arguments/LabelArgument";
-import EffectArgument from "$/command/arguments/EffectArgument";
+import CommandArgument from "@/command/CommandArgument";
+import NumberArgument from "@/command/arguments/NumberArgument";
+import GameModeArgument from "@/command/arguments/GameModeArgument";
+import PositionArgument from "@/command/arguments/PositionArgument";
+import EntitiesArgument from "@/command/arguments/EntitiesArgument";
+import TextArgument from "@/command/arguments/TextArgument";
+import BoolArgument from "@/command/arguments/BoolArgument";
+import ObjectArgument from "@/command/arguments/ObjectArgument";
+import ArrayArgument from "@/command/arguments/ArrayArgument";
+import CommandSender, {CommandAs} from "@/command/CommandSender";
+import Location from "@/utils/Location";
+import EntityArgument from "@/command/arguments/EntityArgument";
+import LabelArgument from "@/command/arguments/LabelArgument";
+import EffectArgument from "@/command/arguments/EffectArgument";
 
-export type Append<T extends any[] | [], V> = T extends [] ? [V] : [...T, V];
+export type Append<T extends unknown[] | [], V> = T extends [] ? [V] : [...T, V];
 
 export type CommandDefinitionType = CommandDefinition<CommandArgument[]>;
 
 export default class CommandDefinition<T extends CommandArgument[] = []> {
     permission: string | false = false;
-    arguments: CommandArgument[] = <any>[];
-    run: (sender: CommandSender, as: CommandAs | null, at: Location, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => any | void;
+    arguments = <CommandArgument[]>[];
+    run: (sender: CommandSender, as: CommandAs | null, at: Location, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => unknown;
 
-    addArgumentViaClass<V extends CommandArgument>(clazz: new (name: string) => V, name: string, fn?: (n: V) => any): CommandDefinition<Append<T, V>> {
+    addArgumentViaClass<V extends CommandArgument>(clazz: new (name: string) => V, name: string, fn?: (n: V) => V) {
         const arg = new clazz(name);
         if (fn) fn(arg);
         this.arguments.push(arg);
-        return <any>this;
+        return <CommandDefinition<Append<T, V>>>this;
     };
 
-    addNumberArgument<M extends NumberArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addNumberArgument<M extends NumberArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(NumberArgument, name, fn);
     };
 
-    addGameModeArgument<M extends GameModeArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addGameModeArgument<M extends GameModeArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(NumberArgument, name, fn);
     };
 
-    addEffectArgument<M extends EffectArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addEffectArgument<M extends EffectArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(EffectArgument, name, fn);
     };
 
-    addPositionArgument<M extends PositionArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addPositionArgument<M extends PositionArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(PositionArgument, name, fn);
     };
 
-    addEntitiesArgument<M extends EntitiesArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addEntitiesArgument<M extends EntitiesArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(EntitiesArgument, name, fn);
     };
 
-    addEntityArgument<M extends EntityArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addEntityArgument<M extends EntityArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(EntityArgument, name, fn);
     };
 
-    addTextArgument<M extends TextArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addTextArgument<M extends TextArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(TextArgument, name, fn);
     };
 
-    addBoolArgument<M extends BoolArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addBoolArgument<M extends BoolArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(BoolArgument, name, fn);
     };
 
-    addObjectArgument<M extends ObjectArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addObjectArgument<M extends ObjectArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(ObjectArgument, name, fn);
     };
 
-    addArrayArgument<M extends ArrayArgument>(name: string, fn?: (n: M) => any): CommandDefinition<Append<T, M>> {
+    addArrayArgument<M extends ArrayArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(ArrayArgument, name, fn);
     };
 
-    addLabelArgument<M extends LabelArgument>(name: string, fn?: (n: M) => any) {
+    addLabelArgument<M extends LabelArgument>(name: string, fn?: (n: M) => M) {
         return <CommandDefinition<T>>this.addArgumentViaClass(LabelArgument, name, fn);
     };
 

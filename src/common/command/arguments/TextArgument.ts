@@ -1,8 +1,8 @@
-import CommandArgument from "$/command/CommandArgument";
-import CommandError from "$/command/CommandError";
-import {CommandAs} from "$/command/CommandSender";
-import Location from "$/utils/Location";
-import {AnyToken} from "$/command/CommandProcessor";
+import CommandArgument from "@/command/CommandArgument";
+import CommandError from "@/command/CommandError";
+import {CommandAs} from "@/command/CommandSender";
+import Location from "@/utils/Location";
+import {AnyToken} from "@/command/CommandProcessor";
 
 export default class TextArgument extends CommandArgument<string> {
     default = "";

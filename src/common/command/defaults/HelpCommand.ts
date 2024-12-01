@@ -1,5 +1,5 @@
-import DefinitiveCommand from "$/command/DefinitiveCommand";
-import CommandDefinition from "$/command/CommandDefinition";
+import DefinitiveCommand from "@/command/DefinitiveCommand";
+import CommandDefinition from "@/command/CommandDefinition";
 
 export default class HelpCommand extends DefinitiveCommand {
     constructor() {

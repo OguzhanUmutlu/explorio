@@ -1,5 +1,5 @@
-import {checkArray, checkObject} from "$/utils/Utils";
-import {TokenType, TokenValue} from "$/command/CommandProcessor";
+import {checkArray, checkObject} from "@/utils/Utils";
+import {TokenType, TokenValue} from "@/command/CommandProcessor";
 
 export default class Token<T extends TokenType = TokenType> {
     raw: string;
@@ -25,17 +25,18 @@ export default class Token<T extends TokenType = TokenType> {
                 throw new Error("Cannot serialize ranges and selectors.");
             case "rawArray":
                 return (<TokenValue<"rawArray">>this.value).map(i => i.toJSON());
-            case "rawObject":
+            case "rawObject": {
                 const val = <TokenValue<"rawObject">>this.value;
                 const obj = {};
                 for (const k in val) {
                     obj[k] = val[k].toJSON();
                 }
                 return obj;
+            }
         }
     };
 
-    equalsValue(value: any) {
+    equalsValue(value: unknown) {
         switch (this.type) {
             case "number":
             case "text":
@@ -49,21 +50,23 @@ export default class Token<T extends TokenType = TokenType> {
                     && value >= this.value[0]
                     && value <= this.value[1];
             case "object":
-                return checkObject(<Object>this.value, value);
+                return checkObject(<object>this.value, value);
             case "array":
-                return checkArray(<any[]>this.value, value);
-            case "rawArray":
+                return checkArray(<unknown[]>this.value, value);
+            case "rawArray": {
                 const arr = <TokenValue<"rawArray">>this.value;
                 for (let i = 0; i < arr.length; i++) {
                     if (!arr[i].equalsValue(value[i])) return false;
                 }
                 return true;
-            case "rawObject":
+            }
+            case "rawObject": {
                 const obj = <TokenValue<"rawObject">>this.value;
                 for (const k in obj) {
                     if (!obj[k].equalsValue(value[k])) return false;
                 }
                 return true;
+            }
         }
     };
 

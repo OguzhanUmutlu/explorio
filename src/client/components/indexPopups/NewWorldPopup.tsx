@@ -1,7 +1,7 @@
-import {StateInput} from "$dom/components/StateInput";
-import {addWorld, ReactState} from "$c/utils/Utils";
-import {MainMenuPopup} from "$dom/components/MainMenuPopup";
-import {getRandomSeed} from "$/world/World";
+import {StateInput} from "@dom/components/StateInput";
+import {addWorld, ReactState} from "@c/utils/Utils";
+import {MainMenuPopup} from "@dom/components/MainMenuPopup";
+import {getRandomSeed} from "@/world/World";
 import React, {useState} from "react";
 
 export function NewWorldPopup(O: {

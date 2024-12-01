@@ -1,10 +1,10 @@
-import Command from "$/command/Command";
-import CommandError from "$/command/CommandError";
-import {skipWhitespace, splitParameters} from "$/command/CommandProcessor";
-import SelectorToken from "$/command/token/SelectorToken";
-import PositionArgument from "$/command/arguments/PositionArgument";
-import CommandSender, {CommandAs} from "$/command/CommandSender";
-import Location from "$/utils/Location";
+import Command from "@/command/Command";
+import CommandError from "@/command/CommandError";
+import {skipWhitespace, splitParameters} from "@/command/CommandProcessor";
+import SelectorToken from "@/command/token/SelectorToken";
+import PositionArgument from "@/command/arguments/PositionArgument";
+import CommandSender, {CommandAs} from "@/command/CommandSender";
+import Location from "@/utils/Location";
 
 export default class ExecuteCommand extends Command {
     posArg = new PositionArgument("position");
@@ -15,15 +15,35 @@ export default class ExecuteCommand extends Command {
 
     execute(sender: CommandSender, as: CommandAs, at: Location, __: string[], label: string) {
         const tokens = splitParameters(label.split(" ").slice(1).join(" "));
+
+        if (tokens.length === 0) {
+            throw new CommandError("No instruction to execute. Try:\n" +
+                "§c/execute run <...command>\n" +
+                "§c/execute as <selector>\n" +
+                "§c/execute at <position>\n" +
+                "§c/execute align x|y|xy\n" +
+                "§c/execute anchored feet|eyes\n" +
+                "§c/execute facing <selector>\n" +
+                "§c/execute facing <position>\n" +
+                "§c/execute in <world>\n" +
+                "§c/execute rotated <selector>\n" +
+                "§c/execute rotated <degrees>\n" +
+                "§c/execute store storage|data\n" +
+                "§c/execute if|unless block <position> <block>\n" +
+                "§c/execute if|unless blocks <start: position> <end: position> <target: position>\n" +
+                "§c/execute if|unless entity <selector>\n" +
+                "§c/execute if|unless loaded <chunkX>\n" +
+                "§c/execute if|unless world <world>");
+        }
+
         let entities: CommandAs[] = [as];
         let locations: Record<number, Location> = {};
         locations[as.id] = at.copy();
 
         for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
-            i++;
+            const token = tokens[i++];
             if (token.rawText === "run") {
-                let last: any;
+                let last: unknown;
                 for (const entity of entities) {
                     last = sender.server.executeCommandLabel(sender, entity, locations[entity.id], token.text.substring(skipWhitespace(token.text, token.end)));
                 }
@@ -79,6 +99,11 @@ export default class ExecuteCommand extends Command {
                 }
             } else if (token.rawText === "anchored") {
                 const val = tokens[i].rawText;
+
+                if (val !== "feet" && val !== "eyes") {
+                    throw new CommandError("Expected 'feet' or 'eyes' after the 'anchored' keyword.");
+                }
+
                 for (const entity of entities) {
                     const loc = locations[entity.id];
                     loc.x = entity.x;
@@ -97,9 +122,14 @@ export default class ExecuteCommand extends Command {
                 }
             } else if (token.rawText === "in") {
                 const folder = tokens[i].rawText;
+
+                if (!(folder in sender.server.worlds)) {
+                    throw new CommandError(`World '${folder}' does not exist.`);
+                }
+
                 for (const entity of entities) {
                     const loc = locations[entity.id];
-                    loc.world = <any>sender.server.worlds[folder];
+                    loc.world = sender.server.worlds[folder];
                 }
             } else if (token.rawText === "rotated") {
                 const token = tokens[i];
@@ -209,9 +239,11 @@ export default class ExecuteCommand extends Command {
                     }
                 } else if (comparator === "entity") {
                     const selector = tokens[i];
+
                     if (!(selector instanceof SelectorToken)) {
                         throw new CommandError("Expected a selector after the 'if entity' subcommand.");
                     }
+
                     i += 1;
                     const oldEntities = entities;
                     entities = [];
@@ -240,11 +272,13 @@ export default class ExecuteCommand extends Command {
                             locations[entity.id] ??= loc.copy();
                         } else delete locations[entity.id];
                     }
-                } else if (comparator === "dimension") {
+                } else if (comparator === "world") {
                     const folderToken = tokens[i];
+
                     if (!folderToken) {
-                        throw new CommandError("Expected a world name after the 'if dimension' subcommand.");
+                        throw new CommandError("Expected a world name after the 'if world' subcommand.");
                     }
+
                     const folder = folderToken.rawText;
 
                     const oldEntities = entities;
