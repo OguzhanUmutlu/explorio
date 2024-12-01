@@ -9,6 +9,7 @@ import {
     isMobileByAgent,
     Options,
     ReactState,
+    renderBoundingBox,
     saveOptions,
     ServerData,
     WorldData
@@ -65,6 +66,7 @@ export let WorldInfo: WorldData;
 export let isMultiPlayer: boolean;
 export const Keyboard: Record<string, boolean> = {};
 export let particleManager: ParticleManager;
+export let renderCollisionBoxes = false;
 
 export function resetKeyboard() {
     for (const k in Keyboard) delete Keyboard[k];
@@ -122,6 +124,10 @@ let _fps = [];
 function animate() {
     frameId = requestAnimationFrame(animate);
 
+    if (!chatContainer[0] && chatBox.scrollTop !== chatBox.scrollHeight) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
     const now = Date.now();
     const dt = ((now - lastRender) || 1) / 1000;
     lastRender = now;
@@ -173,7 +179,14 @@ function animate() {
     for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
         const entities = world.chunkEntities[chunkX] ??= [];
         for (let i = 0; i < entities.length; i++) {
-            entities[i].render(ctx, dt);
+            const entity = entities[i];
+
+            entity.render(ctx, dt);
+
+            if (renderCollisionBoxes) {
+                ctx.strokeStyle = "#ffffff";
+                renderBoundingBox(entity.bb);
+            }
         }
     }
 
@@ -203,6 +216,7 @@ function animate() {
 }
 
 function update(dt: number) {
+    if (singlePlayerServer && singlePlayerServer.pausedUpdates) return;
     const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
     for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
         const entities = Array.from(clientPlayer.world.chunkEntities[chunkX] ??= []);
@@ -241,6 +255,9 @@ addEventListener("wheel", e => {
 });
 */
 
+// Whether any F3 sub-shortcut has been executed
+let executedF3 = false;
+
 function onPressKey(e: KeyboardEvent) {
     if (isAnyUIOpen()) {
         if (!isInChat() && e.key === "e") {
@@ -275,7 +292,7 @@ function onPressKey(e: KeyboardEvent) {
         }
 
         if (e.key === "F3") {
-            f3On[1](!f3On[0]);
+            executedF3 = false;
             e.preventDefault();
         }
     }
@@ -283,6 +300,18 @@ function onPressKey(e: KeyboardEvent) {
 
 function onReleaseKey(e: KeyboardEvent) {
     Keyboard[e.key.toLowerCase()] = false;
+
+    if (!isAnyUIOpen()) {
+        if (e.key === "F3") {
+            if (Keyboard.b) renderCollisionBoxes = !renderCollisionBoxes;
+            else if (!executedF3) f3On[1](!f3On[0]);
+        } else if (e.key === "b") {
+            if (Keyboard.f3) {
+                renderCollisionBoxes = !renderCollisionBoxes;
+                executedF3 = true;
+            }
+        }
+    }
 }
 
 function onLoseFocus() {
@@ -517,17 +546,15 @@ export function terminateClient() {
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 
 function isInChat() {
-    if (isMobileByAgent()) return chatContainer[0];
-    return document.activeElement === chatInput;
+    return chatContainer[0];
 }
 
 function closeChat() {
-    if (isMobileByAgent()) chatContainer[1](false);
-    else chatInput.blur();
+    chatContainer[1](false);
 }
 
 function openChat() {
-    if (isMobileByAgent()) chatContainer[1](true);
+    chatContainer[1](true);
     requestAnimationFrame(() => chatInput.focus());
 }
 
@@ -554,6 +581,7 @@ export function Client(O: {
     chatContainer = useState(false);
     clientUUID = O.clientUUID;
     f3On = useState(false);
+    if (singlePlayerServer) singlePlayerServer.pausedUpdates = optionPopup[0];
 
     useEffect(() => {
         initClient();
@@ -585,9 +613,7 @@ export function Client(O: {
 
 
         {/* Chat Container */}
-        <div className={isMobile ? "mobile-chat-container" : "chat-container"} style={
-            isMobile ? (chatContainer[0] ? {} : {opacity: "0", pointerEvents: "none"}) : {}
-        }>
+        <div className={chatContainer[0] ? "mobile-chat-container" : "chat-container"}>
             <div className="chat-messages" ref={el => chatBox = el}>
             </div>
             <input className="chat-input" ref={el => chatInput = el}/>

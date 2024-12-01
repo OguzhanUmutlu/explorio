@@ -137,7 +137,7 @@ export default abstract class Entity {
         this.renderX += (this.x - this.renderX) / 5;
         this.renderY += (this.y - this.renderY) / 5;
     };
-
+    
     calculateGround() { // used in the server-side
         this.y -= 0.01;
         const collisions = this.world.getBlockCollisions(this.bb, 1);

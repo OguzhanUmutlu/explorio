@@ -24,7 +24,7 @@ export default class OriginPlayer extends CPlayer {
     };
 
     walkHorizontal(sign: 1 | -1, dt: number) {
-        this.tryToMove(sign * (Keyboard.shift ? 2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed * dt, 0, dt);
+        this.tryToMove(sign * (Keyboard.shift ? 1.2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed * dt, 0, dt);
     };
 
     placeIfCan() {
