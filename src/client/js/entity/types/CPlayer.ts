@@ -86,9 +86,11 @@ export default class CPlayer extends Player implements CEntity {
         if (isWalking && this.onGround) {
             this.walkSoundTime = Math.max(0, this.walkSoundTime - dt);
             if (this.walkSoundTime === 0) {
-                const block = this.world.getBlock(this.x, this.y - 1);
-                this.world.playSound(block.randomStep(), this.x, this.y - 1);
-                this.walkSoundTime = 0.3;
+                const block = this.getGroundBlock();
+                if (block) {
+                    this.world.playSound(block.meta.randomStep(), block.x, block.y - 1);
+                    this.walkSoundTime = 0.3;
+                }
             }
         } else this.walkSoundTime = 0;
 

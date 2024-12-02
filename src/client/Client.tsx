@@ -29,6 +29,7 @@ import PlayerNetwork from "@/network/PlayerNetwork";
 import ParticleManager from "@c/particle/ParticleManager";
 import Packet from "@/network/Packet";
 import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
+import Entity from "@/entity/Entity";
 
 declare global {
     interface Window {
@@ -177,7 +178,7 @@ function animate() {
 
     const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
     for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
-        const entities = world.chunkEntities[chunkX] ??= [];
+        const entities = world.chunkEntities[chunkX] ??= [] as Entity[];
         for (let i = 0; i < entities.length; i++) {
             const entity = entities[i];
 
@@ -186,6 +187,8 @@ function animate() {
             if (renderCollisionBoxes) {
                 ctx.strokeStyle = "#ffffff";
                 renderBoundingBox(entity.bb);
+                ctx.strokeStyle = "#ff0000";
+                renderBoundingBox(entity.groundBB);
             }
         }
     }

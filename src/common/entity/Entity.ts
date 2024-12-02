@@ -7,10 +7,11 @@ import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import EffectInstance from "@/effect/EffectInstance";
 import Effect from "@/effect/Effect";
 
-export const DEFAULT_WALK_SPEED = 5;
-export const DEFAULT_FLY_SPEED = 10;
-export const DEFAULT_JUMP_VELOCITY = 7;
-export const DEFAULT_GRAVITY = 18;
+export const DefaultWalkSpeed = 5;
+export const DefaultFlySpeed = 10;
+export const DefaultJumpVelocity = 7;
+export const DefaultGravity = 18;
+export const GroundHeight = 0.05;
 
 let _entity_id = 0;
 
@@ -29,29 +30,17 @@ export default abstract class Entity {
     vy = 0;
     onGround = true;
     bb: BoundingBox;
+    groundBB = new BoundingBox(0, 0, 0, GroundHeight);
     cacheState: string;
     tags = new Set<string>;
     effects = new Set<EffectInstance>;
 
-    attrBase = {
-        walkSpeed: DEFAULT_WALK_SPEED,
-        flySpeed: DEFAULT_FLY_SPEED,
-        jumpVelocity: DEFAULT_JUMP_VELOCITY,
-        health: 20,
-        maxHealth: 20,
-        gravity: DEFAULT_GRAVITY,
-        canPhase: false,
-        immobile: false,
-        invincible: false,
-        invisible: false
-    };
-
-    walkSpeed = DEFAULT_WALK_SPEED;
-    flySpeed = DEFAULT_FLY_SPEED;
-    jumpVelocity = DEFAULT_JUMP_VELOCITY;
+    walkSpeed = DefaultWalkSpeed;
+    flySpeed = DefaultFlySpeed;
+    jumpVelocity = DefaultJumpVelocity;
     health = 20;
     maxHealth = 20;
-    gravity = DEFAULT_GRAVITY;
+    gravity = DefaultGravity;
     canPhase = false;
     immobile = false;
     invincible = false;
@@ -137,12 +126,9 @@ export default abstract class Entity {
         this.renderX += (this.x - this.renderX) / 5;
         this.renderY += (this.y - this.renderY) / 5;
     };
-    
+
     calculateGround() { // used in the server-side
-        this.y -= 0.01;
-        const collisions = this.world.getBlockCollisions(this.bb, 1);
-        this.y += 0.01;
-        this.onGround = collisions.length === 0;
+        this.onGround = !!this.getGroundBlock();
     };
 
     getCollidingBlock() {
@@ -153,6 +139,14 @@ export default abstract class Entity {
         return this.world.getBlockCollisions(this.bb, limit);
     };
 
+    getGroundBlock() {
+        return this.getGroundBlocks(1)[0];
+    };
+
+    getGroundBlocks(limit = 1) {
+        return this.world.getBlockCollisions(this.groundBB, limit);
+    };
+
     teleport(x: number, y: number) {
         this.x = x;
         this.y = y;
@@ -161,22 +155,47 @@ export default abstract class Entity {
 
     tryToMove(x: number, y: number, dt: number) {
         if (this.immobile) return false;
+
+        const eps = 0.001;
+
         const already = this.getCollidingBlock();
         if (already) {
             this.y += dt;
             this.onMovement();
             return false;
         }
-        this.x += x;
-        this.y += y;
-        this.onMovement();
-        if (this.getCollidingBlock()) {
-            this.x -= x;
-            this.y -= y;
-            this.onMovement();
-            return false;
+
+        let dx = x;
+        let mx = Math.abs(dx) <= eps;
+        while (Math.abs(dx) > eps) {
+            this.x += dx;
+            this.updateCollisionBox();
+            if (this.getCollidingBlock()) {
+                this.x -= dx;
+                dx /= 2;
+            } else {
+                mx = true;
+                break;
+            }
         }
-        return true;
+
+        let dy = y;
+        let my = Math.abs(dy) <= eps;
+        while (Math.abs(dy) > eps) {
+            this.y += dy;
+            console.log(dy)
+            this.updateCollisionBox();
+            if (this.getCollidingBlock()) {
+                this.y -= dy;
+                dy /= 2;
+            } else {
+                my = true;
+                break;
+            }
+        }
+
+        this.updateCollisionBox();
+        return mx && my;
     };
 
     update(dt: number) {
@@ -186,7 +205,7 @@ export default abstract class Entity {
         this.vy -= this.gravity * dt;
         const hitGround = !this.tryToMove(0, this.vy * dt, dt);
         this.tryToMove(this.vx * dt, 0, dt);
-        this.onGround = this.vy <= 0 && hitGround;
+        this.calculateGround();
         if (hitGround) this.vy = 0;
         if (this.x !== x || this.y !== y) this.onMovement();
         for (const effect of Array.from(this.effects)) {
@@ -207,6 +226,7 @@ export default abstract class Entity {
         this._y = this.y;
         const oldChunk = this.chunkEntities;
         const newChunk = this.world.getChunkEntitiesAt(this.x);
+
         if (oldChunk !== newChunk) {
             newChunk.push(this);
             if (oldChunk) {
@@ -214,8 +234,12 @@ export default abstract class Entity {
                 if (index !== -1) oldChunk.splice(index, 1);
             }
         }
+
         this.chunkEntities = newChunk;
         this.updateCollisionBox();
+        this.groundBB.x = this.bb.x;
+        this.groundBB.y = this.bb.y - GroundHeight;
+        this.groundBB.width = this.bb.width;
     };
 
     getMovementData() {

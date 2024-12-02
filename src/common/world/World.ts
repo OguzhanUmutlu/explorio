@@ -308,12 +308,12 @@ export default class World {
     };
 
     getBlockCollisions(bb: BoundingBox, limit = Infinity) {
-        const collisions: { x: number, y: number, block: ItemMetadata }[] = [];
+        const collisions: { x: number, y: number, meta: ItemMetadata }[] = [];
         for (let x = Math.floor(bb.x); x <= Math.ceil(bb.x + bb.width); x++) {
             for (let y = Math.floor(bb.y); y <= Math.ceil(bb.y + bb.height); y++) {
                 const block = this.getBlock(x, y);
                 if (!block.canBePhased && bb.collidesBlock(x, y)) { // TODO: check for collision after adding slabs etc.
-                    collisions.push({x, y, block});
+                    collisions.push({x, y, meta: block});
                     if (collisions.length >= limit) return collisions;
                 }
             }

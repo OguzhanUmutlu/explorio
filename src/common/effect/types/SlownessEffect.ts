@@ -1,5 +1,5 @@
 import Effect from "@/effect/Effect";
-import Entity from "@/entity/Entity";
+import Entity, {DefaultWalkSpeed} from "@/entity/Entity";
 import {EffectIds} from "@/utils/Effects";
 
 export default class SlownessEffect extends Effect {
@@ -10,6 +10,6 @@ export default class SlownessEffect extends Effect {
     };
 
     remove(entity: Entity) {
-        entity.walkSpeed = entity.attrBase.walkSpeed;
+        entity.walkSpeed = DefaultWalkSpeed;
     };
 }
