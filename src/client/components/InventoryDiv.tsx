@@ -8,7 +8,7 @@ const InventoryDivs: Record<string, [typeof Inventories[keyof typeof Inventories
 export function animateInventories() {
     for (const key in InventoryDivs) {
         const [inventoryType, canvases, counts] = InventoryDivs[key];
-        const inventory = clientPlayer[inventoryType];
+        const inventory = clientPlayer.containers[inventoryType];
         if (inventory.cleanDirty) {
             for (let i = 0; i < canvases.length; i++) {
                 canvases[i].getContext("2d").clearRect(0, 0, canvases[i].width, canvases[i].height);
@@ -30,7 +30,7 @@ export function animateInventories() {
     }
 
     for (const key in InventoryDivs) {
-        const inventory = clientPlayer[InventoryDivs[key][0]];
+        const inventory = clientPlayer.containers[InventoryDivs[key][0]];
         inventory.cleanDirty = false;
         inventory.dirtyIndexes.clear();
     }

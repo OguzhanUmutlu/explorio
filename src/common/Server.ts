@@ -453,19 +453,17 @@ export default class Server {
     update(dt: number) {
         if (this.pausedUpdates) return;
         checkLag("server update", 10);
+
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
         }
+
         this.saveCounter += dt;
         if (this.saveCounter > this.config.saveIntervalSeconds) {
             this.saveWorlds();
             this.saveCounter = 0;
         }
 
-        for (const name in this.players) {
-            const player = this.players[name];
-            player.network.releaseBatch();
-        }
         checkLag("server update");
     };
 

@@ -31,13 +31,13 @@
     image-rendering: pixelated;
     -ms-interpolation-mode: nearest-neighbor;
     font-family: Minecraft, Calibri, serif;
-    user-select: none;
     transition: translate 0.1s, margin 0.1s, padding 0.1s, scale 0.1s, filter 0.1s, backdrop-filter 0.1s;
 }
 
 body {
     color: white;
     letter-spacing: -1px;
+    user-select: none;
 }
 
 .rainbow-text {

@@ -46,10 +46,12 @@ export default class Player extends Entity implements CommandSender {
 
     messageTimes: number[] = [];
 
+    containers = <Record<typeof Inventories[keyof typeof Inventories], Inventory>>{};
+
     init() {
         for (const k in Inventories) {
             const v = Inventories[<keyof typeof Inventories>k];
-            this[v] ??= new Inventory(InventorySizes[v]);
+            this.containers[v] ??= new Inventory(InventorySizes[v]);
         }
 
         super.init();
@@ -63,7 +65,7 @@ export default class Player extends Entity implements CommandSender {
     };
 
     get handItem() {
-        return this[Inventories.Hotbar].get(this.handIndex);
+        return this.containers.hotbar.get(this.handIndex);
     };
 
     hasPermission(permission: string): boolean {
@@ -108,6 +110,12 @@ export default class Player extends Entity implements CommandSender {
                 return;
             }
         }
+
+        for (const name in this.containers) {
+            this.network.syncInventory(name);
+        }
+
+        this.network.releaseBatch();
     };
 
     despawn() {
@@ -159,12 +167,12 @@ export default class Player extends Entity implements CommandSender {
     };
 
     addItem(item: Item) {
-        if (!this[Inventories.Hotbar].add(item)) return this[Inventories.Player].add(item);
+        if (!this.containers.hotbar.add(item)) return this.containers.player.add(item);
         return true;
     };
 
     removeItem(item: Item) {
-        if (!this[Inventories.Hotbar].remove(item)) return this[Inventories.Player].remove(item);
+        if (!this.containers.hotbar.remove(item)) return this.containers.player.remove(item);
         return true;
     };
 

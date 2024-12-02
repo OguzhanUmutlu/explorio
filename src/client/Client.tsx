@@ -22,7 +22,7 @@ import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
 import {Inventories} from "@/meta/Inventories";
-import {I} from "@/meta/ItemIds";
+import {I, ItemIds} from "@/meta/ItemIds";
 import {Packets} from "@/network/Packets";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
@@ -30,6 +30,7 @@ import ParticleManager from "@c/particle/ParticleManager";
 import Packet from "@/network/Packet";
 import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import Entity from "@/entity/Entity";
+import Item from "@/item/Item";
 
 declare global {
     interface Window {
@@ -68,13 +69,19 @@ export let isMultiPlayer: boolean;
 export const Keyboard: Record<string, boolean> = {};
 export let particleManager: ParticleManager;
 export let renderCollisionBoxes = false;
+let cameraZoom = 1;
+let cameraZoomRender = 1;
 
 export function resetKeyboard() {
     for (const k in Keyboard) delete Keyboard[k];
 }
 
+function updateTileSize() {
+    Options.tileSize = Math.round(innerWidth / 21) * cameraZoomRender;
+}
+
 function onResize() {
-    Options.tileSize = Math.round(innerWidth / 21);
+    updateTileSize();
     canvas.width = innerWidth + 1;
     canvas.height = innerHeight + 1;
     ctx.imageSmoothingEnabled = false;
@@ -134,6 +141,12 @@ function animate() {
     lastRender = now;
     _fps = _fps.filter(i => i > now - 1000);
     _fps.push(now);
+
+    cameraZoomRender += (cameraZoom - cameraZoomRender) * 0.1;
+
+    cameraZoom = Keyboard.shift ? 0.9 : 1;
+
+    updateTileSize();
 
     f3.fps[1](Math.floor(_fps.length));
     f3.x[1](+clientPlayer.x.toFixed(2));
@@ -487,6 +500,11 @@ export function initClient() {
         clientNetwork.sendAuth(true);
 
         serverNetwork.player.permissions.add("*");
+
+        setInterval(() => {
+            // TODO: TEST
+            if (serverNetwork.player) serverNetwork.player.containers.player.add(new Item(ItemIds.STONE));
+        }, 3000);
     }
 
     Mouse._x = innerWidth / 2;
@@ -554,6 +572,7 @@ function isInChat() {
 
 function closeChat() {
     chatContainer[1](false);
+    chatInput.blur();
 }
 
 function openChat() {
@@ -616,7 +635,7 @@ export function Client(O: {
 
 
         {/* Chat Container */}
-        <div className={chatContainer[0] ? "mobile-chat-container" : "chat-container"}>
+        <div className={chatContainer[0] ? "full-chat-container" : "chat-container"}>
             <div className="chat-messages" ref={el => chatBox = el}>
             </div>
             <input className="chat-input" ref={el => chatInput = el}/>

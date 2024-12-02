@@ -183,7 +183,6 @@ export default abstract class Entity {
         let my = Math.abs(dy) <= eps;
         while (Math.abs(dy) > eps) {
             this.y += dy;
-            console.log(dy)
             this.updateCollisionBox();
             if (this.getCollidingBlock()) {
                 this.y -= dy;
@@ -194,7 +193,7 @@ export default abstract class Entity {
             }
         }
 
-        this.updateCollisionBox();
+        this.onMovement();
         return mx && my;
     };
 
@@ -237,6 +236,10 @@ export default abstract class Entity {
 
         this.chunkEntities = newChunk;
         this.updateCollisionBox();
+        this.updateGroundBoundingBox();
+    };
+
+    updateGroundBoundingBox() {
         this.groundBB.x = this.bb.x;
         this.groundBB.y = this.bb.y - GroundHeight;
         this.groundBB.width = this.bb.width;

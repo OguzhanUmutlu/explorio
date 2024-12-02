@@ -11,6 +11,7 @@ import {Version} from "@/Versions";
 import {BM} from "@/meta/ItemIds";
 import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
+import Inventory from "@/item/Inventory";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -197,6 +198,18 @@ export default class ClientNetwork {
     processSSetAttributes({data}: PacketByName<"SSetAttributes">) {
         for (const k in data) {
             clientPlayer[k] = data[k];
+        }
+    };
+
+    processSSetContainer({data}: PacketByName<"SContainerSet">) {
+        const container = <Inventory>clientPlayer.containers[data.containerId];
+        container.setContents(data.contents);
+    };
+
+    processSContainerSetIndices({data}: PacketByName<"SContainerSetIndices">) {
+        for (const d of data) {
+            const inv = <Inventory>clientPlayer.containers[d.name];
+            inv.set(d.index, d.item);
         }
     };
 

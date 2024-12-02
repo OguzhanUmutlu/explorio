@@ -4,7 +4,7 @@ import {initCommon} from "@/utils/Inits";
 import {Canvas} from "@/utils/Texture";
 import BoundingBox from "@/entity/BoundingBox";
 import {camera, canvas, ctx} from "@dom/Client";
-import {ClassOf, getServer, SoundFiles} from "@/utils/Utils";
+import {ClassOf, SoundFiles} from "@/utils/Utils";
 import {useState} from "react";
 import {configure, fs} from "@zenfs/core";
 import {WebStorage} from "@zenfs/dom";
@@ -163,7 +163,7 @@ export function removeWorld(uuid: string) {
     const world = worlds.find(i => i.uuid === uuid);
     if (!world) return;
 
-    getServer().deleteFile("./singleplayer/" + uuid);
+    bfs.rmSync("./singleplayer/" + uuid, {recursive: true});
 
     worlds.splice(worlds.indexOf(world), 1);
     localStorage.setItem("explorio.worlds", JSON.stringify(worlds));

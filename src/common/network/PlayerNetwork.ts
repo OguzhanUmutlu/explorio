@@ -6,6 +6,7 @@ import {PacketIds} from "@/meta/PacketIds";
 import {getServer} from "@/utils/Utils";
 import {ItemIds} from "@/meta/ItemIds";
 import {Version} from "@/Versions";
+import Inventory from "@/item/Inventory";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -162,6 +163,24 @@ export default class PlayerNetwork {
                 this.kick("Invalid packet");
                 return;
             }
+        }
+    };
+
+    syncInventory(name: string, immediate = false) {
+        const inv = <Inventory>this.player.containers[name];
+        if (inv.cleanDirty) {
+            this.sendPacket(new Packets.SContainerSet({
+                name, items: inv.getContents()
+            }), immediate);
+            inv.cleanDirty = false;
+            inv.dirtyIndexes.clear();
+        } else if (inv.dirtyIndexes.size > 0) {
+            const indices = Array.from(inv.dirtyIndexes);
+            const contents = inv.getContents();
+            this.sendPacket(new Packets.SContainerSetIndices(indices.map(i => {
+                return {index: i, name, item: contents[i]};
+            })), immediate);
+            inv.dirtyIndexes.clear();
         }
     };
 
