@@ -22,7 +22,7 @@ import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
 import {Inventories} from "@/meta/Inventories";
-import {I, ItemIds} from "@/meta/ItemIds";
+import {I} from "@/meta/ItemIds";
 import {Packets} from "@/network/Packets";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
@@ -30,7 +30,6 @@ import ParticleManager from "@c/particle/ParticleManager";
 import Packet from "@/network/Packet";
 import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import Entity from "@/entity/Entity";
-import Item from "@/item/Item";
 
 declare global {
     interface Window {
@@ -500,11 +499,6 @@ export function initClient() {
         clientNetwork.sendAuth(true);
 
         serverNetwork.player.permissions.add("*");
-
-        setInterval(() => {
-            // TODO: TEST
-            if (serverNetwork.player) serverNetwork.player.containers.player.add(new Item(ItemIds.STONE));
-        }, 3000);
     }
 
     Mouse._x = innerWidth / 2;

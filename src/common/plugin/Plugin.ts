@@ -1,5 +1,5 @@
 import {z} from "zod";
-import Server from "@/Server";
+import Server, {EventHandlersType} from "@/Server";
 
 export const ZPluginMetadata = z.object({
     name: z.string(),
@@ -18,15 +18,18 @@ export const ZPluginMetadata = z.object({
 export type PluginMetadata = z.infer<typeof ZPluginMetadata>;
 
 export default abstract class Plugin {
+    static _eventHandlers: EventHandlersType = new Map;
+    _eventHandlers: EventHandlersType = new Map;
+
     protected constructor(readonly server: Server, readonly metadata: PluginMetadata) {
     };
 
-    load(): void {
+    onLoad(): void {
     };
 
-    enable(): void {
+    onEnable(): void {
     };
 
-    disable(): void {
+    onDisable(): void {
     };
 }

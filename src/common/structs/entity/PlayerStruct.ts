@@ -8,7 +8,7 @@ export default EntityStruct.extend({
     world: WorldStruct, // This is required because player files aren't located inside world folders
     permissions: X.set.typed(X.string16),
     handIndex: X.u8,
-    containers: X.object.struct({
+    inventories: X.object.struct({
         [Inventories.Hotbar]: new InventoryStruct(InventorySizes.hotbar),
         [Inventories.Player]: new InventoryStruct(InventorySizes.player),
         [Inventories.Armor]: new InventoryStruct(InventorySizes.armor),

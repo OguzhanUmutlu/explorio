@@ -6,7 +6,7 @@ import {PacketIds} from "@/meta/PacketIds";
 import {getServer} from "@/utils/Utils";
 import {ItemIds} from "@/meta/ItemIds";
 import {Version} from "@/Versions";
-import Inventory from "@/item/Inventory";
+import {InventoryName} from "@/meta/Inventories";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -94,11 +94,13 @@ export default class PlayerNetwork {
             x: player.x,
             y: player.y
         }), true);
+        this.sendInventories(true);
         this.sendAttributes(true);
     };
 
     processCPlaceBlock({data: {x, y}}: PacketByName<"CPlaceBlock">) {
         const world = this.player.world;
+
         if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.GRASS_BLOCK, 0)) return this.sendBlock(x, y);
     };
 
@@ -166,20 +168,36 @@ export default class PlayerNetwork {
         }
     };
 
-    syncInventory(name: string, immediate = false) {
-        const inv = <Inventory>this.player.containers[name];
-        if (inv.cleanDirty) {
-            this.sendPacket(new Packets.SContainerSet({
-                name, items: inv.getContents()
-            }), immediate);
-            inv.cleanDirty = false;
+    sendInventories(immediate = false) {
+        for (const name in this.player.inventories) {
+            this.sendInventory(<InventoryName>name, immediate);
+        }
+    };
+
+    sendInventory(name: InventoryName, immediate = false) {
+        const inv = this.player.inventories[name];
+        this.sendPacket(new Packets.SContainerSet({
+            name, items: inv.getContents()
+        }), immediate);
+    };
+
+    sendInventoryIndices(name: InventoryName, indices: number[], immediate = false) {
+        const inv = this.player.inventories[name];
+        const contents = inv.getContents();
+        this.sendPacket(new Packets.SContainerSetIndices({
+            name, indices: indices.map(i => ({index: i, item: contents[i]}))
+        }), immediate);
+    };
+
+    syncInventory(name: InventoryName, immediate = false) {
+        const inv = this.player.inventories[name];
+        if (inv.wholeDirty) {
+            this.sendInventory(name, immediate);
+            inv.wholeDirty = false;
             inv.dirtyIndexes.clear();
         } else if (inv.dirtyIndexes.size > 0) {
             const indices = Array.from(inv.dirtyIndexes);
-            const contents = inv.getContents();
-            this.sendPacket(new Packets.SContainerSetIndices(indices.map(i => {
-                return {index: i, name, item: contents[i]};
-            })), immediate);
+            this.sendInventoryIndices(name, indices, immediate);
             inv.dirtyIndexes.clear();
         }
     };

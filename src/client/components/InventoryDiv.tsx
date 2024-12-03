@@ -1,43 +1,62 @@
 import React from "react";
-import {Inventories, InventorySizes} from "@/meta/Inventories";
+import {InventoryName, InventorySizes} from "@/meta/Inventories";
 import {clientPlayer} from "@dom/Client";
 import {Div} from "@c/utils/Utils";
+import {checkLag} from "@/utils/Utils";
 
-const InventoryDivs: Record<string, [typeof Inventories[keyof typeof Inventories], HTMLCanvasElement[], Div[]]> = {};
+const InventoryDivs: Record<string, [InventoryName, HTMLCanvasElement[], Div[]]> = {};
 
 export function animateInventories() {
+    checkLag("animate inventories", 10);
+
+    const removed = {} as Record<InventoryName, Set<number>>;
+
     for (const key in InventoryDivs) {
         const [inventoryType, canvases, counts] = InventoryDivs[key];
-        const inventory = clientPlayer.containers[inventoryType];
-        if (inventory.cleanDirty) {
+        const inventory = clientPlayer.inventories[inventoryType];
+        if (inventory.wholeDirty) {
             for (let i = 0; i < canvases.length; i++) {
-                canvases[i].getContext("2d").clearRect(0, 0, canvases[i].width, canvases[i].height);
-                counts[i].innerText = "";
+                inventory.dirtyIndexes.add(i);
             }
+
+            inventory.wholeDirty = false;
         }
+
+        const rm = removed[inventoryType] ??= new Set<number>;
+
         for (const index of inventory.dirtyIndexes) {
             const item = inventory.get(index);
             const canvas = canvases[index];
             const count = counts[index];
+
             if (!item) {
                 canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
                 count.innerText = "";
+                rm.add(index);
                 continue;
             }
-            item.render(canvas);
+
+            if (item.render(canvas)) {
+                rm.add(index);
+            }
+
             count.innerText = item.count.toString();
         }
     }
 
-    for (const key in InventoryDivs) {
-        const inventory = clientPlayer.containers[InventoryDivs[key][0]];
-        inventory.cleanDirty = false;
-        inventory.dirtyIndexes.clear();
+    for (const k in removed) {
+        const rm = removed[k];
+        for (const index of rm) {
+            const inv = clientPlayer.inventories[k as InventoryName];
+            inv.dirtyIndexes.delete(index);
+        }
     }
+
+    checkLag("animate inventories", 10);
 }
 
 export default React.memo(function InventoryDiv(O: {
-    inventoryType: typeof Inventories[keyof typeof Inventories],
+    inventoryType: InventoryName,
     ikey: string,
     [k: string]: unknown
 }) {

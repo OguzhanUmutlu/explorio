@@ -25,7 +25,12 @@ export default class Item {
         const texture = this.getTexture();
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(texture.image, 0, 0, canvas.width, canvas.height);
+        if (texture.loaded) {
+            ctx.drawImage(texture.image, 0, 0, canvas.width, canvas.height);
+            return true;
+        }
+
+        return false;
     };
 
     toBuffer() {

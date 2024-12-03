@@ -50,7 +50,7 @@ export default class CombinedContainer extends Inventory {
     };
 
     clear() {
-        this.cleanDirty = true;
+        this.wholeDirty = true;
         this.dirtyIndexes.clear();
 
         for (let i = 0; i < this.inventories.length; i++) {

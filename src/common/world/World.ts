@@ -6,10 +6,7 @@ import FlatGenerator from "@/world/generators/FlatGenerator";
 import DefaultGenerator from "@/world/generators/DefaultGenerator";
 import FlowerLandGenerator from "@/world/generators/FlowerLandGenerator";
 import CustomGenerator from "@/world/generators/CustomGenerator";
-import {
-    zstdOptionalDecode,
-    zstdOptionalEncode
-} from "@/utils/Utils";
+import {zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
 import Player from "@/entity/types/Player";
 import Packet from "@/network/Packet";
 import Entity from "@/entity/Entity";
@@ -18,6 +15,8 @@ import {Packets} from "@/network/Packets";
 import ChunkStruct from "@/structs/world/ChunkStruct";
 import {z} from "zod";
 import {ChunkLength, ChunkLengthBits, ChunkLengthN, WorldHeight} from "@/meta/WorldConstants";
+import {BlockPlaceEvent} from "@/event/types/BlockPlaceEvent";
+import {BlockBreakEvent} from "@/event/types/BlockBreakEvent";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -266,10 +265,15 @@ export default class World {
         if (target.cannotBePlacedOn.includes(id)) return false;
         const fullId = im2f(id, meta);
         this._setBlock(x, y, fullId, true, false);
-        if (this.anyEntityTouchBlock(x, y)) {
+
+        const touchingBlock = this.anyEntityTouchBlock(x, y);
+        const cancelled = new BlockPlaceEvent(entity, x, y, this.getBlock(x, y)).emit();
+
+        if (cancelled || touchingBlock) {
             this._setBlock(x, y, target.fullId, true, false);
             return false;
         }
+
         if (polluteBlock) this._polluteBlockAt(x, y);
         if (broadcast) {
             this.broadcastBlockAt(x, y, fullId);
@@ -292,7 +296,13 @@ export default class World {
     tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true) {
         if (!this.canBreakBlockAt(entity, x, y)) return false;
         const fullId = this.getFullBlockAt(x, y);
+
+        const cancelled = new BlockBreakEvent(entity, x, y, this.getBlock(x, y)).emit();
+
+        if (cancelled) return false;
+
         this.setFullBlock(x, y, B.AIR, true, polluteBlock, broadcast);
+
         if (broadcast) this.broadcastPacketAt(x, new Packets.SBreakBlock({x, y, fullId}));
         return true;
     };

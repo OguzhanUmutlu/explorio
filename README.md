@@ -1,6 +1,12 @@
-# <img src="./src/client/assets/logo.png" width="32px"> explorio
+<div style="text-align: center">
+
+# <img src="./src/client/assets/logo.png" width="32px"> Explorio
 
 Explorio is a 2D block game
+
+Assets are taken from a few repositories on GitHub like: https://github.com/PixiGeko/Minecraft-default-assets
+
+</div>
 
 ## How to play?
 

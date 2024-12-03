@@ -1,7 +1,7 @@
 import X, {Bin, BufferIndex} from "stramp";
 import Inventory from "@/item/Inventory";
 import Item from "@/item/Item";
-import ItemStruct from "@/structs/item/ItemStruct";
+import ItemStruct, {InventoryContentStruct} from "@/structs/item/ItemStruct";
 
 export default class InventoryStruct extends Bin<Inventory> {
     name: string;
@@ -10,7 +10,7 @@ export default class InventoryStruct extends Bin<Inventory> {
     constructor(public size: number) {
         super();
 
-        this.listBin = X.array.typed(ItemStruct.or(X.null)).sized(size);
+        this.listBin = X.array.typed(InventoryContentStruct).sized(size);
         this.name = `Inventory<${size}>`;
     };
 

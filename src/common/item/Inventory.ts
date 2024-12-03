@@ -4,7 +4,7 @@ import {IM} from "@/meta/ItemIds";
 import ItemDescriptor from "@/item/ItemDescriptor";
 
 export default class Inventory {
-    cleanDirty = false;
+    wholeDirty = false;
     dirtyIndexes = new Set<number>;
     // _tile: ContainerTile | null = null;
     private contents: (Item | null)[] = [];
@@ -13,15 +13,6 @@ export default class Inventory {
         this.contents = new Array(this.size).fill(null);
     };
 
-    checkAndCleanDirty() {
-        if (this.cleanDirty || this.dirtyIndexes.size > 0) {
-            this.cleanDirty = false;
-            this.dirtyIndexes.clear();
-            return true;
-        }
-        return false;
-    }
-
     getContents() {
         return this.contents;
     };
@@ -29,6 +20,7 @@ export default class Inventory {
     setContents(items: Item[]) {
         this.contents = items;
         this.contents.length = this.size;
+        this.wholeDirty = true;
         return this;
     };
 
@@ -42,7 +34,7 @@ export default class Inventory {
     };
 
     clear() {
-        this.cleanDirty = true;
+        this.wholeDirty = true;
         this.dirtyIndexes.clear();
         this.contents.fill(null);
     };

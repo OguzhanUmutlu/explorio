@@ -1,0 +1,21 @@
+{
+  "port": 1881,
+  "renderDistance": 3,
+  "defaultWorld": "default",
+  "defaultWorlds": {
+    "default": {
+      "name": "default",
+      "generator": "default",
+      "generatorOptions": "",
+      "seed": 81585166
+    }
+  },
+  "packetCompression": false,
+  "maxMessageLength": 256,
+  "spamFilter": {
+    "enabled": false,
+    "threshold": 3,
+    "seconds": 5
+  },
+  "saveIntervalSeconds": 45
+}

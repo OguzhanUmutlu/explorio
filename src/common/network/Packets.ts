@@ -6,7 +6,7 @@ import X, {Bin, BufferIndex} from "stramp";
 import ChunkBlocksBin from "@/structs/world/ChunkBlocksBin";
 import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 import {InventoryNameBin} from "@/structs/item/InventoryNameBin";
-import ItemStruct from "@/structs/item/ItemStruct";
+import {InventoryContentStruct} from "@/structs/item/ItemStruct";
 
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
@@ -143,13 +143,15 @@ export const PacketStructs = {
     }),
     [PacketIds.SContainerSet]: X.object.struct({
         name: InventoryNameBin,
-        items: X.array.typed(ItemStruct)
+        items: X.array.typed(InventoryContentStruct)
     }),
-    [PacketIds.SContainerSetIndices]: X.array.typed(X.object.struct({
+    [PacketIds.SContainerSetIndices]: X.object.struct({
         name: InventoryNameBin,
-        index: X.u8,
-        item: ItemStruct
-    })),
+        indices: X.array.typed(X.object.struct({
+            index: X.u8,
+            item: InventoryContentStruct
+        }))
+    }),
 
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,

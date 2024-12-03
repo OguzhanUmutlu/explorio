@@ -8,6 +8,8 @@
     "strict": false,
     "skipLibCheck": true,
     "noEmitOnError": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
     "jsx": "react",
     "lib": [

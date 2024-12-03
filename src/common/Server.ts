@@ -8,7 +8,7 @@ import SelectorToken from "@/command/token/SelectorToken";
 import Location from "@/utils/Location";
 import Entity from "@/entity/Entity";
 import TeleportCommand from "@/command/defaults/TeleportCommand";
-import {checkLag, SelectorSorters, setServer} from "@/utils/Utils";
+import {checkLag, ClassOf, SelectorSorters, setServer} from "@/utils/Utils";
 import ListCommand from "@/command/defaults/ListCommand";
 import ConsoleCommandSender from "@/command/ConsoleCommandSender";
 import ExecuteCommand from "@/command/defaults/ExecuteCommand";
@@ -19,6 +19,9 @@ import GameModeCommand from "@/command/defaults/GameModeCommand";
 import EffectCommand from "@/command/defaults/EffectCommand";
 import HelpCommand from "@/command/defaults/HelpCommand";
 import {z} from "zod";
+import ClearCommand from "@/command/defaults/ClearCommand";
+import EventManager from "@/event/EventManager";
+import PluginEvent from "@/event/PluginEvent";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -36,6 +39,8 @@ export const ZServerConfig = z.object({
 });
 
 export type ServerConfig = z.infer<typeof ZServerConfig>;
+export type SingleEventHandler = [number, string, (e: PluginEvent) => unknown];
+export type EventHandlersType = Map<ClassOf<PluginEvent>, SingleEventHandler[]>;
 
 export const DefaultServerConfig: ServerConfig = {
     port: 1881,
@@ -117,13 +122,14 @@ export default class Server {
         });
 
         for (const clazz of [
+            HelpCommand,
             ListCommand,
             TeleportCommand,
             ExecuteCommand,
             PermissionCommand,
             GameModeCommand,
             EffectCommand,
-            HelpCommand
+            ClearCommand
         ]) this.registerCommand(new clazz());
 
         this.createDirectory(this.path);
@@ -198,7 +204,8 @@ export default class Server {
                     throw new Error("Plugin main file doesn't export a Plugin class.");
                 }
 
-                plugin.load();
+                plugin.onLoad();
+                this.registerEvents(plugin);
 
                 nonReadyPluginNames.add(meta.name);
             } catch (e) {
@@ -217,7 +224,7 @@ export default class Server {
                 try {
                     if (meta.dependencies && meta.dependencies.some(n => nonReadyPluginNames.has(n))) continue;
                     loadedAny = true;
-                    plugin.enable();
+                    plugin.onEnable();
                     nonReadyPluginNames.delete(name);
                 } catch (e) {
                     printer.error("Failed to load plugin %c" + meta.name, "color: yellow");
@@ -231,6 +238,36 @@ export default class Server {
         }
 
         this.pluginPromise = null;
+    };
+
+    registerEvents(clazz: Plugin) {
+        const origin = (<typeof Plugin>clazz.constructor)._eventHandlers ??= <EventHandlersType>new Map;
+        const newMap = clazz._eventHandlers ??= <EventHandlersType>new Map;
+        for (const [ev, handlers] of origin) {
+            const list = <SingleEventHandler[]>[];
+            for (const handler of handlers) {
+                const fn = clazz[handler[1]].bind(clazz);
+                list.push([handler[0], handler[1], fn]);
+                EventManager.on(ev, fn, handler[0]);
+            }
+            newMap.set(ev, list);
+        }
+    };
+
+    unregisterEvents(clazz: Plugin) {
+        const list = clazz._eventHandlers ??= <EventHandlersType>new Map;
+        for (const [ev, handlers] of list) {
+            for (const [_, __, fn] of handlers) {
+                EventManager.off(ev, fn);
+            }
+        }
+
+        clazz._eventHandlers = new Map;
+    };
+
+    disablePlugin(plugin: Plugin) {
+        this.unregisterEvents(plugin);
+        plugin.onDisable();
     };
 
     getAllEntities() {

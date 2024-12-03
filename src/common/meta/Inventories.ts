@@ -6,6 +6,8 @@ export enum Containers {
     CraftingTable
 }
 
+export type InventoryName = typeof Inventories[keyof typeof Inventories];
+
 export const Inventories = {
     Hotbar: "hotbar",
     Player: "player",

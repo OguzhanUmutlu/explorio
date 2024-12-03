@@ -5,7 +5,7 @@ import {getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from
 import PlayerNetwork from "@/network/PlayerNetwork";
 import Entity from "@/entity/Entity";
 import {Packets} from "@/network/Packets";
-import {Inventories, InventorySizes} from "@/meta/Inventories";
+import {Containers, Inventories, InventoryName, InventorySizes} from "@/meta/Inventories";
 import Item from "@/item/Item";
 import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import Packet from "@/network/Packet";
@@ -46,12 +46,13 @@ export default class Player extends Entity implements CommandSender {
 
     messageTimes: number[] = [];
 
-    containers = <Record<typeof Inventories[keyof typeof Inventories], Inventory>>{};
+    containerId = Containers.Closed;
+    inventories = <Record<InventoryName, Inventory>>{};
 
     init() {
         for (const k in Inventories) {
             const v = Inventories[<keyof typeof Inventories>k];
-            this.containers[v] ??= new Inventory(InventorySizes[v]);
+            this.inventories[v] ??= new Inventory(InventorySizes[v]);
         }
 
         super.init();
@@ -65,7 +66,7 @@ export default class Player extends Entity implements CommandSender {
     };
 
     get handItem() {
-        return this.containers.hotbar.get(this.handIndex);
+        return this.inventories.hotbar.get(this.handIndex);
     };
 
     hasPermission(permission: string): boolean {
@@ -105,14 +106,16 @@ export default class Player extends Entity implements CommandSender {
             const bx = this.breaking[0];
             const by = this.breaking[1];
             this.breaking = null;
+
+
             if (!this.world.tryToBreakBlockAt(this, bx, by)) {
                 this.network.sendBlock(bx, by);
                 return;
             }
         }
 
-        for (const name in this.containers) {
-            this.network.syncInventory(name);
+        for (const name in this.inventories) {
+            this.network.syncInventory(<InventoryName>name);
         }
 
         this.network.releaseBatch();
@@ -167,13 +170,20 @@ export default class Player extends Entity implements CommandSender {
     };
 
     addItem(item: Item) {
-        if (!this.containers.hotbar.add(item)) return this.containers.player.add(item);
+        if (!this.inventories.hotbar.add(item)) return this.inventories.player.add(item);
         return true;
     };
 
     removeItem(item: Item) {
-        if (!this.containers.hotbar.remove(item)) return this.containers.player.remove(item);
+        if (!this.inventories.hotbar.remove(item)) return this.inventories.player.remove(item);
         return true;
+    };
+
+    clearInventories() {
+        for (const name in this.inventories) {
+            const inv = this.inventories[<InventoryName>name];
+            inv.clear();
+        }
     };
 
     //

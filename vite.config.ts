@@ -44,6 +44,12 @@ export default defineConfig({
         ], {
             hook: "writeBundle"
         }),
-        react()
+        react({
+            babel: {
+                parserOpts: {
+                    plugins: ["decorators-legacy", "classProperties"]
+                }
+            }
+        })
     ]
 });
