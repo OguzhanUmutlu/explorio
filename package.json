@@ -10,6 +10,7 @@
     "test": "tsx tests/test.ts",
     "lint": "eslint src",
     "build:client": "vite build",
+    "build:desktop": "cd src/desktop && npm run build && cd ../../",
     "build:docs": "typedoc"
   },
   "keywords": [],
@@ -39,6 +40,7 @@
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.3",
+    "archiver": "^7.0.1",
     "eslint": "^9.16.0",
     "tsx": "^4.19.2",
     "typedoc": "^0.27.2",

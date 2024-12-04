@@ -1,6 +1,5 @@
 import {ClassOf} from "@/utils/Utils";
 import PluginEvent from "@/event/PluginEvent";
-import "reflect-metadata";
 import {EventHandlersType} from "@/Server";
 
 export function event(event: ClassOf<PluginEvent>, priority = 1) {

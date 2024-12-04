@@ -6,7 +6,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
     root: path.resolve(__dirname, "src/client"),
-    base: "/explorio/",
+    base: "./",
     server: {
         host: "127.0.0.1",
         port: 1923
@@ -14,7 +14,7 @@ export default defineConfig({
     build: {
         target: "ES2022",
         assetsDir: ".",
-        outDir: path.resolve(__dirname, "client-dist"),
+        outDir: path.resolve(__dirname, "dist/client"),
         emptyOutDir: true,
         rollupOptions: {
             input: path.resolve(__dirname, "src/client/index.html"),
@@ -39,7 +39,7 @@ export default defineConfig({
         copy([
             {
                 src: path.resolve(__dirname, "src/client/assets/*").replaceAll("\\", "/"),
-                dest: path.resolve(__dirname, "client-dist/assets").replaceAll("\\", "/")
+                dest: path.resolve(__dirname, "dist/client/assets").replaceAll("\\", "/")
             }
         ], {
             hook: "writeBundle"
