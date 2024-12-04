@@ -21,7 +21,7 @@ import {OptionsPopup} from "@dom/components/OptionsPopup";
 import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
-import {Inventories} from "@/meta/Inventories";
+import {Inventories, InventorySizes} from "@/meta/Inventories";
 import {I} from "@/meta/ItemIds";
 import {Packets} from "@/network/Packets";
 import Server, {DefaultServerConfig} from "@/Server";
@@ -56,6 +56,7 @@ export const f3 = {
     vx: null as ReactState<number>,
     vy: null as ReactState<number>
 };
+export let handIndexState: ReactState<number>;
 
 export let clientServer: CServer;
 export let singlePlayerServer: Server;
@@ -68,6 +69,8 @@ export let isMultiPlayer: boolean;
 export const Keyboard: Record<string, boolean> = {};
 export let particleManager: ParticleManager;
 export let renderCollisionBoxes = false;
+export let showChunkBorders = false;
+let cameraZoomMultiplier = 1;
 let cameraZoom = 1;
 let cameraZoomRender = 1;
 
@@ -148,6 +151,7 @@ function animate() {
     cameraZoomRender += (cameraZoom - cameraZoomRender) * 0.1;
 
     cameraZoom = Keyboard.shift ? 0.9 : 1;
+    cameraZoom *= cameraZoomMultiplier;
 
     updateTileSize();
 
@@ -187,6 +191,20 @@ function animate() {
             const pos = getClientPosition(x - 0.5, y - 0.5);
             ctx.drawImage(render.bCanvas, pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
             ctx.drawImage(render.sCanvas, pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
+        }
+    }
+
+    if (showChunkBorders) {
+        for (let chunkX = minSubX; chunkX <= maxSubX; chunkX++) {
+            for (let chunkY = minSubY; chunkY <= maxSubY; chunkY++) {
+                const x = chunkX << ChunkLengthBits;
+                const y = chunkY << ChunkLengthBits;
+                const pos = getClientPosition(x - 0.5, y - 0.5);
+                ctx.strokeStyle = "#ff0000";
+                ctx.strokeRect(pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
+                ctx.strokeStyle = "#00ff00";
+                ctx.strokeRect(pos.x + Options.tileSize / 2, pos.y - Options.tileSize / 2, subLength + 0.5, -subLength - 0.5);
+            }
         }
     }
 
@@ -232,6 +250,10 @@ function animate() {
     }
 
     animateInventories();
+
+    if (handIndexState[0] !== clientPlayer.handIndex) {
+        handIndexState[1](clientPlayer.handIndex);
+    }
 }
 
 function update(dt: number) {
@@ -265,15 +287,16 @@ const chatHistory = [""];
 let chatIndex = 0;
 let lastRender = Date.now() - 1;
 
-/*
-// Client zooming, it works, but no reason to have it
-addEventListener("wheel", e => {
-    if (e.deltaY > 0) Options.tileSize *= 0.9;
-    else Options.tileSize *= 1.1;
-    if (Options.tileSize <= 4) Options.tileSize = 4;
-    Options.tileSize = Math.floor(Options.tileSize);
-});
-*/
+function onWheel(e: WheelEvent) {
+    if (e.altKey) {
+        if (e.deltaY > 0) cameraZoomMultiplier *= 0.9;
+        else cameraZoomMultiplier *= 1.1;
+        cameraZoomMultiplier = Math.max(0.5, Math.min(10, cameraZoomMultiplier));
+        e.preventDefault();
+    } else if (!isAnyUIOpen()) {
+        clientNetwork.sendHandIndex((clientPlayer.handIndex + (e.deltaY > 0 ? 1 : -1) + InventorySizes.hotbar) % InventorySizes.hotbar);
+    }
+}
 
 // Whether any F3 sub-shortcut has been executed
 let executedF3 = false;
@@ -315,6 +338,10 @@ function onPressKey(e: KeyboardEvent) {
             executedF3 = false;
             e.preventDefault();
         }
+
+        if (!isNaN(parseInt(e.key)) && e.key !== "0") {
+            clientNetwork.sendHandIndex(parseInt(e.key) - 1);
+        }
     }
 }
 
@@ -339,6 +366,11 @@ function onReleaseKey(e: KeyboardEvent) {
                 renderCollisionBoxes = !renderCollisionBoxes;
                 executedF3 = true;
             }
+        } else if (e.key === "g") {
+            if (Keyboard.f3) {
+                showChunkBorders = !showChunkBorders;
+                executedF3 = true;
+            }
         }
     }
 }
@@ -348,6 +380,7 @@ function onLoseFocus() {
     Mouse.left = false;
     Mouse.right = false;
     Mouse.middle = false;
+    // optionPopup[1](true);
 }
 
 function onFocus() {
@@ -459,6 +492,7 @@ export function initClient() {
     addEventListener("keyup", onReleaseKey);
     addEventListener("blur", onLoseFocus);
     addEventListener("focus", onFocus);
+    addEventListener("wheel", onWheel);
     canvas.addEventListener("mousemove", onCanvasMouseMove);
     canvas.addEventListener("touchstart", onCanvasTouchStart);
     canvas.addEventListener("touchmove", onCanvasTouchMove);
@@ -552,6 +586,7 @@ export function terminateClient() {
     removeEventListener("keyup", onReleaseKey);
     removeEventListener("blur", onLoseFocus);
     removeEventListener("focus", onFocus);
+    removeEventListener("wheel", onWheel);
     if (canvas) {
         canvas.removeEventListener("mousemove", onCanvasMouseMove);
         canvas.removeEventListener("mousedown", onCanvasMouseDown);
@@ -612,6 +647,7 @@ export function Client(O: {
     saveScreen = useState(false);
     playerInventoryOn = useState(false);
     chatContainer = useState(false);
+    handIndexState = useState(0);
     clientUUID = O.clientUUID;
     f3On = useState(false);
     if (singlePlayerServer) singlePlayerServer.pausedUpdates = optionPopup[0];
@@ -678,7 +714,7 @@ export function Client(O: {
 
         {/* Hotbar */}
         <InventoryDiv className="hotbar-inventory inventory" style={isMobile ? {width: "50%"} : {}}
-                      inventoryType={Inventories.Hotbar} ikey="hi"></InventoryDiv>
+                      inventoryType={Inventories.Hotbar} ikey="hi" handindex={handIndexState}></InventoryDiv>
 
 
         {/* Player Inventory */}

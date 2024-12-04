@@ -1,7 +1,7 @@
 import React from "react";
 import {InventoryName, InventorySizes} from "@/meta/Inventories";
 import {clientPlayer} from "@dom/Client";
-import {Div} from "@c/utils/Utils";
+import {Div, ReactState} from "@c/utils/Utils";
 import {checkLag} from "@/utils/Utils";
 
 const InventoryDivs: Record<string, [InventoryName, CanvasRenderingContext2D[], Div[]]> = {};
@@ -58,6 +58,7 @@ export function animateInventories() {
 export default React.memo(function InventoryDiv(O: {
     inventoryType: InventoryName,
     ikey: string,
+    handindex?: ReactState<number>,
     [k: string]: unknown
 }) {
     const contexts = [] as CanvasRenderingContext2D[];
@@ -69,14 +70,17 @@ export default React.memo(function InventoryDiv(O: {
     delete props.ikey;
 
     return <div className="inventory" key={O.ikey} {...props}>
-        {...new Array(size).fill(null).map((_, i) => <div key={O.ikey + " " + i} className="inventory-item">
-            <canvas ref={el => {
-                if (el) {
-                    const ctx = contexts[i] = el.getContext("2d");
-                    ctx.imageSmoothingEnabled = false;
-                }
-            }}></canvas>
-            <div ref={el => counts[i] = el}></div>
-        </div>)}
+        {...new Array(size).fill(null).map((_, i) => {
+            return <div key={O.ikey + " " + i}
+                        className={O.handindex && i === O.handindex[0] ? "inventory-item selected" : "inventory-item"}>
+                <canvas ref={el => {
+                    if (el) {
+                        const ctx = contexts[i] = el.getContext("2d");
+                        ctx.imageSmoothingEnabled = false;
+                    }
+                }}></canvas>
+                <div ref={el => counts[i] = el}></div>
+            </div>;
+        })}
     </div>;
 });

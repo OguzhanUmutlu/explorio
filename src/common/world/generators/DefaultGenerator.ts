@@ -4,6 +4,7 @@ import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
 import World, {ChunkData} from "@/world/World";
 import {ChunkLength} from "@/meta/WorldConstants";
+import {im2f} from "@/meta/Items";
 
 export const SurfaceHeight = 172;
 export const CaveScale = 40;
@@ -44,16 +45,18 @@ export default class DefaultGenerator extends Generator {
         this.noiseDiamond = createNoise2D(alea(world.seed + 6));
     };
 
-    static plantTree(world: World, chunk: ChunkData, noi: number, x: number, y: number, worldX: number) {
+    static plantTree(world: World, chunk: ChunkData, noi: number, chunkNoise: number, x: number, y: number, chunkX: number, worldX: number) {
         const treeLength = Math.floor(noi + 5);
+        chunk[x + (y - 1) * ChunkLength] = B.DIRT;
+        const treeType = Math.floor(Math.abs(chunkNoise) * 5);
         for (let i = 0; i < treeLength; i++) {
-            chunk[x + (i + y) * ChunkLength] = B.NATURAL_LOG;
+            chunk[x + (i + y) * ChunkLength] = im2f(I.NATURAL_LOG, treeType);
         }
         for (let i = 0; i < TreeShape.length; i++) {
             const [X, Y] = TreeShape[i];
             world.setBlock(
                 worldX + X, treeLength + y + Y,
-                I.LEAVES, 0, false
+                I.LEAVES, treeType, false
             );
         }
         return treeLength;
@@ -64,17 +67,20 @@ export default class DefaultGenerator extends Generator {
         const chunk = world.chunks[chunkX];
         const chunkXM = chunkX * ChunkLength;
         let treeX = 0;
+        const chunkNoise = this.noise(chunkX / 60, 0);
 
         for (let x = 0; x < ChunkLength; x++) {
             const worldX = x + chunkXM;
             chunk[x] = B.BEDROCK;
             const height = Math.floor(this.noise(worldX / 50, 0) * 12 + SurfaceHeight);
             const heightNoise = this.noise(worldX / CaveScale, height / CaveScale);
+            let hasTree = false;
             if (x === treeX && heightNoise < 0.4) {
                 const noi = this.noise(worldX / 5, 10);
                 treeX += Math.floor(Math.abs(noi) * 3 + 3);
                 if (x != ChunkLength - 1) {
-                    DefaultGenerator.plantTree(world, chunk, noi, x, height + 1, worldX);
+                    hasTree = true;
+                    DefaultGenerator.plantTree(world, chunk, noi, chunkNoise, x, height + 1, chunkX, worldX);
                 }
             }
             for (let y = height; y >= 1; y--) {
@@ -88,7 +94,7 @@ export default class DefaultGenerator extends Generator {
 
                 let id = B.AIR;
                 if (y > height - 5) id = B.DIRT;
-                if (y === height) id = B.GRASS_BLOCK;
+                if (y === height && !hasTree) id = B.GRASS_BLOCK;
                 if (y <= height - 5) {
                     const deepslate = y < 64 + Math.floor(this.noise(worldX / 40, y / 40) * 10);
                     id = deepslate ? B.DEEPSLATE : B.STONE;

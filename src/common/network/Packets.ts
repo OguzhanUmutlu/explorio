@@ -172,7 +172,8 @@ export const PacketStructs = {
         x: X.i32,
         y: X.u32
     }),
-    [PacketIds.CToggleFlight]: X.null
+    [PacketIds.CToggleFlight]: X.null,
+    [PacketIds.CSetHandIndex]: X.u8
 } as const;
 
 export function readPacket(buffer: Buffer) {

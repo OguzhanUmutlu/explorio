@@ -4,7 +4,6 @@ import Player from "@/entity/types/Player";
 import {PacketByName, Packets, readPacket} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
 import {getServer} from "@/utils/Utils";
-import {ItemIds} from "@/meta/ItemIds";
 import {Version} from "@/Versions";
 import {InventoryName} from "@/meta/Inventories";
 
@@ -100,14 +99,27 @@ export default class PlayerNetwork {
 
     processCPlaceBlock({data: {x, y}}: PacketByName<"CPlaceBlock">) {
         const world = this.player.world;
+        const handItem = this.player.handItem;
 
-        if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.GRASS_BLOCK, 0)) return this.sendBlock(x, y);
+        if (!handItem) return this.sendBlock(x, y);
+
+        if (world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta)) {
+            this.player.inventories.hotbar.decreaseItemAt(this.player.handIndex);
+        } else return this.sendBlock(x, y);
     };
 
     processCToggleFlight(_: PacketByName<"CToggleFlight">) {
         if (this.player.canToggleFly) {
             this.player.setFlying(!this.player.isFlying);
         }
+    };
+
+    processCSetHandIndex({data}: PacketByName<"CSetHandIndex">) {
+        if (data > 8 || data < 0) return;
+        this.player.handIndex = data;
+        this.player.world.broadcastPacketAt(this.player.x, new Packets.SEntityUpdate({
+            entityId: this.player.id, typeId: Entities.PLAYER, props: {handIndex: data}
+        }), [this.player]);
     };
 
 

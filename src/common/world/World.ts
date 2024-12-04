@@ -263,10 +263,14 @@ export default class World {
     tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteBlock = true, broadcast = true) {
         x = Math.round(x);
         y = Math.round(y);
+        const fullId = im2f(id, meta);
+        const block = BM[fullId];
         if (
             !this.inWorld(y)
             || entity.distance(x, y) > entity.getBlockReach()
             || !this.hasSurroundingBlock(x, y)
+            || !block
+            || !block.isBlock
         ) return false;
         const target = this.getBlock(x, y);
         const replaceableBy = target.replaceableBy;
@@ -274,11 +278,10 @@ export default class World {
         const canBePlacedOn = target.canBePlacedOn;
         if (canBePlacedOn !== "*" && !canBePlacedOn.includes(id)) return false;
         if (target.cannotBePlacedOn.includes(id)) return false;
-        const fullId = im2f(id, meta);
         this._setBlock(x, y, fullId, true, false);
 
         const touchingBlock = this.anyEntityTouchBlock(x, y);
-        const cancelled = new BlockPlaceEvent(entity, x, y, this.getBlock(x, y)).emit();
+        const cancelled = new BlockPlaceEvent(entity, x, y, block).emit();
 
         if (cancelled || touchingBlock) {
             this._setBlock(x, y, target.fullId, true, false);

@@ -3,7 +3,6 @@ import {Containers} from "@/meta/Inventories";
 import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@dom/Client";
 import {Options} from "@c/utils/Utils";
 import Sound from "@/utils/Sound";
-import {I} from "@/meta/ItemIds";
 import {Packets} from "@/network/Packets";
 
 export default class OriginPlayer extends CPlayer {
@@ -33,7 +32,9 @@ export default class OriginPlayer extends CPlayer {
     };
 
     placeIfCan() {
-        if (this.placeTime === 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, I.GRASS_BLOCK, 0)) {
+        const handItem = this.handItem;
+        if (handItem && this.placeTime <= 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, handItem.id, handItem.meta)) {
+            this.inventories.hotbar.decreaseItemAt(this.handIndex);
             clientNetwork.sendPacket(new Packets.CPlaceBlock({
                 x: Math.round(Mouse.x),
                 y: Math.round(Mouse.y)

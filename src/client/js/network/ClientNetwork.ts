@@ -255,6 +255,11 @@ export default class ClientNetwork {
         this.sendPacket(new Packets.SendMessage(message.split("\n")[0]));
     };
 
+    sendHandIndex(index = clientPlayer.handIndex) {
+        clientPlayer.handIndex = index;
+        this.sendPacket(new Packets.CSetHandIndex(index));
+    };
+
     sendPacket(pk: Packet, immediate = false) {
         if (immediate || !isMultiPlayer) {
             if (this.connected) pk.send(this.worker);

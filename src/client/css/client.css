@@ -66,6 +66,10 @@ body {
     aspect-ratio: 1 / 1;
 }
 
+.hotbar-inventory > .selected {
+    background-image: url("../assets/textures/gui/inventory/selected_hotbar.png");
+}
+
 .hotbar-inventory > .inventory-item > canvas {
     width: 50%;
     height: 50%;

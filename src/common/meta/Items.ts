@@ -2,7 +2,7 @@ import Texture, {Canvas, texturePlaceholder} from "@/utils/Texture";
 import Item from "@/item/Item";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
-import {B, BM, I, IM, IS, ITEM_META_BITS} from "@/meta/ItemIds";
+import {B, BM, I, IM, IS, ITEM_META_BITS, ItemIds} from "@/meta/ItemIds";
 
 export type Side = "bottom" | "top" | "left" | "right";
 export type ToolType = "none" | "sword" | "axe" | "pickaxe" | "shovel" | "hoe" | "shears";
@@ -211,7 +211,11 @@ export class ItemMetadata {
     };
 
     getDrops() {
-        return this.drops.map(i => i.evaluate()).filter(i => i !== null);
+        return this.drops.map(i => {
+            const item = i.evaluate();
+            if (item && item.id === ItemIds.NATURAL_LOG) item.id = ItemIds.LOG;
+            return item;
+        }).filter(i => i !== null);
     };
 
     static fromOptions(id: number, meta: number, O: ItemMetaDataConfig) {
