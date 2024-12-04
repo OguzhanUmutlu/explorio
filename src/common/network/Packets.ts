@@ -121,7 +121,6 @@ export const PacketStructs = {
         jumpVelocity: X.f32,
         health: X.f32,
         maxHealth: X.f32,
-        gravity: X.f32,
         canPhase: X.bool,
         // immobile: X.bool,
         invincible: X.bool,
@@ -172,7 +171,8 @@ export const PacketStructs = {
     [PacketIds.CPlaceBlock]: X.object.struct({
         x: X.i32,
         y: X.u32
-    })
+    }),
+    [PacketIds.CToggleFlight]: X.null
 } as const;
 
 export function readPacket(buffer: Buffer) {

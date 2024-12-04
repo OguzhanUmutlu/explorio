@@ -10,7 +10,6 @@ export default class GameModeCommand extends DefinitiveCommand {
     definitions = [
         new CommandDefinition()
             .addGameModeArgument("gamemode")
-            .setPermission("command.gamemode.self")
             .then((sender, as, _, gamemode) => {
                 if (as instanceof Player) {
                     as.setGameMode(gamemode);
@@ -26,8 +25,7 @@ export default class GameModeCommand extends DefinitiveCommand {
         new CommandDefinition()
             .addEntitiesArgument("players", o => o.setFilter(e => e instanceof Player))
             .addGameModeArgument("gamemode")
-            .setPermission("command.gamemode.other")
-            .then((sender, _, __, players: Player[], gamemode) => {
+            .then((sender, _, __, players, gamemode) => {
                 for (const player of players) {
                     player.setGameMode(gamemode);
                 }

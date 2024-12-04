@@ -42,7 +42,14 @@ export function readBool(text: string, index: number): Token<"bool"> | null {
 
 export function readSelector(text: string, index: number): SelectorToken {
     const selName = <SelectorTagName>text[index + 1];
-    if (text[index] !== "@" || !SelectorTags.includes(selName)) return null;
+    if (text[index] !== "@" || !SelectorTags.includes(selName)) {
+        const word = readWord(text, index);
+        if (word.value.length > 1) return new SelectorToken(text, word.start, word.end, "a", {
+            __name__only__: word // this basically directly gets the player from the players object, a hacky solution
+        });
+
+        return null;
+    }
 
     if (text[index + 2] === "{") {
         const args = readObject(text, index + 2, false, true);

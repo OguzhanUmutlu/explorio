@@ -24,7 +24,14 @@ export default class OriginPlayer extends CPlayer {
     };
 
     walkHorizontal(sign: 1 | -1, dt: number) {
-        this.tryToMove(sign * (Keyboard.shift ? 1.2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed * dt, 0, dt);
+        this.tryToMove(
+            sign
+            * (Keyboard.shift ? 1.2 : 1)
+            * (this.onGround ? 1 : 0.8)
+            * (this.isFlying ? this.flySpeed : this.walkSpeed)
+            * dt,
+
+            0, dt);
     };
 
     placeIfCan() {
@@ -42,9 +49,17 @@ export default class OriginPlayer extends CPlayer {
     update(dt: number) {
         super.update(dt);
 
-        if ((Keyboard.w || Keyboard[" "])) this.tryToJump();
+        if (Keyboard.w || Keyboard[" "]) {
+            if (this.isFlying) this.tryToMove(0, this.flySpeed * dt, dt);
+            else this.tryToJump();
+        }
+
+        if (Keyboard.s && this.isFlying) this.tryToMove(0, -this.flySpeed * dt, dt);
         if (Keyboard.a) this.walkHorizontal(-1, dt);
         if (Keyboard.d) this.walkHorizontal(1, dt);
+        if (this.isFlying && this.onGround && this.canToggleFly) {
+            clientNetwork.sendToggleFlight();
+        }
 
         if (Mouse.left) {
             if (this.breaking) {

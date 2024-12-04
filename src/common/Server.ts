@@ -257,8 +257,8 @@ export default class Server {
     unregisterEvents(clazz: Plugin) {
         const list = clazz._eventHandlers ??= <EventHandlersType>new Map;
         for (const [ev, handlers] of list) {
-            for (const [_, __, fn] of handlers) {
-                EventManager.off(ev, fn);
+            for (const handler of handlers) {
+                EventManager.off(ev, handler[2]);
             }
         }
 
@@ -279,6 +279,8 @@ export default class Server {
     };
 
     executeSelector(as: CommandAs, at: Location, selector: SelectorToken) {
+        if (selector.filters.__name__only__) return [this.players[selector.filters.__name__only__.raw]];
+
         let entities: Entity[];
 
         switch (selector.value) {
@@ -335,6 +337,13 @@ export default class Server {
                         entities.filter(entity => bm - +(entity[k] === val));
                     } else throw new CommandError(`Invalid '${k}' attribute for the selector`);
                     break;
+                case "id":
+                    if (token.type === "range") {
+                        entities = entities.filter(entity => bm - +(entity.id <= val[1] && entity.id >= val[0]));
+                    } else if (token.type === "number") {
+                        entities = entities.filter(entity => bm - +(entity.id === val));
+                    } else throw new CommandError(`Invalid 'id' attribute for the selector`);
+                    break;
                 case "distance":
                     if (token.type === "range") entities = entities.filter(i => {
                         const dist = i.distance(at.x, at.y);
@@ -381,8 +390,9 @@ export default class Server {
                     if (token.type !== "object") throw new CommandError(`Invalid 'nbt' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        for (const k in <Record<string, unknown>>val) {
-                            if (!entity.struct.keys().includes(k)) return false;
+                        const allow = entity.struct.keys();
+                        for (const k in <object>val) {
+                            if (!allow.includes(<never>k)) return false;
                             if (!val[k].equalsValue(entity[k])) return false;
                         }
                         return bm - +token.equalsValue(entity);

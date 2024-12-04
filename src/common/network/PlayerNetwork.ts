@@ -104,6 +104,12 @@ export default class PlayerNetwork {
         if (!world.tryToPlaceBlockAt(this.player, x, y, ItemIds.GRASS_BLOCK, 0)) return this.sendBlock(x, y);
     };
 
+    processCToggleFlight(_: PacketByName<"CToggleFlight">) {
+        if (this.player.canToggleFly) {
+            this.player.setFlying(!this.player.isFlying);
+        }
+    };
+
 
     processSendMessage({data}: PacketByName<"SendMessage">) {
         if (!data) return;
@@ -153,7 +159,7 @@ export default class PlayerNetwork {
 
         if (!this.player) {
             if (!(pk instanceof Packets.CAuth)) {
-                return this.kick("Invalid auth");
+                return this.kick("Invalid authentication");
             }
 
             this.processCAuth(<PacketByName<"CAuth">>pk);
@@ -162,7 +168,7 @@ export default class PlayerNetwork {
                 await this.processPacket(pk);
             } catch (e) {
                 printer.error(pk, e);
-                this.kick("Invalid packet");
+                this.kick("Internal server error");
                 return;
             }
         }

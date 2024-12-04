@@ -61,7 +61,7 @@ export default abstract class Entity {
     };
 
     get struct() {
-        return EntityStructs[this.typeId];
+        return EntityStructs[<keyof typeof EntityStructs>this.typeId];
     };
 
     getSaveBuffer(): Buffer {
@@ -71,6 +71,7 @@ export default abstract class Entity {
     init() {
         this.updateCacheState();
         this.world.entities[this.id] = this;
+        this.applyAttributes();
         this.onMovement();
     };
 
@@ -155,6 +156,12 @@ export default abstract class Entity {
 
     tryToMove(x: number, y: number, dt: number) {
         if (this.immobile) return false;
+        if (this.canPhase) {
+            this.x += x;
+            this.y += y;
+            this.onMovement();
+            return true;
+        }
 
         const eps = 0.001;
 
@@ -202,10 +209,11 @@ export default abstract class Entity {
         this.vx *= 0.999;
         this.vy *= 0.999;
         this.vy -= this.gravity * dt;
-        const hitGround = !this.tryToMove(0, this.vy * dt, dt);
-        this.tryToMove(this.vx * dt, 0, dt);
+        const hitX = !this.tryToMove(this.vx * dt, 0, dt);
+        const hitY = !this.tryToMove(0, this.vy * dt, dt);
+        if (hitX) this.vx = 0;
+        if (hitY) this.vy = 0;
         this.calculateGround();
-        if (hitGround) this.vy = 0;
         if (this.x !== x || this.y !== y) this.onMovement();
         for (const effect of Array.from(this.effects)) {
             effect.time -= dt;

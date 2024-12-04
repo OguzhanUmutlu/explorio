@@ -6,12 +6,30 @@ import CommandError from "@/command/CommandError";
 import {CommandAs} from "@/command/CommandSender";
 import Location from "@/utils/Location";
 
-export default class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
+export default class EntitiesArgument<T extends Entity[] = Entity[]> extends CommandArgument<T> {
     default = <T>[];
+    filterError = null;
     filter = null;
+    limit = Infinity;
+    strictLimit = false;
 
-    setFilter(filter: (entity: Entity) => boolean) {
+    setFilterError(message: string | null) {
+        this.filterError = message;
+        return this;
+    };
+
+    setFilter<S extends T[number]>(filter: (entity: T[number]) => entity is S) {
         this.filter = filter;
+        return <EntitiesArgument<S[]>><unknown>this;
+    };
+
+    setLimit(limit: number) {
+        this.limit = limit;
+        return this;
+    };
+
+    setLimitStrict(strictLimit: boolean) {
+        this.strictLimit = strictLimit;
         return this;
     };
 
@@ -22,9 +40,15 @@ export default class EntitiesArgument<T = Entity[]> extends CommandArgument<T> {
 
         const filtered = this.filter ? entities.filter(this.filter) : entities;
 
+        if (filtered.length !== entities.length && this.filterError) throw new CommandError(this.filterError);
+
         if (filtered.length === 0) throw new CommandError("No entities found.");
 
-        return <T>filtered;
+        if (this.strictLimit && filtered.length !== this.limit) throw new CommandError("Expected to find exactly " + this.limit + " entities.");
+
+        if (filtered.length > this.limit) throw new CommandError("Expected to find at most " + this.limit + " entities.");
+
+        return <T>filtered.slice(0, this.limit);
     };
 
     blindCheck(args: AnyToken[], index: number) {

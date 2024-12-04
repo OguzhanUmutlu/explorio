@@ -81,6 +81,8 @@ function updateTileSize() {
 
 function onResize() {
     updateTileSize();
+    Mouse._x = Mouse._px * innerWidth;
+    Mouse._y = Mouse._py * innerHeight;
     canvas.width = innerWidth + 1;
     canvas.height = innerHeight + 1;
     ctx.imageSmoothingEnabled = false;
@@ -107,6 +109,8 @@ const DefaultMouse = {
     ry: 0,
     _x: 0,
     _y: 0,
+    _px: 0,
+    _py: 0,
     _xSmooth: 0,
     _ySmooth: 0,
     left: false,
@@ -313,8 +317,17 @@ function onPressKey(e: KeyboardEvent) {
     }
 }
 
+let lastSpace = 0;
+
 function onReleaseKey(e: KeyboardEvent) {
     Keyboard[e.key.toLowerCase()] = false;
+
+    if (e.key === " ") {
+        if (Date.now() - lastSpace <= 250 && clientPlayer.canToggleFly) {
+            clientNetwork.sendToggleFlight();
+        }
+        lastSpace = Date.now();
+    }
 
     if (!isAnyUIOpen()) {
         if (e.key === "F3") {
@@ -380,6 +393,8 @@ function onTouchEnd() {
 function handleMouseMovement(x: number, y: number) {
     Mouse._x = x;
     Mouse._y = y;
+    Mouse._px = x / innerWidth;
+    Mouse._py = y / innerHeight;
     updateMouse();
 }
 
@@ -503,6 +518,8 @@ export function initClient() {
 
     Mouse._x = innerWidth / 2;
     Mouse._y = innerHeight / 2;
+    Mouse._px = 0.5;
+    Mouse._py = 0.5;
     Mouse._xSmooth = Mouse._x;
     Mouse._ySmooth = Mouse._y;
 

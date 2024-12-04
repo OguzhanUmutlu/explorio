@@ -29,47 +29,47 @@ export default class CommandDefinition<T extends CommandArgument[] = []> {
         return <CommandDefinition<Append<T, V>>>this;
     };
 
-    addNumberArgument<M extends NumberArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addNumberArgument<M extends NumberArgument>(name: string, fn?: (n: NumberArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(NumberArgument, name, fn);
     };
 
-    addGameModeArgument<M extends GameModeArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addGameModeArgument<M extends GameModeArgument>(name: string, fn?: (n: GameModeArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(NumberArgument, name, fn);
     };
 
-    addEffectArgument<M extends EffectArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addEffectArgument<M extends EffectArgument>(name: string, fn?: (n: EffectArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(EffectArgument, name, fn);
     };
 
-    addPositionArgument<M extends PositionArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addPositionArgument<M extends PositionArgument>(name: string, fn?: (n: PositionArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(PositionArgument, name, fn);
     };
 
-    addEntitiesArgument<M extends EntitiesArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addEntitiesArgument<M extends EntitiesArgument>(name: string, fn?: (n: EntitiesArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(EntitiesArgument, name, fn);
     };
 
-    addEntityArgument<M extends EntityArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addEntityArgument<M extends EntityArgument>(name: string, fn?: (n: EntityArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(EntityArgument, name, fn);
     };
 
-    addTextArgument<M extends TextArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addTextArgument<M extends TextArgument>(name: string, fn?: (n: TextArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(TextArgument, name, fn);
     };
 
-    addBoolArgument<M extends BoolArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addBoolArgument<M extends BoolArgument>(name: string, fn?: (n: BoolArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(BoolArgument, name, fn);
     };
 
-    addObjectArgument<M extends ObjectArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addObjectArgument<M extends ObjectArgument>(name: string, fn?: (n: ObjectArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(ObjectArgument, name, fn);
     };
 
-    addArrayArgument<M extends ArrayArgument>(name: string, fn?: (n: M) => M): CommandDefinition<Append<T, M>> {
+    addArrayArgument<M extends ArrayArgument>(name: string, fn?: (n: ArrayArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(ArrayArgument, name, fn);
     };
 
-    addLabelArgument<M extends LabelArgument>(name: string, fn?: (n: M) => M) {
+    addLabelArgument<M extends LabelArgument>(name: string, fn?: (n: LabelArgument) => M) {
         return <CommandDefinition<T>>this.addArgumentViaClass(LabelArgument, name, fn);
     };
 

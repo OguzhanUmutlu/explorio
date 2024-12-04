@@ -122,14 +122,13 @@ export default class World {
     };
 
     getFullChunkAt(x: number, generate = true) {
-        x = Math.round(x) >> ChunkLengthBits;
+        x = x >> ChunkLengthBits;
         this.ensureChunk(x, generate);
         return this.chunks[x];
     };
 
     getChunkEntitiesAt(x: number): Entity[] {
-        x = Math.round(x) >> ChunkLengthBits;
-        return this.chunkEntities[x] ??= [];
+        return this.chunkEntities[x >> ChunkLengthBits] ??= [];
     };
 
     getBlock(x: number, y: number) {
@@ -308,7 +307,7 @@ export default class World {
     };
 
     anyEntityTouchBlock(x: number, y: number) {
-        const chunkXMiddle = Math.round(x) >> ChunkLengthBits;
+        const chunkXMiddle = x >> ChunkLengthBits;
         for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
             for (const e of this.chunkEntities[chunkX]) {
                 if (e.bb.collidesBlock(x, y)) return true;

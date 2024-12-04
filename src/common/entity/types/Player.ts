@@ -79,7 +79,7 @@ export default class Player extends Entity implements CommandSender {
 
     serverUpdate(dt: number) {
         super.serverUpdate(dt);
-        const chunkX = Math.round(this.x) >> ChunkLengthBits;
+        const chunkX = this.x >> ChunkLengthBits;
         const chunks = [];
         const chunkDist = this.server.config.renderDistance;
         for (let x = chunkX - chunkDist; x <= chunkX + chunkDist; x++) {
@@ -254,7 +254,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = false;
                 this.instantBreak = false;
                 this.placeCooldown = 0.3;
-                this.canPhase = true;
+                this.canPhase = false;
                 this.invincible = false;
                 this.invisible = false;
                 break;
@@ -326,6 +326,11 @@ export default class Player extends Entity implements CommandSender {
 
     setMaxHealth(maxHealth: number) {
         this.maxHealth = maxHealth;
+        this.network?.sendAttributes();
+    };
+
+    setFlying(flying: boolean) {
+        this.isFlying = flying;
         this.network?.sendAttributes();
     };
 }

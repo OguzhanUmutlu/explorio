@@ -11,6 +11,7 @@ import {Version} from "@/Versions";
 import {BM} from "@/meta/ItemIds";
 import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
+import {DefaultGravity} from "@/entity/Entity";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -121,7 +122,7 @@ export default class ClientNetwork {
             this.spawnEntityFromData(entity);
         }
 
-        if (clientPlayer.x >> ChunkLengthBits === data.x) {
+        if (clientPlayer.x >> ChunkLengthBits === data.x && data.resetEntities) {
             clientPlayer.onMovement();
         }
     };
@@ -196,7 +197,12 @@ export default class ClientNetwork {
 
     processSSetAttributes({data}: PacketByName<"SSetAttributes">) {
         for (const k in data) {
-            clientPlayer[k] = data[k];
+            if (k in clientPlayer) clientPlayer[k] = data[k];
+        }
+        clientPlayer.gravity = clientPlayer.isFlying ? 0 : DefaultGravity;
+        if (clientPlayer.isFlying) {
+            clientPlayer.vx = 0;
+            clientPlayer.vy = 0;
         }
     };
 
@@ -219,6 +225,10 @@ export default class ClientNetwork {
 
     sendStopBreaking(immediate = false) {
         this.sendPacket(new Packets.CStopBreaking(null), immediate);
+    };
+
+    sendToggleFlight(immediate = false) {
+        this.sendPacket(new Packets.CToggleFlight(null), immediate);
     };
 
     sendStartBreaking(x: number, y: number, immediate = false) {

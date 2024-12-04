@@ -3,11 +3,13 @@ import WorldStruct from "@/structs/world/WorldStruct";
 import EntityStruct from "@/structs/entity/EntityStruct";
 import {Inventories, InventorySizes} from "@/meta/Inventories";
 import InventoryStruct from "@/structs/item/InventoryStruct";
+import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 
 export default EntityStruct.extend({
     world: WorldStruct, // This is required because player files aren't located inside world folders
     permissions: X.set.typed(X.string16),
     handIndex: X.u8,
+    gamemode: GameModeStruct,
     inventories: X.object.struct({
         [Inventories.Hotbar]: new InventoryStruct(InventorySizes.hotbar),
         [Inventories.Player]: new InventoryStruct(InventorySizes.player),
