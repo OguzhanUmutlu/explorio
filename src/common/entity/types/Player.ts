@@ -170,13 +170,15 @@ export default class Player extends Entity implements CommandSender {
     };
 
     addItem(item: Item) {
-        if (!this.inventories.hotbar.add(item)) return this.inventories.player.add(item);
-        return true;
+        const h = this.inventories.hotbar.add(item);
+        if (h === 0) return 0;
+        return this.inventories.player.add(item);
     };
 
     removeItem(item: Item) {
-        if (!this.inventories.hotbar.remove(item)) return this.inventories.player.remove(item);
-        return true;
+        const h = this.inventories.hotbar.remove(item);
+        if (h === 0) return 0;
+        return this.inventories.player.remove(item);
     };
 
     clearInventories() {

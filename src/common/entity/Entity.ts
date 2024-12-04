@@ -6,9 +6,10 @@ import {Packets} from "@/network/Packets";
 import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import EffectInstance from "@/effect/EffectInstance";
 import Effect from "@/effect/Effect";
+import ObjectStructBinConstructor from "stramp/src/object/ObjectStructBin";
 
 export const DefaultWalkSpeed = 5;
-export const DefaultFlySpeed = 10;
+export const DefaultFlySpeed = 7;
 export const DefaultJumpVelocity = 7;
 export const DefaultGravity = 18;
 export const GroundHeight = 0.05;
@@ -61,7 +62,7 @@ export default abstract class Entity {
     };
 
     get struct() {
-        return EntityStructs[<keyof typeof EntityStructs>this.typeId];
+        return <ObjectStructBinConstructor<{}, {}, Entity>><unknown>EntityStructs[<keyof typeof EntityStructs>this.typeId];
     };
 
     getSaveBuffer(): Buffer {

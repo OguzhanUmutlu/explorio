@@ -240,7 +240,8 @@ function update(dt: number) {
     for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
         const entities = Array.from(clientPlayer.world.chunkEntities[chunkX] ??= []);
         for (let i = 0; i < entities.length; i++) {
-            entities[i].update(dt);
+            const entity = entities[i];
+            entity.update(dt);
         }
     }
 
@@ -566,7 +567,6 @@ export function terminateClient() {
     singlePlayerServer = null;
 }
 
-// todo: sync attributes in a nice way
 // todo: add fall damage
 // todo: make item entity
 // todo: add crafting api

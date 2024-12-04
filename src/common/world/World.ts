@@ -17,6 +17,8 @@ import {z} from "zod";
 import {ChunkLength, ChunkLengthBits, ChunkLengthN, WorldHeight} from "@/meta/WorldConstants";
 import {BlockPlaceEvent} from "@/event/types/BlockPlaceEvent";
 import {BlockBreakEvent} from "@/event/types/BlockBreakEvent";
+import ItemEntity from "@/entity/types/ItemEntity";
+import Item from "@/item/Item";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -196,6 +198,12 @@ export default class World {
             buffer = zstdOptionalDecode(buffer);
             const chunk = ChunkStruct.deserialize(buffer);
             this.chunks[x] = chunk.data;
+            const existing = (this.chunkEntities[x] ??= []).filter(i => i instanceof Player);
+            for (const entity of chunk.entities) {
+                entity.world = this;
+                entity.init();
+            }
+            this.chunkEntities[x].push(...existing);
             this.chunksGenerated.add(x);
             for (const viewer of this.getChunkViewers(x)) {
                 this.sendChunk(viewer, x);
@@ -211,7 +219,10 @@ export default class World {
 
     saveChunk(x: number) {
         if (!this.chunksGenerated.has(x)) return;
-        const buffer = ChunkStruct.serialize({data: this.chunks[x]});
+        const buffer = ChunkStruct.serialize({
+            data: this.chunks[x],
+            entities: this.chunkEntities[x].filter(i => !(i instanceof Player))
+        });
         this.setChunkBuffer(x, zstdOptionalEncode(buffer));
     };
 
@@ -225,6 +236,7 @@ export default class World {
         for (const x of this.dirtyChunks) {
             this.saveChunk(x);
         }
+
         this.dirtyChunks.clear();
     };
 
@@ -294,15 +306,21 @@ export default class World {
 
     tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true) {
         if (!this.canBreakBlockAt(entity, x, y)) return false;
-        const fullId = this.getFullBlockAt(x, y);
+        const block = this.getBlock(x, y);
 
-        const cancelled = new BlockBreakEvent(entity, x, y, this.getBlock(x, y)).emit();
+        const drops = block.getDrops();
+
+        const cancelled = new BlockBreakEvent(entity, x, y, block, drops).emit();
 
         if (cancelled) return false;
 
         this.setFullBlock(x, y, B.AIR, true, polluteBlock, broadcast);
 
-        if (broadcast) this.broadcastPacketAt(x, new Packets.SBreakBlock({x, y, fullId}));
+        for (const item of drops) {
+            this.dropItem(x + Math.random() * 0.2, y + Math.random() * 0.2, item);
+        }
+
+        if (broadcast) this.broadcastPacketAt(x, new Packets.SBreakBlock({x, y, fullId: block.fullId}));
         return true;
     };
 
@@ -310,10 +328,24 @@ export default class World {
         const chunkXMiddle = x >> ChunkLengthBits;
         for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
             for (const e of this.chunkEntities[chunkX]) {
-                if (e.bb.collidesBlock(x, y)) return true;
+                if (!e.canPhase && e.bb.collidesBlock(x, y)) return true;
             }
         }
         return false;
+    };
+
+    dropItem(x: number, y: number, item: Item, vx = Math.random() - 0.5, vy = Math.random() + 0.3, delay = 0.3) {
+        const entity = new ItemEntity();
+        entity.x = x;
+        entity.y = y;
+        entity.vx = vx;
+        entity.vy = vy;
+        entity.delay = delay;
+        entity.world = this;
+        entity.item = item;
+        entity.init();
+        entity.broadcastSpawn();
+        return entity;
     };
 
     getBlockCollisions(bb: BoundingBox, limit = Infinity) {

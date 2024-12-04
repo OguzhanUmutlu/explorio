@@ -10,6 +10,7 @@ import Effect from "@/effect/Effect";
 import SpeedEffect from "@/effect/types/SpeedEffect";
 import SlownessEffect from "@/effect/types/SlownessEffect";
 import {Bin} from "stramp";
+import ItemEntity from "@/entity/types/ItemEntity";
 
 export function initEffects() {
     for (const clazz of [
@@ -44,4 +45,5 @@ export async function initCommon() {
 
 export function initBaseEntities() {
     EntityClasses[Entities.PLAYER] = Player;
+    EntityClasses[Entities.ITEM] = ItemEntity;
 }

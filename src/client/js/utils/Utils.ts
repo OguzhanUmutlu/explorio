@@ -10,6 +10,7 @@ import {configure, fs} from "@zenfs/core";
 import {WebStorage} from "@zenfs/dom";
 import Entity from "@/entity/Entity";
 import {Buffer} from "buffer";
+import CItemEntity from "@c/entity/types/CItemEntity";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
@@ -90,6 +91,7 @@ export async function initBrowserFS() {
 
 export function initClientEntities() {
     ClientEntityClasses[Entities.PLAYER] = CPlayer;
+    ClientEntityClasses[Entities.ITEM] = CItemEntity;
 }
 
 export function getWSUrls(ip: string, port: number): string[] {

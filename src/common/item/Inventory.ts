@@ -39,43 +39,44 @@ export default class Inventory {
         this.contents.fill(null);
     };
 
-    add(item: Item) {
-        if (!item || item.count === 0) return true;
-        let count = item.count;
+    add(item: Item, count = item.count) {
+        if (!item || item.count === 0 || count === 0) return count;
         for (let i = 0; i < this.size; i++) {
-            count -= this.addAt(i, item);
-            if (count === 0) return true;
+            count -= this.addAt(i, item, count);
+            if (count === 0) return 0;
         }
-        return false;
+
+        return count;
     };
 
-    remove(item: Item) {
-        if (!item || item.count === 0) return true;
-        let count = item.count;
+    remove(item: Item, count = item.count) {
+        if (!item || item.count === 0 || count === 0) return count;
         for (let i = 0; i < this.size; i++) {
-            count -= this.removeAt(i, item);
-            if (count === 0) return true;
+            count -= this.removeAt(i, item, count);
+            if (count === 0) return 0;
         }
-        return false;
+
+        return count;
     };
 
-    addFromBack(item: Item) {
-        if (!item) return;
-        let count = item.count;
+    addFromBack(item: Item, count = item.count) {
+        if (!item || item.count === 0 || count === 0) return count;
         for (let i = this.size - 1; i >= 0; i--) {
-            count -= this.addAt(i, item);
-            if (count === 0) return;
+            count -= this.addAt(i, item, count);
+            if (count === 0) return 0;
         }
+
+        return count;
     };
 
-    removeFromBack(item: Item) {
-        if (!item) return true;
-        let count = item.count;
+    removeFromBack(item: Item, count = item.count) {
+        if (!item || item.count === 0 || count === 0) return count;
         for (let i = this.size - 1; i >= 0; i--) {
-            if (count === 0) return true;
-            count -= this.removeAt(i, item);
+            count -= this.removeAt(i, item, count);
+            if (count === 0) return 0;
         }
-        return false;
+
+        return count;
     };
 
     removeDesc(desc: ItemDescriptor) {
@@ -84,21 +85,21 @@ export default class Inventory {
         if (Array.isArray(count)) throw new Error(".removeDesc() function cannot be ran with an item descriptor with multiple a bounded count.");
         for (let i = 0; i < this.size; i++) {
             if (count === 0) return 0;
-            count = this.removeDescAt(i, desc, <number>count);
+            count = this.removeDescAt(i, desc, count);
         }
         return count;
     };
 
-    addAt(index: number, item: Item) {
+    addAt(index: number, item: Item, count = item.count) {
         const maxStack = IM[item.id].maxStack;
         const it = this.get(index);
         if (!it) {
-            const putting = Math.min(maxStack, item.count);
+            const putting = Math.min(maxStack, count);
             this.set(index, item.clone(putting));
             return putting;
         }
         if (it.equals(item, false, true) && it.count < maxStack) {
-            const putting = Math.min(maxStack - it.count, item.count);
+            const putting = Math.min(maxStack - it.count, count);
             it.count += putting;
             this.dirtyIndexes.add(index);
             return putting;
@@ -106,17 +107,17 @@ export default class Inventory {
         return 0;
     };
 
-    removeAt(index: number, item: Item) {
+    removeAt(index: number, item: Item, count = item.count) {
         if (!item) return;
         const it = this.get(index);
         if (!it || !it.equals(item, false, true)) return;
-        if (it.count <= item.count) {
+        if (it.count <= count) {
             this.removeIndex(index);
             return it.count;
         }
-        it.count -= item.count;
+        it.count -= count;
         this.dirtyIndexes.add(index);
-        return item.count;
+        return count;
     };
 
     removeDescAt(index: number, desc: ItemDescriptor, count: number) {

@@ -4,7 +4,7 @@ import {clientPlayer} from "@dom/Client";
 import {Div} from "@c/utils/Utils";
 import {checkLag} from "@/utils/Utils";
 
-const InventoryDivs: Record<string, [InventoryName, HTMLCanvasElement[], Div[]]> = {};
+const InventoryDivs: Record<string, [InventoryName, CanvasRenderingContext2D[], Div[]]> = {};
 
 export function animateInventories() {
     checkLag("animate inventories", 10);
@@ -12,10 +12,10 @@ export function animateInventories() {
     const removed = {} as Record<InventoryName, Set<number>>;
 
     for (const key in InventoryDivs) {
-        const [inventoryType, canvases, counts] = InventoryDivs[key];
+        const [inventoryType, contexts, counts] = InventoryDivs[key];
         const inventory = clientPlayer.inventories[inventoryType];
         if (inventory.wholeDirty) {
-            for (let i = 0; i < canvases.length; i++) {
+            for (let i = 0; i < contexts.length; i++) {
                 inventory.dirtyIndexes.add(i);
             }
 
@@ -26,17 +26,17 @@ export function animateInventories() {
 
         for (const index of inventory.dirtyIndexes) {
             const item = inventory.get(index);
-            const canvas = canvases[index];
+            const ctx = contexts[index];
             const count = counts[index];
 
             if (!item) {
-                canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 count.innerText = "";
                 rm.add(index);
                 continue;
             }
 
-            if (item.render(canvas)) {
+            if (item.render(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, false)) {
                 rm.add(index);
             }
 
@@ -60,9 +60,9 @@ export default React.memo(function InventoryDiv(O: {
     ikey: string,
     [k: string]: unknown
 }) {
-    const canvases = [] as HTMLCanvasElement[];
+    const contexts = [] as CanvasRenderingContext2D[];
     const counts = [] as Div[];
-    InventoryDivs[O.ikey] = [O.inventoryType, canvases, counts];
+    InventoryDivs[O.ikey] = [O.inventoryType, contexts, counts];
     const size = InventorySizes[O.inventoryType];
     const props = {...O};
     delete props.inventoryType;
@@ -70,7 +70,12 @@ export default React.memo(function InventoryDiv(O: {
 
     return <div className="inventory" key={O.ikey} {...props}>
         {...new Array(size).fill(null).map((_, i) => <div key={O.ikey + " " + i} className="inventory-item">
-            <canvas ref={el => canvases[i] = el}></canvas>
+            <canvas ref={el => {
+                if (el) {
+                    const ctx = contexts[i] = el.getContext("2d");
+                    ctx.imageSmoothingEnabled = false;
+                }
+            }}></canvas>
             <div ref={el => counts[i] = el}></div>
         </div>)}
     </div>;

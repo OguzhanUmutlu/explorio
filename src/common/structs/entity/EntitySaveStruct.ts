@@ -13,7 +13,8 @@ export default new class EntitySaveStruct extends Bin<Entity> {
 
     unsafeWrite(bind: BufferIndex, entity: Entity) {
         this.typeIdBin.unsafeWrite(bind, entity.typeId);
-        entity.struct.unsafeWrite(bind, entity);
+        const struct = entity.struct;
+        struct.unsafeWrite(bind, entity);
     };
 
     read(bind: BufferIndex): Entity {

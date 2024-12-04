@@ -135,6 +135,7 @@ export class ItemMetadata {
         public isSlab: boolean,
         public isStairs: boolean
     ) {
+        this.drops ??= [new ID(this.id, this.meta)];
         this.fullId = im2f(id, meta);
     };
 
@@ -198,11 +199,19 @@ export class ItemMetadata {
         return this.metas.length > 0;
     };
 
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToRender = true) {
         if (!this.hasTexture()) return;
         const texture = this.getTexture();
+        if (!texture.loaded) {
+            if (waitToRender) texture.wait().then(() => ctx.drawImage(texture.image, x, y, w, h));
+            return false;
+        }
         ctx.drawImage(texture.image, x, y, w, h);
-        if (!texture.loaded) texture.wait().then(img => ctx.drawImage(img, x, y, w, h));
+        return true;
+    };
+
+    getDrops() {
+        return this.drops.map(i => i.evaluate()).filter(i => i !== null);
     };
 
     static fromOptions(id: number, meta: number, O: ItemMetaDataConfig) {
@@ -533,4 +542,8 @@ export function initItems() {
     };
 
     FlowerIds.forEach(([identifier, name, id]) => registerItem(identifier, id, {...flowerOptions, name}));
+
+    registerItem("apple", I.APPLE, {
+        ...diamondOre, name: "Apple", foodPoints: 4, isBlock: false
+    });
 }

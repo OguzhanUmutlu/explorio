@@ -4,7 +4,7 @@ import {ZstdSimple} from "@oneidentity/zstd-js";
 import Server from "@/Server";
 import Location from "@/utils/Location";
 import PlayerStruct from "@/structs/entity/PlayerStruct";
-import ItemStruct from "@/structs/item/ItemStruct";
+import ItemEntityStruct from "@/structs/entity/ItemEntityStruct";
 
 let server: Server;
 
@@ -71,7 +71,7 @@ export function deserializeUint16Array(size: number, buffer: Buffer, offset: num
 
 export const EntityStructs = {
     [Entities.PLAYER]: PlayerStruct,
-    [Entities.ITEM]: ItemStruct
+    [Entities.ITEM]: ItemEntityStruct
 };
 
 export function permissionCheck(permissions: Set<string>, wanted: string) {

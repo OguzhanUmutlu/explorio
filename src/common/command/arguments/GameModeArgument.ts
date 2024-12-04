@@ -11,7 +11,7 @@ export enum GameMode {
     Spectator
 }
 
-const GameModeNames = ["survival", "creative", "adventure", "spectator"];
+export const GameModeNames = ["survival", "creative", "adventure", "spectator"];
 const GameModeValues = [GameMode.Survival, GameMode.Creative, GameMode.Adventure, GameMode.Spectator];
 
 export const GameModeStruct = X.any.ofValues(...GameModeValues);

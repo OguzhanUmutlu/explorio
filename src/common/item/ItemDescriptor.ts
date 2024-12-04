@@ -24,7 +24,7 @@ export default class ItemDescriptor {
             && (this.nbt === null || JSON.stringify(this.nbt) === JSON.stringify(item.nbt));
     };
 
-    evaluate() {
+    evaluate(): Item | null {
         if (this.chance !== null && Math.random() > this.chance) return null;
         let meta = this.meta || 0;
         if (Array.isArray(meta)) meta = Math.floor(Math.random() * (meta[1] - meta[0] + 1)) + meta[0];

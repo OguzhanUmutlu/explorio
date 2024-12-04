@@ -25,11 +25,9 @@ export default class OriginPlayer extends CPlayer {
 
     walkHorizontal(sign: 1 | -1, dt: number) {
         this.tryToMove(
-            sign
-            * (Keyboard.shift ? 1.2 : 1)
-            * (this.onGround ? 1 : 0.8)
-            * (this.isFlying ? this.flySpeed : this.walkSpeed)
-            * dt,
+            this.isFlying
+                ? sign * this.flySpeed * dt
+                : sign * (Keyboard.shift ? 1.2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed * dt,
 
             0, dt);
     };
@@ -61,7 +59,7 @@ export default class OriginPlayer extends CPlayer {
             clientNetwork.sendToggleFlight();
         }
 
-        if (Mouse.left) {
+        if (Mouse.left && !Mouse.right) {
             if (this.breaking) {
                 if (this.breaking[0] !== Mouse.rx
                     || this.breaking[1] !== Mouse.ry
@@ -82,7 +80,7 @@ export default class OriginPlayer extends CPlayer {
             this.breaking = null;
             this.breakingTime = 0;
         }
-        if (Mouse.right) this.placeIfCan();
+        if (Mouse.right && !Mouse.left) this.placeIfCan();
         else this.placeTime = 0;
     };
 

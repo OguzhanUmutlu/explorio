@@ -1,6 +1,7 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
 import Player from "@/entity/types/Player";
+import {GameModeNames} from "@/command/arguments/GameModeArgument";
 
 export default class GameModeCommand extends DefinitiveCommand {
     constructor() {
@@ -14,7 +15,7 @@ export default class GameModeCommand extends DefinitiveCommand {
                 if (as instanceof Player) {
                     as.setGameMode(gamemode);
                     sender.sendMessage(
-                        `Set the game mode of ${as.name} to ${gamemode}.`
+                        `Set the game mode of ${as.name} to ${GameModeNames[gamemode]}.`
                     );
                 } else {
                     sender.sendMessage(
@@ -31,7 +32,7 @@ export default class GameModeCommand extends DefinitiveCommand {
                 }
 
                 sender.sendMessage(
-                    `Set the gamemode of ${players.length} ${players.length === 1 ? "player" : "players"} to ${gamemode}`
+                    `Set the gamemode of ${players.length} ${players.length === 1 ? "player" : "players"} to ${GameModeNames[gamemode]}`
                 );
             })
     ];

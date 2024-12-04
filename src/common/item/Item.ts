@@ -1,6 +1,5 @@
 import {BM} from "@/meta/ItemIds";
 import {im2f} from "@/meta/Items";
-import {Canvas} from "@/utils/Texture";
 import ItemStruct from "@/structs/item/ItemStruct";
 import {ItemNBT} from "@/structs/item/ItemNBTStruct";
 
@@ -21,16 +20,8 @@ export default class Item {
         return this.toMetadata().getTexture();
     };
 
-    render(canvas: Canvas) {
-        const texture = this.getTexture();
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (texture.loaded) {
-            ctx.drawImage(texture.image, 0, 0, canvas.width, canvas.height);
-            return true;
-        }
-
-        return false;
+    render(ctx: CanvasRenderingContext2D, x = 0, y = 0, w = ctx.canvas.width, h = w, waitToRender = true) {
+        return this.toMetadata().render(ctx, x, y, w, h, waitToRender);
     };
 
     toBuffer() {

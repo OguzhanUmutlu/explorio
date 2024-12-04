@@ -1,5 +1,6 @@
 import {ItemsByAccess} from "@/meta/ItemIds";
 import ItemDescriptor from "@/item/ItemDescriptor";
+import Item from "@/item/Item";
 
 export default class ItemPool {
     chance: number;
@@ -26,7 +27,7 @@ export default class ItemPool {
         return null;
     };
 
-    evaluate() {
+    evaluate(): Item | null {
         const select = this.select();
         if (!select) return null;
         return select.evaluate();
