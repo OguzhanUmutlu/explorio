@@ -1,6 +1,7 @@
 import {ItemMetadata} from "@/meta/Items";
 
-export const ITEM_META_BITS = 4;
+export const ItemMetaBits = 5;
+export const ItemMetaMax = 1 << ItemMetaBits;
 
 export enum ItemIds {
     AIR,
@@ -87,5 +88,5 @@ export const ItemsByAccess: Record<string, ItemMetadata> = {};          // Items
 
 for (let i = 0; i < ItemIds.__MAX__; i++) {
     I[ItemIds[i]] = i;
-    B[ItemIds[i]] = i << ITEM_META_BITS;
+    B[ItemIds[i]] = i << ItemMetaBits;
 }

@@ -22,7 +22,7 @@ import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
 import {Inventories, InventorySizes} from "@/meta/Inventories";
-import {I} from "@/meta/ItemIds";
+import {BM, I, ItemIds} from "@/meta/ItemIds";
 import {Packets} from "@/network/Packets";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
@@ -30,6 +30,8 @@ import ParticleManager from "@c/particle/ParticleManager";
 import Packet from "@/network/Packet";
 import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import Entity from "@/entity/Entity";
+import {im2f} from "@/meta/Items";
+import {rotateMeta} from "@/utils/Utils";
 
 declare global {
     interface Window {
@@ -118,7 +120,8 @@ const DefaultMouse = {
     _ySmooth: 0,
     left: false,
     right: false,
-    middle: false
+    middle: false,
+    rotation: 0
 };
 
 export let Mouse = {...DefaultMouse};
@@ -129,6 +132,9 @@ export function updateMouse() {
     Mouse.y = (-Mouse._y + canvas.height / 2 + camera.y * Options.tileSize) / Options.tileSize;
     Mouse.rx = Math.round(Mouse.x);
     Mouse.ry = Math.round(Mouse.y);
+    const mdx = Mouse.x - Mouse.rx;
+    const mdy = Mouse.y - Mouse.ry;
+    Mouse.rotation = (mdx > 0 ? (mdy > 0 ? 3 : 0) : (mdy > 0 ? 2 : 1));
 }
 
 let intervalId: ReturnType<typeof setTimeout>;
@@ -240,11 +246,21 @@ function animate() {
         clientPlayer.distance(Mouse.rx, Mouse.ry) <= clientPlayer.blockReach
     ) {
         ctx.save();
-        const p = 800;
-        ctx.globalAlpha = 1 - Math.abs((Date.now() % p) / p * 2 - 1);
-        ctx.strokeStyle = "yellow";
+        const p = 1200;
+        // f(0) = 0.5
+        // f(p/2) = 0.2
+        // f(p) = 0.5
+        ctx.globalAlpha = (1 - 2 / p * Math.abs((Date.now() % p) - p / 2)) * 0.3 + 0.2;
+        ctx.strokeStyle = "#ffff00";
         ctx.lineWidth = 2;
         const blockPos = getClientPosition(Mouse.rx, Mouse.ry);
+        const item = clientPlayer.handItem;
+        if (item) {
+            const block = BM[im2f(item.id, rotateMeta(item.id, item.meta, Mouse.rotation))];
+            if (block && clientPlayer.world.canPlaceBlockAt(clientPlayer, Mouse.rx, Mouse.ry, item.id, item.meta, Mouse.rotation)) {
+                block.render(ctx, blockPos.x - Options.tileSize / 2, blockPos.y - Options.tileSize / 2, Options.tileSize, Options.tileSize, false);
+            }
+        }
         ctx.strokeRect(blockPos.x - Options.tileSize / 2, blockPos.y - Options.tileSize / 2, Options.tileSize, Options.tileSize);
         ctx.restore();
     }
@@ -603,14 +619,15 @@ export function terminateClient() {
 }
 
 // todo: add fall damage
-// todo: make item entity
 // todo: add crafting api
-// todo: sync crafting inventory in a nice way
-// todo: fix non-rendering chunks in clients
+// todo: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
 // todo: add inventory transactions:
 //   client: move X items from A to B, drop X items from A
 //   server: set an item
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
+// todo: custom tree lengths and shapes like jungle etc.
+// todo: i think only trees of meta 0 1 2 3 are being chosen
+// todo: add client-side inventory interaction api
 
 function isInChat() {
     return chatContainer[0];

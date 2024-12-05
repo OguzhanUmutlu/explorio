@@ -91,21 +91,22 @@ export default class PlayerNetwork {
         this.sendPacket(new Packets.SHandshake({
             entityId: this.player.id,
             x: player.x,
-            y: player.y
+            y: player.y,
+            handIndex: player.handIndex
         }), true);
         this.sendInventories(true);
         this.sendAttributes(true);
     };
 
-    processCPlaceBlock({data: {x, y}}: PacketByName<"CPlaceBlock">) {
+    processCPlaceBlock({data: {x, y, rotation}}: PacketByName<"CPlaceBlock">) {
         const world = this.player.world;
         const handItem = this.player.handItem;
 
-        if (!handItem) return this.sendBlock(x, y);
+        if (!handItem || !world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta, rotation)) return this.sendBlock(x, y);
 
-        if (world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta)) {
+        if (!this.player.infiniteResource) {
             this.player.inventories.hotbar.decreaseItemAt(this.player.handIndex);
-        } else return this.sendBlock(x, y);
+        }
     };
 
     processCToggleFlight(_: PacketByName<"CToggleFlight">) {

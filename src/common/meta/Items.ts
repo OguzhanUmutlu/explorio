@@ -2,7 +2,9 @@ import Texture, {Canvas, texturePlaceholder} from "@/utils/Texture";
 import Item from "@/item/Item";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
-import {B, BM, I, IM, IS, ITEM_META_BITS, ItemIds} from "@/meta/ItemIds";
+import {B, BM, I, IM, IS, ItemIds, ItemMetaBits, ItemMetaMax} from "@/meta/ItemIds";
+import BoundingBox from "@/entity/BoundingBox";
+import {BaseBlockBB, SlabBottomBB, SlabLeftBB, SlabRightBB, SlabTopBB} from "@/meta/BlockCollisions";
 
 export type Side = "bottom" | "top" | "left" | "right";
 export type ToolType = "none" | "sword" | "axe" | "pickaxe" | "shovel" | "hoe" | "shears";
@@ -50,15 +52,17 @@ export type ItemMetaDataConfig = {
 };
 
 export function f2id(x: number) {
-    return x >> ITEM_META_BITS;
+    return x >> ItemMetaBits;
 }
 
 export function f2meta(x: number) {
-    return x & ITEM_META_BITS;
+    return x & ItemMetaBits;
 }
 
 export function im2f(id: number, meta: number = 0) {
-    return id << ITEM_META_BITS | meta;
+    const m = IM[id];
+    const maxMeta = m ? m.metas.length : ItemMetaMax;
+    return id << ItemMetaBits | (meta % maxMeta);
 }
 
 export const ToolLevels = {
@@ -96,7 +100,9 @@ export const S = {
 } as const;
 
 export class ItemMetadata {
-    public fullId: number;
+    fullId: number;
+    bbs: BoundingBox[];
+    blockRotation: number;
 
     constructor(
         public id: number,
@@ -135,8 +141,20 @@ export class ItemMetadata {
         public isSlab: boolean,
         public isStairs: boolean
     ) {
-        this.drops ??= [new ID(this.id, this.meta)];
+        let nonRotatedMeta = meta;
+        if (isSlab || isStairs) {
+            nonRotatedMeta %= this.metas.length / 4;
+            this.blockRotation = Math.floor(meta / (this.metas.length / 4));
+        }
+        this.drops ??= [new ID(id, nonRotatedMeta)];
         this.fullId = im2f(id, meta);
+
+        if (this.isSlab) {
+            // bottom left top right
+            this.bbs = [SlabBottomBB, SlabLeftBB, SlabTopBB, SlabRightBB][this.blockRotation];
+        } else if (this.isStairs) {
+
+        } else this.bbs = BaseBlockBB;
     };
 
     [Symbol.toPrimitive]() {
@@ -146,6 +164,16 @@ export class ItemMetadata {
     private randRepl(s: readonly [string, number]) {
         if (!s) return null;
         return s[0].replace("$", Math.floor(Math.random() * s[1]) + 1 + "");
+    };
+
+    getCollision(bb: BoundingBox, x: number, y: number) {
+        if (this.canBePhased) return null;
+
+        for (const k of this.bbs) {
+            if (bb.collidesGiven(k.x + x - 0.5, k.y + y - 0.5, k.width, k.height)) return k;
+        }
+
+        return null;
     };
 
     randomDig() {
@@ -199,11 +227,11 @@ export class ItemMetadata {
         return this.metas.length > 0;
     };
 
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToRender = true) {
+    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true) {
         if (!this.hasTexture()) return;
         const texture = this.getTexture();
         if (!texture.loaded) {
-            if (waitToRender) texture.wait().then(() => ctx.drawImage(texture.image, x, y, w, h));
+            if (waitToLoad) texture.wait().then(() => ctx.drawImage(texture.image, x, y, w, h));
             return false;
         }
         ctx.drawImage(texture.image, x, y, w, h);
@@ -275,7 +303,7 @@ export const DefaultItemOptions = (identifier: string, name: string, t: string) 
 export function introduceItemId(id: number, key: string, isBlock: boolean) {
     if (I[key]) throw new Error("Item already introduced: " + key);
     I[key] = id;
-    if (isBlock) B[key] = id << ITEM_META_BITS;
+    if (isBlock) B[key] = id << ItemMetaBits;
 }
 
 export function registerItem(identifier: string, id: number, O: ItemMetaDataConfig) {
@@ -286,47 +314,46 @@ export function registerItem(identifier: string, id: number, O: ItemMetaDataConf
     for (let meta = 1; meta < O.metas.length; meta++) {
         BM[im2f(id, meta)] = ItemMetadata.fromOptions(id, meta, O);
     }
-    const baseMeta = IS[key] = IM[id] = BM[id << ITEM_META_BITS];
+    const baseMeta = IS[key] = IM[id] = BM[id << ItemMetaBits];
 
-    if (O.makeSlabs !== null) {
-        const slabMeta = registerItem(identifier + "_slab", O.makeSlabs, {
-            ...O, isSlab: true, metas: []
+    function slabStairsProtocol(adder: string, oProp: string, oIsProp: string, nameAdder: string, fnMatch: string[][]) {
+        if (!O[oProp]) return;
+
+        const metas = Array(O.metas.length * fnMatch.length);
+        const newMetadata = registerItem(identifier + adder, O[oProp], {
+            ...O, makeSlabs: null, makeStairs: null, [oIsProp]: true, metas, isOpaque: false
         });
-        slabMeta.metas = [];
-        for (const [index, opt] of Object.entries([
-            ["_slab_top", "slabTop"],
-            ["_slab_bottom", "slabBottom"]
-        ])) for (let i = 0; i < O.metas.length; i++) {
+        for (const [index, opt] of Object.entries(fnMatch)) for (let i = 0; i < O.metas.length; i++) {
             const meta = +index * O.metas.length + i;
             const dat = O.metas[i];
-            slabMeta.metas.push({
+            metas[meta] = {
                 identifier: dat.identifier + opt[0],
-                name: dat.name + " Slab",
-                texture: () => new Texture("", baseMeta.getTexture(meta)[opt[1]]())
+                name: dat.name + " " + nameAdder,
+                texture: () => new Texture("", new Promise(r => {
+                    const texture = baseMeta.getTexture(meta);
+                    texture.wait().then(() => r(texture[opt[1]]()));
+                }))
+            };
+            BM[im2f(O[oProp], meta)] = ItemMetadata.fromOptions(O[oProp], meta, {
+                ...newMetadata,
+                drops: O.drops
             });
-            BM[im2f(O.makeSlabs, meta)] = ItemMetadata.fromOptions(O.makeSlabs, meta, O);
         }
     }
-    if (O.makeStairs !== null) {
-        const stairsMeta = registerItem(identifier + "_stairs", O.makeSlabs, {
-            ...O, isSlab: true, metas: []
-        });
-        for (const [index, opt] of Object.entries([
-            ["_stairs_top_left", "stairsTopLeft"],
-            ["_stairs_top_right", "stairsTopRight"],
-            ["_stairs_bottom_left", "stairsBottomLeft"],
-            ["_stairs_bottom_right", "stairsBottomRight"]
-        ])) for (let i = 0; i < O.metas.length; i++) {
-            const meta = +index * O.metas.length + i;
-            const dat = O.metas[i];
-            stairsMeta.metas.push({
-                identifier: dat.identifier + opt[0],
-                name: dat.name + " Stairs",
-                texture: () => new Texture("", baseMeta.getTexture(meta)[opt[1]]())
-            });
-            BM[im2f(O.makeStairs, meta)] = ItemMetadata.fromOptions(O.makeStairs, meta, O);
-        }
-    }
+
+    slabStairsProtocol("_slab", "makeSlabs", "isSlab", "Slab", [
+        ["_slab_bottom", "slabBottom"],
+        ["_slab_left", "slabLeft"],
+        ["_slab_top", "slabTop"],
+        ["_slab_right", "slabRight"]
+    ]);
+
+    slabStairsProtocol("_stairs", "makeStairs", "isStairs", "Stairs", [
+        ["_stairs_top_left", "stairsTopLeft"],
+        ["_stairs_top_right", "stairsTopRight"],
+        ["_stairs_bottom_left", "stairsBottomLeft"],
+        ["_stairs_bottom_right", "stairsBottomRight"]
+    ]);
 
     return IM[id];
 }
@@ -548,6 +575,43 @@ export function initItems() {
     FlowerIds.forEach(([identifier, name, id]) => registerItem(identifier, id, {...flowerOptions, name}));
 
     registerItem("apple", I.APPLE, {
-        ...diamondOre, name: "Apple", foodPoints: 4, isBlock: false
+        name: "Apple", foodPoints: 4, isBlock: false
+    });
+
+    registerItem("planks", I.PLANKS, {
+        name: "Planks", isBlock: true, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
+        hardness: 2, dropsWithToolTypes: ["axe"], intendedToolType: ["axe"], makeSlabs: I.WOODEN_SLAB,
+        makeStairs: I.WOODEN_STAIRS, metas: [
+            {name: "Oak Planks", identifier: "oak_planks", texture: "assets/textures/blocks/planks_oak.png"},
+            {
+                name: "Big Oak Planks",
+                identifier: "big_oak_planks",
+                texture: "assets/textures/blocks/planks_big_oak.png"
+            },
+            {name: "Birch Planks", identifier: "birch_planks", texture: "assets/textures/blocks/planks_birch.png"},
+            {name: "Jungle Planks", identifier: "jungle_planks", texture: "assets/textures/blocks/planks_jungle.png"},
+            {name: "Spruce Planks", identifier: "spruce_planks", texture: "assets/textures/blocks/planks_spruce.png"},
+            {name: "Acacia Planks", identifier: "acacia_planks", texture: "assets/textures/blocks/planks_acacia.png"}
+        ]
+    });
+
+    registerItem("raw_iron", I.RAW_IRON, {
+        name: "Raw Iron", isBlock: false, smeltsTo: new ID(ItemIds.IRON_INGOT), smeltXP: 0.2
+    });
+
+    registerItem("raw_gold", I.RAW_GOLD, {
+        name: "Raw Gold", isBlock: false, smeltsTo: new ID(ItemIds.GOLD_INGOT), smeltXP: 0.2
+    });
+
+    registerItem("lapis", I.LAPIS, {
+        name: "Lapis", isBlock: false
+    });
+
+    registerItem("redstone", I.REDSTONE, {
+        name: "Redstone", isBlock: false
+    });
+
+    registerItem("diamond", I.DIAMOND, {
+        name: "Diamond", isBlock: false
     });
 }

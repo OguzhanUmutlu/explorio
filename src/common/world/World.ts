@@ -6,7 +6,7 @@ import FlatGenerator from "@/world/generators/FlatGenerator";
 import DefaultGenerator from "@/world/generators/DefaultGenerator";
 import FlowerLandGenerator from "@/world/generators/FlowerLandGenerator";
 import CustomGenerator from "@/world/generators/CustomGenerator";
-import {zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
+import {rotateMeta, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
 import Player from "@/entity/types/Player";
 import Packet from "@/network/Packet";
 import Entity from "@/entity/Entity";
@@ -64,6 +64,8 @@ export const DefaultWorldMetadata: WorldMetaData = {
     generator: "default",
     generatorOptions: ""
 };
+
+export type Collision = { x: number, y: number, meta: ItemMetadata, bb: BoundingBox };
 
 // Variable meanings:
 // x = World X
@@ -260,9 +262,10 @@ export default class World {
         this._polluteChunk(x >> ChunkLengthBits);
     };
 
-    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, polluteBlock = true, broadcast = true) {
+    canPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, rotation = 0) {
         x = Math.round(x);
         y = Math.round(y);
+        meta = rotateMeta(id, meta, rotation);
         const fullId = im2f(id, meta);
         const block = BM[fullId];
         if (
@@ -278,13 +281,29 @@ export default class World {
         const canBePlacedOn = target.canBePlacedOn;
         if (canBePlacedOn !== "*" && !canBePlacedOn.includes(id)) return false;
         if (target.cannotBePlacedOn.includes(id)) return false;
-        this._setBlock(x, y, fullId, true, false);
 
+        this._setBlock(x, y, fullId, true, false, false);
         const touchingBlock = this.anyEntityTouchBlock(x, y);
+        this._setBlock(x, y, target.fullId, true, false, false);
+
+        return !touchingBlock;
+    };
+
+    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, rotation = 0, polluteBlock = true, broadcast = true) {
+        x = Math.round(x);
+        y = Math.round(y);
+        meta = rotateMeta(id, meta, rotation);
+        if (!this.canPlaceBlockAt(entity, x, y, id, meta, rotation)) return false;
+
+        const fullId = im2f(id, meta);
+        const block = BM[fullId];
+        const target = this.getBlock(x, y);
+        this._setBlock(x, y, fullId, true, false, false);
+
         const cancelled = new BlockPlaceEvent(entity, x, y, block).emit();
 
-        if (cancelled || touchingBlock) {
-            this._setBlock(x, y, target.fullId, true, false);
+        if (cancelled) {
+            this._setBlock(x, y, target.fullId, true, false, false);
             return false;
         }
 
@@ -309,6 +328,7 @@ export default class World {
 
     tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true) {
         if (!this.canBreakBlockAt(entity, x, y)) return false;
+
         const block = this.getBlock(x, y);
 
         const drops = block.getDrops();
@@ -331,7 +351,7 @@ export default class World {
         const chunkXMiddle = x >> ChunkLengthBits;
         for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
             for (const e of this.chunkEntities[chunkX]) {
-                if (!e.canPhase && e.bb.collidesBlock(x, y)) return true;
+                if (!(e instanceof ItemEntity) && !e.canPhase && e.getBlockCollisionAt(x, y)) return true;
             }
         }
         return false;
@@ -352,12 +372,13 @@ export default class World {
     };
 
     getBlockCollisions(bb: BoundingBox, limit = Infinity) {
-        const collisions: { x: number, y: number, meta: ItemMetadata }[] = [];
+        const collisions: Collision[] = [];
         for (let x = Math.floor(bb.x); x <= Math.ceil(bb.x + bb.width); x++) {
             for (let y = Math.floor(bb.y); y <= Math.ceil(bb.y + bb.height); y++) {
                 const block = this.getBlock(x, y);
-                if (!block.canBePhased && bb.collidesBlock(x, y)) { // TODO: check for collision after adding slabs etc.
-                    collisions.push({x, y, meta: block});
+                const collBB = block.getCollision(bb, x, y);
+                if (collBB) {
+                    collisions.push({x, y, meta: block, bb: collBB});
                     if (collisions.length >= limit) return collisions;
                 }
             }

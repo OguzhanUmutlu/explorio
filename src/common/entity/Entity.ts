@@ -178,9 +178,20 @@ export default abstract class Entity {
         while (Math.abs(dx) > eps) {
             this.x += dx;
             this.updateCollisionBox();
-            if (this.getCollidingBlock()) {
-                this.x -= dx;
-                dx /= 2;
+            const coll = this.getCollidingBlock();
+            if (coll) {
+                if (
+                    this.onGround
+                    && coll.bb.y + coll.y + coll.bb.height - this.y < 0.51
+                    && this.world.getBlock(coll.x, coll.y + 1).canBePhased
+                ) {
+                    // step!
+                    this.y = coll.bb.y + coll.y + coll.bb.height;
+                    break;
+                } else {
+                    this.x -= dx;
+                    dx /= 2;
+                }
             } else {
                 mx = true;
                 break;
@@ -223,6 +234,10 @@ export default abstract class Entity {
                 effect.remove(this);
             }
         }
+    };
+
+    getBlockCollisionAt(x: number, y: number) {
+        return this.world.getBlock(x, y).getCollision(this.bb, x, y);
     };
 
     getChunkEntities() {

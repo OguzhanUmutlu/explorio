@@ -91,6 +91,7 @@ body {
     background: linear-gradient(to left bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.2));
     opacity: 1;
     transition: all 0.3s;
+    pointer-events: none;
 }
 
 .chat-input {
@@ -128,6 +129,10 @@ body {
 .chat-container > .chat-messages {
     overflow: hidden;
     bottom: 10px;
+}
+
+.chat-container > .chat-messages > .message {
+    pointer-events: auto;
 }
 
 .full-chat-container {

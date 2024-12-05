@@ -91,6 +91,7 @@ export default class ClientNetwork {
         clientPlayer.id = data.entityId;
         clientPlayer.x = data.x;
         clientPlayer.y = data.y;
+        clientPlayer.handIndex = data.handIndex;
         clientPlayer.init();
         if (this.handshakeCb) this.handshakeCb();
     };
@@ -130,8 +131,6 @@ export default class ClientNetwork {
     processSEntityUpdate({data}: PacketByName<"SEntityUpdate">) {
         const entity = clientPlayer.world.entities[data.entityId];
         if (!entity) return this.spawnEntityFromData(data);
-        delete data.entityId;
-        delete data.typeId;
         const dist = entity.distance(data.props.x, data.props.y);
         Object.assign(entity, data.props);
 
@@ -145,7 +144,7 @@ export default class ClientNetwork {
 
     processSEntityRemove({data}: PacketByName<"SEntityRemove">) {
         const entity = clientPlayer.world.entities[data];
-        if (!entity) return printer.error("Entity not found: ", data);
+        if (!entity) return printer.error("Entity ID not found:", data);
         entity.despawn();
     };
 

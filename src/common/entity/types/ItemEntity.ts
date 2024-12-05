@@ -31,7 +31,7 @@ export default class ItemEntity extends Entity {
     serverUpdate(dt: number) {
         const source = this.item;
         for (const entity of this.getChunkEntities()) {
-            if (this.delay <= 0 && entity instanceof Player && entity.bb.collides(this.bb)) {
+            if (this.delay <= 0 && entity instanceof Player && entity.bb.copy().expand(3, 1.2).collides(this.bb)) {
                 const rem = entity.addItem(source);
                 if (rem === 0) this.despawn();
                 else source.count = rem;

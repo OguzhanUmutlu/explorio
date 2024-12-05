@@ -40,6 +40,7 @@ export default class Player extends Entity implements CommandSender {
     isFlying = false;
     canToggleFly = false;
     instantBreak = false;
+    infiniteResource = false;
     placeCooldown = 0.3;
     food = 20;
     maxFood = 20;
@@ -165,7 +166,7 @@ export default class Player extends Entity implements CommandSender {
 
     updateCollisionBox() {
         super.updateCollisionBox();
-        this.bb.x = this.x - 0.25;
+        this.bb.x = this.x - this.bb.width / 2;
         this.bb.y = this.y - 0.5;
     };
 
@@ -255,6 +256,7 @@ export default class Player extends Entity implements CommandSender {
                 this.isFlying = false;
                 this.canToggleFly = false;
                 this.instantBreak = false;
+                this.infiniteResource = false;
                 this.placeCooldown = 0.3;
                 this.canPhase = false;
                 this.invincible = false;
@@ -268,6 +270,7 @@ export default class Player extends Entity implements CommandSender {
                 this.attackReach = 10;
                 this.canToggleFly = true;
                 this.instantBreak = true;
+                this.infiniteResource = true;
                 this.placeCooldown = 0;
                 this.canPhase = false;
                 this.invincible = true;
@@ -281,6 +284,7 @@ export default class Player extends Entity implements CommandSender {
                 this.isFlying = false;
                 this.canToggleFly = false;
                 this.instantBreak = false;
+                this.infiniteResource = false;
                 this.placeCooldown = 0;
                 this.canPhase = false;
                 this.invincible = false;
@@ -294,6 +298,7 @@ export default class Player extends Entity implements CommandSender {
                 this.isFlying = true;
                 this.canToggleFly = false;
                 this.instantBreak = false;
+                this.infiniteResource = false;
                 this.placeCooldown = 0;
                 this.canPhase = true;
                 this.invincible = true;

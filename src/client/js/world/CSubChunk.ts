@@ -16,7 +16,10 @@ function __renderBlock(
     const dy = renderScale * (ChunkLength - relY);
     const dw = renderScale;
     const dh = -renderScale;
-    if (block.hasTexture()) {
+    if (block && block.hasTexture()) {
+        if (block.isSlab || block.isStairs) {
+            ctx.clearRect(dx, dy, dw, dh);
+        }
         block.render(ctx, dx, dy, dw, dh);
     } else if (clear) {
         ctx.clearRect(dx, dy, dw, dh);

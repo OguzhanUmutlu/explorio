@@ -25,13 +25,29 @@ export default class BoundingBox {
         );
     };
 
-    collidesBlock(x: number, y: number) {
+    collidesGiven(x: number, y: number, w: number, h: number) {
         return (
-            this.x < x + 0.5 &&
-            this.x + this.width > x - 0.5 &&
-            this.y < y + 0.5 &&
-            this.y + this.height > y - 0.5
+            this.x < x + w &&
+            this.x + this.width > x &&
+            this.y < y + h &&
+            this.y + this.height > y
         );
+    };
+
+    expand(mx: number, my: number) {
+        this.x -= (mx - 1) / 2 * this.width;
+        this.y -= (my - 1) / 2 * this.height;
+        this.width *= mx;
+        this.height *= my;
+        return this;
+    };
+
+    setBB(bb: BoundingBox) {
+        this.x = bb.x;
+        this.y = bb.y;
+        this.width = bb.width;
+        this.height = bb.height;
+        return this;
     };
 
     copy() {

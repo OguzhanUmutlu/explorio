@@ -33,11 +33,14 @@ export default class OriginPlayer extends CPlayer {
 
     placeIfCan() {
         const handItem = this.handItem;
-        if (handItem && this.placeTime <= 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, handItem.id, handItem.meta)) {
-            this.inventories.hotbar.decreaseItemAt(this.handIndex);
+        if (handItem && this.placeTime <= 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, handItem.id, handItem.meta, Mouse.rotation)) {
+            if (!this.infiniteResource) {
+                this.inventories.hotbar.decreaseItemAt(this.handIndex);
+            }
             clientNetwork.sendPacket(new Packets.CPlaceBlock({
                 x: Math.round(Mouse.x),
-                y: Math.round(Mouse.y)
+                y: Math.round(Mouse.y),
+                rotation: Mouse.rotation
             }));
             this.placeTime = this.placeCooldown;
         }

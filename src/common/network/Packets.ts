@@ -74,7 +74,8 @@ export const PacketStructs = {
 
     [PacketIds.SHandshake]: X.object.struct({
         entityId: X.u32,
-        x: X.f32, y: X.f32
+        x: X.f32, y: X.f32,
+        handIndex: X.u8
     }),
     [PacketIds.SChunk]: X.object.struct({
         x: X.i32,
@@ -138,7 +139,8 @@ export const PacketStructs = {
         food: X.f32,
         maxFood: X.f32,
         placeCooldown: X.f32,
-        instantBreak: X.bool
+        instantBreak: X.bool,
+        infiniteResource: X.bool
     }),
     [PacketIds.SContainerSet]: X.object.struct({
         name: InventoryNameBin,
@@ -170,7 +172,8 @@ export const PacketStructs = {
     [PacketIds.CCloseContainer]: X.null,
     [PacketIds.CPlaceBlock]: X.object.struct({
         x: X.i32,
-        y: X.u32
+        y: X.u32,
+        rotation: X.u8
     }),
     [PacketIds.CToggleFlight]: X.null,
     [PacketIds.CSetHandIndex]: X.u8

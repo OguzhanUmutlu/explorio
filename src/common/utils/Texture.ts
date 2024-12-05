@@ -95,6 +95,8 @@ export default class Texture {
     _skin: Record<keyof typeof SKIN_PARTS, Canvas>[];
     _slabTop: Canvas | null = null;
     _slabBottom: Canvas | null = null;
+    _slabRight: Canvas | null = null;
+    _slabLeft: Canvas | null = null;
     _stairsTopLeft: Canvas | null = null; // removes top left part of the block
     _stairsTopRight: Canvas | null = null;
     _stairsBottomLeft: Canvas | null = null;
@@ -189,12 +191,22 @@ export default class Texture {
 
     slabTop() {
         if (!this.loaded) return imagePlaceholder;
-        return this._slabTop ||= eraseImage(this.image, 0, 0, this.image.width, this.image.height / 2);
+        return this._slabTop ||= eraseImage(this.image, 0, this.image.height / 2, this.image.width, this.image.height / 2);
     };
 
     slabBottom() {
         if (!this.loaded) return imagePlaceholder;
-        return this._slabBottom ||= eraseImage(this.image, 0, this.image.height / 2, this.image.width, this.image.height / 2);
+        return this._slabBottom ||= eraseImage(this.image, 0, 0, this.image.width, this.image.height / 2);
+    };
+
+    slabRight() {
+        if (!this.loaded) return imagePlaceholder;
+        return this._slabRight ||= eraseImage(this.image, 0, 0, this.image.width / 2, this.image.height);
+    };
+
+    slabLeft() {
+        if (!this.loaded) return imagePlaceholder;
+        return this._slabLeft ||= eraseImage(this.image, this.image.width / 2, 0, this.image.width / 2, this.image.height);
     };
 
     stairsTopLeft() {
@@ -209,12 +221,12 @@ export default class Texture {
 
     stairsBottomLeft() {
         if (!this.loaded) return imagePlaceholder;
-        return this._stairsBottomLeft ||= eraseImage(this.image, 0, this.image.height / 2, this.image.width / 2, this.image.height / 2);
+        return this._stairsBottomRight ||= eraseImage(this.image, this.image.width / 2, this.image.height / 2, this.image.width / 2, this.image.height / 2);
     };
 
     stairsBottomRight() {
         if (!this.loaded) return imagePlaceholder;
-        return this._stairsBottomRight ||= eraseImage(this.image, this.image.width / 2, this.image.height / 2, this.image.width / 2, this.image.height / 2);
+        return this._stairsBottomLeft ||= eraseImage(this.image, 0, this.image.height / 2, this.image.width / 2, this.image.height / 2);
     };
 
     skin() {

@@ -5,6 +5,7 @@ import Server from "@/Server";
 import Location from "@/utils/Location";
 import PlayerStruct from "@/structs/entity/PlayerStruct";
 import ItemEntityStruct from "@/structs/entity/ItemEntityStruct";
+import {IM} from "@/meta/ItemIds";
 
 let server: Server;
 
@@ -18,6 +19,12 @@ export function getServer() {
 
 export function setServer(server_: Server) {
     server = server_;
+}
+
+export function rotateMeta(id: number, meta: number, rotation: number) {
+    const baseBlock = IM[id];
+    if (baseBlock && (baseBlock.isSlab || baseBlock.isStairs)) meta += rotation * baseBlock.metas.length / 4;
+    return meta;
 }
 
 export function getUTCDate() {

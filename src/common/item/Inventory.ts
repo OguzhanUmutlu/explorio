@@ -91,7 +91,9 @@ export default class Inventory {
     };
 
     addAt(index: number, item: Item, count = item.count) {
-        const maxStack = IM[item.id].maxStack;
+        const mt = IM[item.id];
+        if (!mt) printer.error("Item not found:", item.id)
+        const maxStack = mt.maxStack;
         const it = this.get(index);
         if (!it) {
             const putting = Math.min(maxStack, count);

@@ -20,8 +20,8 @@ export default class Item {
         return this.toMetadata().getTexture();
     };
 
-    render(ctx: CanvasRenderingContext2D, x = 0, y = 0, w = ctx.canvas.width, h = w, waitToRender = true) {
-        return this.toMetadata().render(ctx, x, y, w, h, waitToRender);
+    render(ctx: CanvasRenderingContext2D, x = 0, y = 0, w = ctx.canvas.width, h = w, waitToLoad = true) {
+        return this.toMetadata().render(ctx, x, y, w, h, waitToLoad);
     };
 
     toBuffer() {
