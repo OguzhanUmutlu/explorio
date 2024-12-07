@@ -142,11 +142,11 @@ export const PacketStructs = {
         instantBreak: X.bool,
         infiniteResource: X.bool
     }),
-    [PacketIds.SContainerSet]: X.object.struct({
+    [PacketIds.SSetInventory]: X.object.struct({
         name: InventoryNameBin,
         items: X.array.typed(InventoryContentStruct)
     }),
-    [PacketIds.SContainerSetIndices]: X.object.struct({
+    [PacketIds.SUpdateInventory]: X.object.struct({
         name: InventoryNameBin,
         indices: X.array.typed(X.object.struct({
             index: X.u8,
@@ -169,14 +169,27 @@ export const PacketStructs = {
         y: X.u32
     }),
     [PacketIds.CStopBreaking]: X.null,
-    [PacketIds.CCloseContainer]: X.null,
+    [PacketIds.COpenInventory]: X.null,
+    [PacketIds.CCloseInventory]: X.null,
     [PacketIds.CPlaceBlock]: X.object.struct({
         x: X.i32,
         y: X.u32,
         rotation: X.u8
     }),
     [PacketIds.CToggleFlight]: X.null,
-    [PacketIds.CSetHandIndex]: X.u8
+    [PacketIds.CSetHandIndex]: X.u8,
+    [PacketIds.CItemTransfer]: X.object.struct({
+        fromInventory: InventoryNameBin,
+        fromIndex: X.u8,
+        toInventory: InventoryNameBin,
+        toIndex: X.u8,
+        count: X.u8
+    }),
+    [PacketIds.CItemDrop]: X.object.struct({
+        inventory: InventoryNameBin,
+        index: X.u8,
+        count: X.u8
+    })
 } as const;
 
 export function readPacket(buffer: Buffer) {

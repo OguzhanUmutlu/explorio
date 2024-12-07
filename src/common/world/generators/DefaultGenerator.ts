@@ -45,7 +45,7 @@ export default class DefaultGenerator extends Generator {
         this.noiseDiamond = createNoise2D(alea(world.seed + 6));
     };
 
-    static plantTree(world: World, chunk: ChunkData, noi: number, chunkNoise: number, x: number, y: number, chunkX: number, worldX: number) {
+    static plantTree(world: World, chunk: ChunkData, noi: number, chunkNoise: number, x: number, y: number, worldX: number) {
         const treeLength = Math.floor(noi + 5);
         chunk[x + (y - 1) * ChunkLength] = B.DIRT;
         const treeType = Math.floor(Math.abs(chunkNoise) * 5);
@@ -80,7 +80,7 @@ export default class DefaultGenerator extends Generator {
                 treeX += Math.floor(Math.abs(noi) * 3 + 3);
                 if (x != ChunkLength - 1) {
                     hasTree = true;
-                    DefaultGenerator.plantTree(world, chunk, noi, chunkNoise, x, height + 1, chunkX, worldX);
+                    DefaultGenerator.plantTree(world, chunk, noi, chunkNoise, x, height + 1, worldX);
                 }
             }
             for (let y = height; y >= 1; y--) {

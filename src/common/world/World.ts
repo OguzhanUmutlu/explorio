@@ -136,7 +136,7 @@ export default class World {
     };
 
     getBlock(x: number, y: number) {
-        return BM[this.getFullBlockAt(x, y)];
+        return BM[this.getFullBlockAt(x, y)] || BM[0];
     };
 
     getFullBlockAt(x: number, y: number) {
@@ -300,7 +300,7 @@ export default class World {
         const target = this.getBlock(x, y);
         this._setBlock(x, y, fullId, true, false, false);
 
-        const cancelled = new BlockPlaceEvent(entity, x, y, block).emit();
+        const cancelled = new BlockPlaceEvent(entity, x, y, block).callGetCancel();
 
         if (cancelled) {
             this._setBlock(x, y, target.fullId, true, false, false);
@@ -333,7 +333,7 @@ export default class World {
 
         const drops = block.getDrops();
 
-        const cancelled = new BlockBreakEvent(entity, x, y, block, drops).emit();
+        const cancelled = new BlockBreakEvent(entity, x, y, block, drops).callGetCancel();
 
         if (cancelled) return false;
 
@@ -460,12 +460,6 @@ export default class World {
 
     sendChunk(player: Player, chunkX: number) {
         this.ensureChunk(chunkX);
-        const chunk = this.chunks[chunkX];
-        const entities = this.chunkEntities[chunkX].filter(i => i !== player).map(i => ({
-            entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
-        }));
-        player.sendPacket(new Packets.SChunk({
-            x: chunkX, data: chunk, entities, resetEntities: true
-        }), true);
+        player.network?.sendChunk(chunkX, this.chunks[chunkX], this.chunkEntities[chunkX], true, true);
     };
 }

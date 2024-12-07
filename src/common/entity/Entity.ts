@@ -314,9 +314,12 @@ export default abstract class Entity {
     despawn() {
         delete this.world.entities[this.id];
         this.onMovement();
-        const entities = this.world.getChunkEntitiesAt(this.x);
-        const index = entities.indexOf(this);
-        if (index !== -1) entities.splice(index, 1);
+        const entities = this.chunkEntities;
+        if (entities) {
+            const index = entities.indexOf(this);
+            if (index !== -1) entities.splice(index, 1);
+        }
+
         this.broadcastDespawn();
     };
 

@@ -12,6 +12,10 @@ export default class Item {
     ) {
     };
 
+    getMaxStack() {
+        return this.toMetadata().maxStack;
+    };
+
     toMetadata() {
         return BM[im2f(this.id, this.meta)];
     };

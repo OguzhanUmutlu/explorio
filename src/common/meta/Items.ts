@@ -595,6 +595,10 @@ export function initItems() {
         ]
     });
 
+    registerItem("coal", I.COAL, {
+        name: "Coal", isBlock: false, fuel: 2
+    });
+
     registerItem("raw_iron", I.RAW_IRON, {
         name: "Raw Iron", isBlock: false, smeltsTo: new ID(ItemIds.IRON_INGOT), smeltXP: 0.2
     });

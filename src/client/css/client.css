@@ -94,6 +94,10 @@ body {
     pointer-events: none;
 }
 
+.chat-container > .chat-input {
+    scale: 100% 0;
+}
+
 .chat-input {
     position: absolute;
     left: 0;

@@ -51,6 +51,7 @@ export default class CustomGenerator extends Generator {
         const world = this.world;
         const chunk = world.chunks[chunkX];
         const chunkXM = chunkX * ChunkLength;
+        const chunkNoise = this.noise(chunkX / 60, 0);
 
         for (let x = 0; x < ChunkLength; x++) {
             const worldX = chunkXM + x;
@@ -61,11 +62,7 @@ export default class CustomGenerator extends Generator {
                 const block = chosen[1];
                 for (let j = 0; j < times; j++) {
                     if (block === ":tree") {
-                        y += DefaultGenerator.plantTree(
-                            world, chunk,
-                            this.noise(worldX / 5, y / 5),
-                            x, y, worldX
-                        ) + 2;
+                        y += DefaultGenerator.plantTree(world, chunk, this.noise(worldX / 5, y / 5), chunkNoise, x, y, worldX) + 2;
                     } else if (typeof block === "number") {
                         chunk[x + y++ * ChunkLength] = im2f(block);
                     }

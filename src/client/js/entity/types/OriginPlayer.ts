@@ -3,7 +3,6 @@ import {Containers} from "@/meta/Inventories";
 import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@dom/Client";
 import {Options} from "@c/utils/Utils";
 import Sound from "@/utils/Sound";
-import {Packets} from "@/network/Packets";
 
 export default class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
@@ -37,11 +36,7 @@ export default class OriginPlayer extends CPlayer {
             if (!this.infiniteResource) {
                 this.inventories.hotbar.decreaseItemAt(this.handIndex);
             }
-            clientNetwork.sendPacket(new Packets.CPlaceBlock({
-                x: Math.round(Mouse.x),
-                y: Math.round(Mouse.y),
-                rotation: Mouse.rotation
-            }));
+            clientNetwork.sendPlaceBlock(Mouse.rx, Mouse.ry, Mouse.rotation);
             this.placeTime = this.placeCooldown;
         }
     };
@@ -160,5 +155,15 @@ export default class OriginPlayer extends CPlayer {
 
         chatBox.scrollTop = chatBox.scrollHeight;
         requestAnimationFrame(() => div.style.translate = "0");
+    };
+
+    canBreakBlock(x = Mouse.rx, y = Mouse.ry) {
+        return this.world.canBreakBlockAt(this, x, y);
+    };
+
+    canPlaceBlock(x = Mouse.rx, y = Mouse.ry, rotation = Mouse.rotation) {
+        const item = this.handItem;
+        if (!item) return false;
+        return this.world.canPlaceBlockAt(this, x, y, item.id, item.meta, rotation)
     };
 }

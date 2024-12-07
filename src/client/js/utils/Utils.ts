@@ -116,6 +116,7 @@ export type OptionsType = {
     updatesPerSecond: number;
     chatLimit: number;
     particles: number;
+    pauseOnBlur: 0 | 1;
 };
 
 export let Options: OptionsType;
@@ -130,6 +131,7 @@ export function loadOptions() {
     Options.updatesPerSecond ??= 60;
     Options.chatLimit ??= 100;
     Options.particles ??= 2;
+    Options.pauseOnBlur ??= 1;
     return Options;
 }
 

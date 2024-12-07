@@ -22,8 +22,7 @@ import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
 import {Inventories, InventorySizes} from "@/meta/Inventories";
-import {BM, I, ItemIds} from "@/meta/ItemIds";
-import {Packets} from "@/network/Packets";
+import {BM, I} from "@/meta/ItemIds";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
 import ParticleManager from "@c/particle/ParticleManager";
@@ -237,27 +236,25 @@ function animate() {
     Mouse._xSmooth += (Mouse._x - Mouse._xSmooth) * smoothDt;
     Mouse._ySmooth += (Mouse._y - Mouse._ySmooth) * smoothDt;
 
-    const mouseBlock = clientPlayer.world.getBlock(Mouse.rx, Mouse.ry);
+    const mouseBlock = world.getBlock(Mouse.rx, Mouse.ry);
+    const item = clientPlayer.handItem;
     if (
-        Mouse.ry >= 0 &&
-        Mouse.ry < WorldHeight &&
-        (mouseBlock.id !== I.AIR || clientPlayer.world.hasSurroundingBlock(Mouse.rx, Mouse.ry)) &&
-        clientPlayer.world.getBlockDepth(Mouse.rx, Mouse.ry) >= 3 &&
-        clientPlayer.distance(Mouse.rx, Mouse.ry) <= clientPlayer.blockReach
+        Mouse.ry >= 0
+        && Mouse.ry < WorldHeight
+        && (mouseBlock.id !== I.AIR || world.hasSurroundingBlock(Mouse.rx, Mouse.ry))
+        && world.getBlockDepth(Mouse.rx, Mouse.ry) >= 3
+        && clientPlayer.distance(Mouse.rx, Mouse.ry) <= clientPlayer.blockReach
+        && (clientPlayer.canBreakBlock() || (item && item.toMetadata().isBlock))
     ) {
         ctx.save();
         const p = 1200;
-        // f(0) = 0.5
-        // f(p/2) = 0.2
-        // f(p) = 0.5
         ctx.globalAlpha = (1 - 2 / p * Math.abs((Date.now() % p) - p / 2)) * 0.3 + 0.2;
         ctx.strokeStyle = "#ffff00";
         ctx.lineWidth = 2;
         const blockPos = getClientPosition(Mouse.rx, Mouse.ry);
-        const item = clientPlayer.handItem;
         if (item) {
             const block = BM[im2f(item.id, rotateMeta(item.id, item.meta, Mouse.rotation))];
-            if (block && clientPlayer.world.canPlaceBlockAt(clientPlayer, Mouse.rx, Mouse.ry, item.id, item.meta, Mouse.rotation)) {
+            if (block && clientPlayer.canPlaceBlock()) {
                 block.render(ctx, blockPos.x - Options.tileSize / 2, blockPos.y - Options.tileSize / 2, Options.tileSize, Options.tileSize, false);
             }
         }
@@ -274,9 +271,11 @@ function animate() {
 
 function update(dt: number) {
     if (singlePlayerServer && singlePlayerServer.pausedUpdates) return;
+    const world = clientPlayer.world;
+
     const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
     for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
-        const entities = Array.from(clientPlayer.world.chunkEntities[chunkX] ??= []);
+        const entities = Array.from(world.chunkEntities[chunkX] ??= []);
         for (let i = 0; i < entities.length; i++) {
             const entity = entities[i];
             entity.update(dt);
@@ -286,7 +285,7 @@ function update(dt: number) {
     clientNetwork.releaseBatch();
 
     if (
-        clientPlayer.world.chunks[clientPlayer.x >> ChunkLengthBits]
+        world.chunks[clientPlayer.x >> ChunkLengthBits]
         && clientNetwork.handshake
         && clientPlayer.cacheState !== clientPlayer.calcCacheState()
     ) {
@@ -321,14 +320,14 @@ function onPressKey(e: KeyboardEvent) {
     if (isAnyUIOpen()) {
         if (!isInChat() && e.key === "e") {
             playerInventoryOn[1](false); // todo: every inventory should be set to false here.
-            clientNetwork.sendPacket(new Packets.CCloseContainer(null));
+            clientNetwork.sendCloseInventory();
         }
 
         if (e.key === "Escape") {
             closeChat();
 
             if (playerInventoryOn[0]) {
-                clientNetwork.sendPacket(new Packets.CCloseContainer(null));
+                clientNetwork.sendCloseInventory();
             }
 
             playerInventoryOn[1](false);
@@ -344,6 +343,7 @@ function onPressKey(e: KeyboardEvent) {
 
         if (e.key === "e") {
             playerInventoryOn[1](true);
+            clientNetwork.sendOpenInventory();
         }
 
         if (e.key === "Escape") {
@@ -396,7 +396,7 @@ function onLoseFocus() {
     Mouse.left = false;
     Mouse.right = false;
     Mouse.middle = false;
-    // optionPopup[1](true);
+    if (Options.pauseOnBlur) optionPopup[1](true);
 }
 
 function onFocus() {
@@ -621,9 +621,6 @@ export function terminateClient() {
 // todo: add fall damage
 // todo: add crafting api
 // todo: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
-// todo: add inventory transactions:
-//   client: move X items from A to B, drop X items from A
-//   server: set an item
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 // todo: custom tree lengths and shapes like jungle etc.
 // todo: i think only trees of meta 0 1 2 3 are being chosen

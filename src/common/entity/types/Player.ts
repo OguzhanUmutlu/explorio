@@ -13,6 +13,15 @@ import {GameMode} from "@/command/arguments/GameModeArgument";
 import Effect from "@/effect/Effect";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
 
+const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
+    [Containers.Closed]: ["hotbar", "offhand"],
+
+    [Containers.PlayerInventory]: ["hotbar", "offhand", "player", "armor", "craftingSmall", "craftingSmallResult", "cursor"],
+    [Containers.Chest]: ["chest", "hotbar", "offhand", "player", "cursor"],
+    [Containers.DoubleChest]: ["doubleChest", "hotbar", "offhand", "player", "cursor"],
+    [Containers.CraftingTable]: ["craftingBig", "craftingBigResult", "hotbar", "offhand", "player", "cursor"],
+};
+
 export default class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
     typeName = "player";
@@ -59,6 +68,18 @@ export default class Player extends Entity implements CommandSender {
         super.init();
     };
 
+    getAccessibleInventoryNames() {
+        return ContainerInventoryNames[this.containerId];
+    };
+
+    canAccessInventory(name: InventoryName) {
+        return this.getAccessibleInventoryNames().includes(name);
+    };
+
+    getAccessibleInventories() {
+        return this.getAccessibleInventoryNames().map(name => this.inventories[name]);
+    };
+
     getMovementData() {
         return {
             ...super.getMovementData(),
@@ -68,6 +89,26 @@ export default class Player extends Entity implements CommandSender {
 
     get handItem() {
         return this.inventories.hotbar.get(this.handIndex);
+    };
+
+    get cursorItem() {
+        return this.inventories.cursor.get(0);
+    };
+
+    dropItem(inventory: Inventory, index: number, count = Infinity) {
+        const item = inventory.get(index);
+        if (!item || item.count === 0) return;
+        if (count > item.count) count = item.count;
+        this.world.dropItem(this.x, this.y, item);
+        inventory.decreaseItemAt(index, count);
+    };
+
+    emptyCursor() {
+        const cursorItem = this.cursorItem;
+        if (cursorItem) {
+            const leftCount = this.addItem(cursorItem);
+            if (leftCount > 0) this.dropItem(this.inventories.cursor, 0, leftCount);
+        }
     };
 
     hasPermission(permission: string): boolean {
@@ -230,7 +271,7 @@ export default class Player extends Entity implements CommandSender {
     };
 
     playSoundAt(path: string, x: number, y: number, volume = 1) {
-        this.sendPacket(new Packets.SPlaySound({path, x, y, volume}));
+        this.network?.sendSound(path, x, y, volume);
     };
 
     sendPacket(pk: Packet, immediate = false) {

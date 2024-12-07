@@ -12,6 +12,7 @@ import {BM} from "@/meta/ItemIds";
 import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
 import {DefaultGravity} from "@/entity/Entity";
+import {InventoryName} from "@/meta/Inventories";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -22,7 +23,6 @@ export default class ClientNetwork {
     immediate: Packet[] = [];
     handshake = false;
     ping = 0;
-    handshakeCb = null;
 
     whenConnect() {
         return this.connectPromise;
@@ -93,7 +93,6 @@ export default class ClientNetwork {
         clientPlayer.y = data.y;
         clientPlayer.handIndex = data.handIndex;
         clientPlayer.init();
-        if (this.handshakeCb) this.handshakeCb();
     };
 
     spawnEntityFromData(data: PacketByName<"SChunk">["data"]["entities"][number]) {
@@ -205,12 +204,11 @@ export default class ClientNetwork {
         }
     };
 
-    processSContainerSet({data}: PacketByName<"SContainerSet">) {
-        const container = clientPlayer.inventories[data.name];
-        container.setContents(data.items);
+    processSSetInventory({data}: PacketByName<"SSetInventory">) {
+        clientPlayer.inventories[data.name].setContents(data.items);
     };
 
-    processSContainerSetIndices({data}: PacketByName<"SContainerSetIndices">) {
+    processSUpdateInventory({data}: PacketByName<"SUpdateInventory">) {
         const inv = clientPlayer.inventories[data.name];
         for (const d of data.indices) {
             inv.set(d.index, d.item);
@@ -257,6 +255,22 @@ export default class ClientNetwork {
     sendHandIndex(index = clientPlayer.handIndex) {
         clientPlayer.handIndex = index;
         this.sendPacket(new Packets.CSetHandIndex(index));
+    };
+
+    sendItemTransfer(fromInventory: InventoryName, fromIndex: number, toInventory: InventoryName, toIndex: number, count: number) {
+        this.sendPacket(new Packets.CItemTransfer({fromInventory, fromIndex, toInventory, toIndex, count}));
+    };
+
+    sendPlaceBlock(x: number, y: number, rotation: number) {
+        this.sendPacket(new Packets.CPlaceBlock({x, y, rotation}));
+    };
+
+    sendOpenInventory() {
+        this.sendPacket(new Packets.COpenInventory(null));
+    };
+
+    sendCloseInventory() {
+        this.sendPacket(new Packets.CCloseInventory(null));
     };
 
     sendPacket(pk: Packet, immediate = false) {

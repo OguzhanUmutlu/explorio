@@ -1,6 +1,7 @@
 export enum Versions {
     v1_0_0$Alpha,
     v1_0_1$Alpha,
+    v1_0_2$Alpha,
 
     __MAX__
 }

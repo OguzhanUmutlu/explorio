@@ -10,6 +10,7 @@ export type InventoryName = typeof Inventories[keyof typeof Inventories];
 
 export const Inventories = {
     Hotbar: "hotbar",
+    Offhand: "offhand",
     Player: "player",
     Armor: "armor",
     Cursor: "cursor",
@@ -23,6 +24,7 @@ export const Inventories = {
 
 export const InventorySizes = {
     hotbar: 9,
+    offhand: 1,
     player: 27,
     armor: 4,
     cursor: 1,

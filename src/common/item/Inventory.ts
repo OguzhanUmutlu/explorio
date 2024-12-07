@@ -138,6 +138,33 @@ export default class Inventory {
         this.set(index, null);
     };
 
+    transfer(from: number, target: Inventory, to: number, count: number) {
+        const fromItem = this.get(from);
+        const toItem = target.get(to);
+
+        if (count === 0) return false; // transfer count is 0
+
+        if (!fromItem || fromItem.id === 0) return false; // source is empty
+
+        if (fromItem.count <= count) return false; // source is not sufficient
+
+        const sameItem = fromItem.equals(toItem, false, true);
+        if (toItem && !sameItem) return false; // the source item and the target item were not the same
+
+        const maxStack = fromItem.getMaxStack();
+        if (toItem && toItem.count + count > maxStack) return false; // target is full
+
+        if (sameItem) {
+            this.decreaseItemAt(from, count);
+            target.increaseItemAt(to, count);
+        } else {
+            this.set(from, fromItem.clone(fromItem.count - count));
+            target.set(to, fromItem.clone(count));
+        }
+
+        return true;
+    };
+
     updateIndex(index: number) {
         const item = this.get(index);
         if (item && item.count <= 0) this.removeIndex(index);
@@ -160,11 +187,16 @@ export default class Inventory {
         }
     };
 
-    decreaseItemAt(index: number, amount = 1) {
+    increaseItemAt(index: number, amount = 1) {
         const item = this.get(index);
         if (item) {
-            item.count -= amount;
+            item.count += amount;
+            if (item.count >= item.getMaxStack()) item.count = item.getMaxStack();
             this.updateIndex(index);
         }
+    };
+
+    decreaseItemAt(index: number, amount = 1) {
+        this.increaseItemAt(index, -amount);
     };
 }

@@ -13,7 +13,7 @@ export default class PluginEvent {
         this.stopped = v;
     };
 
-    emit() {
+    callGetCancel() {
         return EventManager.emit(this);
     };
 };

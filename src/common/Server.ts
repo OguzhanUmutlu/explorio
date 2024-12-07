@@ -610,14 +610,17 @@ export default class Server {
         printer.info("Closing the server...");
 
         printer.info("Kicking players...");
-        for (const player in this.players) {
-            this.players[player].kick("Server closed");
+        for (const playerName in this.players) {
+            const player = this.players[playerName];
+            player.kick("Server closed");
+            player.network.onClose();
         }
 
         printer.info("Saving the worlds...");
         this.saveWorlds();
 
-        this.terminateProcess();
+        this.terminated = true;
+        setTimeout(() => this.terminateProcess(), 1000); // making sure every player gets the kick message
     };
 
     terminateProcess() {
