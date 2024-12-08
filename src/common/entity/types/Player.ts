@@ -22,6 +22,10 @@ const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
     [Containers.CraftingTable]: ["craftingBig", "craftingBigResult", "hotbar", "offhand", "player", "cursor"],
 };
 
+// The ones you can shift-click to (you can shift click them, you just can't shift click any other thing to move to these)
+const nonShiftables = ["cursor", "player", "offhand", "hotbar", "armor", "craftingSmall",
+    "craftingSmallResult", "craftingBig", "craftingBigResult"];
+
 export default class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
     typeName = "player";
@@ -80,6 +84,15 @@ export default class Player extends Entity implements CommandSender {
         return this.getAccessibleInventoryNames().map(name => this.inventories[name]);
     };
 
+    getShiftableInventoryNames() {
+        return this.getAccessibleInventoryNames()
+            .filter(i => !nonShiftables.includes(i));
+    };
+
+    getShiftableInventories() {
+        return this.getShiftableInventoryNames().map(name => this.inventories[name]);
+    };
+
     getMovementData() {
         return {
             ...super.getMovementData(),
@@ -95,11 +108,15 @@ export default class Player extends Entity implements CommandSender {
         return this.inventories.cursor.get(0);
     };
 
+    set cursorItem(item: Item | null) {
+        this.inventories.cursor.set(0, item);
+    };
+
     dropItem(inventory: Inventory, index: number, count = Infinity) {
         const item = inventory.get(index);
-        if (!item || item.count === 0) return;
+        if (!item || item.count === 0 || count === 0) return;
         if (count > item.count) count = item.count;
-        this.world.dropItem(this.x, this.y, item);
+        this.world.dropItem(this.x, this.bb.height + this.bb.y, item.clone(count), this.rotation < 90 && this.rotation > -90 ? 4 : -4);
         inventory.decreaseItemAt(index, count);
     };
 
@@ -108,7 +125,13 @@ export default class Player extends Entity implements CommandSender {
         if (cursorItem) {
             const leftCount = this.addItem(cursorItem);
             if (leftCount > 0) this.dropItem(this.inventories.cursor, 0, leftCount);
+            this.cursorItem = null;
         }
+    };
+
+    dropCursor() {
+        this.dropItem(this.inventories.cursor, 0);
+        this.cursorItem = null;
     };
 
     hasPermission(permission: string): boolean {

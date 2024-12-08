@@ -12,7 +12,7 @@ import {BM} from "@/meta/ItemIds";
 import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
 import {DefaultGravity} from "@/entity/Entity";
-import {InventoryName} from "@/meta/Inventories";
+import {Containers, InventoryName} from "@/meta/Inventories";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -114,7 +114,7 @@ export default class ClientNetwork {
     processSChunk({data}: PacketByName<"SChunk">) {
         const world = <CWorld>clientPlayer.world;
         world.chunks[data.x] = new Uint16Array(data.data);
-        if (data.resetEntities) clientPlayer.world.chunkEntities[data.x] = [];
+        if (data.resetEntities) clientPlayer.world.chunkEntities[data.x] = new Set;
         world.prepareChunkRenders(data.x - 1, false, true);
         world.prepareChunkRenders(data.x);
         world.prepareChunkRenders(data.x + 1, false, true);
@@ -123,6 +123,7 @@ export default class ClientNetwork {
         }
 
         if (clientPlayer.x >> ChunkLengthBits === data.x && data.resetEntities) {
+            clientPlayer._chunkX = NaN;
             clientPlayer.onMovement();
         }
     };
@@ -266,11 +267,19 @@ export default class ClientNetwork {
     };
 
     sendOpenInventory() {
+        clientPlayer.containerId = Containers.PlayerInventory;
         this.sendPacket(new Packets.COpenInventory(null));
     };
 
     sendCloseInventory() {
+        clientPlayer.containerId = Containers.Closed;
         this.sendPacket(new Packets.CCloseInventory(null));
+    };
+
+    sendDropItem(inventory: InventoryName, index: number, count: number) {
+        this.sendPacket(new Packets.CItemDrop({
+            index, count, inventory
+        }));
     };
 
     sendPacket(pk: Packet, immediate = false) {

@@ -160,6 +160,15 @@ export default class PlayerNetwork {
         }
     };
 
+    processCItemDrop({data: {inventory, index, count}}: PacketByName<"CItemDrop">) {
+        const inv = this.player.inventories[inventory];
+        const item = inv.get(index);
+        if (!item || item.count < count) return;
+        const alreadyDirty = inv.dirtyIndexes.has(index);
+        this.player.dropItem(inv, index, count);
+        if (!alreadyDirty && inv.dirtyIndexes.has(index)) inv.dirtyIndexes.delete(index);
+    };
+
 
     processSendMessage({data}: PacketByName<"SendMessage">) {
         if (!data) return;

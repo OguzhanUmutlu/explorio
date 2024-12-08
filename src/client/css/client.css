@@ -78,8 +78,8 @@ body {
 }
 
 .hotbar-inventory > .inventory-item > div {
-    right: 5%;
-    bottom: 5%;
+    right: 13%;
+    bottom: 13%;
 }
 
 .chat-container {
@@ -296,6 +296,16 @@ body {
 
 .inv-pcr > .inventory-item {
     width: 100%;
+}
+
+.cursor-inventory {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 64px;
+    z-index: 3;
+    translate: -50% -50%;
+    pointer-events: none;
 }
 
 .options-menu {

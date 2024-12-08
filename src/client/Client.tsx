@@ -28,7 +28,6 @@ import PlayerNetwork from "@/network/PlayerNetwork";
 import ParticleManager from "@c/particle/ParticleManager";
 import Packet from "@/network/Packet";
 import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
-import Entity from "@/entity/Entity";
 import {im2f} from "@/meta/Items";
 import {rotateMeta} from "@/utils/Utils";
 
@@ -217,10 +216,8 @@ function animate() {
 
     const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
     for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
-        const entities = world.chunkEntities[chunkX] ??= [] as Entity[];
-        for (let i = 0; i < entities.length; i++) {
-            const entity = entities[i];
-
+        const entities = world.chunkEntities[chunkX] ??= new Set;
+        for (const entity of entities) {
             entity.render(ctx, dt);
 
             if (renderCollisionBoxes) {
@@ -275,7 +272,7 @@ function update(dt: number) {
 
     const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
     for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
-        const entities = Array.from(world.chunkEntities[chunkX] ??= []);
+        const entities = Array.from(world.chunkEntities[chunkX] ??= new Set);
         for (let i = 0; i < entities.length; i++) {
             const entity = entities[i];
             entity.update(dt);
@@ -357,6 +354,14 @@ function onPressKey(e: KeyboardEvent) {
 
         if (!isNaN(parseInt(e.key)) && e.key !== "0") {
             clientNetwork.sendHandIndex(parseInt(e.key) - 1);
+        }
+
+        if (e.key === "q") {
+            const handItem = clientPlayer.handItem;
+            if (handItem) {
+                clientPlayer.inventories.hotbar.decreaseItemAt(clientPlayer.handIndex);
+                clientNetwork.sendDropItem("hotbar", clientPlayer.handIndex, 1);
+            }
         }
     }
 }
@@ -616,6 +621,7 @@ export function terminateClient() {
     }
     removeEventListener("beforeunload", terminateClient);
     singlePlayerServer = null;
+    console.clear();
 }
 
 // todo: add fall damage
@@ -664,12 +670,24 @@ export function Client(O: {
     handIndexState = useState(0);
     clientUUID = O.clientUUID;
     f3On = useState(false);
+    const mouseX = useState(0);
+    const mouseY = useState(0);
     if (singlePlayerServer) singlePlayerServer.pausedUpdates = optionPopup[0];
 
     useEffect(() => {
+        function onMouseMove(e: MouseEvent) {
+            mouseX[1](e.pageX);
+            mouseY[1](e.pageY);
+        }
+
         initClient();
 
-        return () => terminateClient();
+        addEventListener("mousemove", onMouseMove);
+
+        return () => {
+            terminateClient();
+            removeEventListener("mousemove", onMouseMove);
+        };
     }, []);
 
 
@@ -723,7 +741,15 @@ export function Client(O: {
 
 
         {/* Background Blur used in UIs */}
-        <div className="background-blur" style={hasBlur() ? {opacity: "1", pointerEvents: "auto"} : {}}></div>
+        <div className="background-blur" style={hasBlur() ? {opacity: "1", pointerEvents: "auto"} : {}}
+             onClick={() => {
+                 const cursorItem = clientPlayer.cursorItem;
+                 if (playerInventoryOn[0] && cursorItem) {
+                     const count = clientPlayer.cursorItem.count;
+                     clientPlayer.cursorItem = null;
+                     clientNetwork.sendDropItem("cursor", 0, count);
+                 }
+             }}></div>
 
 
         {/* Hotbar */}
@@ -743,6 +769,12 @@ export function Client(O: {
             <InventoryDiv className="inv-pcr inventory" inventoryType={Inventories.CraftingSmallResult}
                           ikey="pcr"></InventoryDiv>
         </div>
+
+        {/* Cursor Inventory */}
+        <InventoryDiv className="cursor-inventory inventory" inventoryType={Inventories.Cursor} style={{
+            left: mouseX[0] + "px",
+            top: mouseY[0] + "px"
+        }} ikey="cursorInv"></InventoryDiv>
 
 
         {/* Options */}

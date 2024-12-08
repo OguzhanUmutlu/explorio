@@ -310,7 +310,7 @@ export default class Server {
                 entities = this.getAllEntities();
                 break;
             case "c":
-                entities = at.world.getChunkEntitiesAt(at.x);
+                entities = Array.from(at.world.getChunkEntitiesAt(at.x));
                 break;
         }
 

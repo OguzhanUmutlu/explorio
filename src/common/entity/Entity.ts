@@ -7,6 +7,7 @@ import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import EffectInstance from "@/effect/EffectInstance";
 import Effect from "@/effect/Effect";
 import ObjectStructBinConstructor from "stramp/src/object/ObjectStructBin";
+import {ChunkLengthBits} from "@/meta/WorldConstants";
 
 export const DefaultWalkSpeed = 5;
 export const DefaultFlySpeed = 7;
@@ -21,7 +22,7 @@ export default abstract class Entity {
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes
     id = _entity_id++;
-    chunkEntities: World["chunkEntities"][number];
+    _chunkX = NaN;
     _x = 0;
     _y = 0;
     location = new Location(0, 0, 0, null);
@@ -35,6 +36,7 @@ export default abstract class Entity {
     cacheState: string;
     tags = new Set<string>;
     effects = new Set<EffectInstance>;
+    despawned = false;
 
     walkSpeed = DefaultWalkSpeed;
     flySpeed = DefaultFlySpeed;
@@ -241,24 +243,33 @@ export default abstract class Entity {
     };
 
     getChunkEntities() {
-        return this.chunkEntities ?? [];
+        return this.world.chunkEntities[this._chunkX] ??= new Set;
+    };
+
+    get isClient() {
+        const name = this.constructor.name;
+        return name === "OriginPlayer" || (name[0] === "C" && name[1] === name[1].toUpperCase());
     };
 
     onMovement() {
         this._x = this.x;
         this._y = this.y;
-        const oldChunk = this.chunkEntities;
-        const newChunk = this.world.getChunkEntitiesAt(this.x);
+        const oldChunkX = this._chunkX;
+        const newChunkX = this.x >> ChunkLengthBits;
+        const world = this.world;
+        const oldEntities = world.chunkEntities[oldChunkX];
+        const newEntities = world.chunkEntities[newChunkX] ??= new Set;
 
-        if (oldChunk !== newChunk) {
-            newChunk.push(this);
-            if (oldChunk) {
-                const index = oldChunk.indexOf(this);
-                if (index !== -1) oldChunk.splice(index, 1);
+        if (oldChunkX !== newChunkX) {
+            newEntities.add(this);
+            world.dirtyChunks.add(newChunkX);
+            if (oldEntities) {
+                oldEntities.delete(this);
+                world.dirtyChunks.add(oldChunkX);
             }
         }
 
-        this.chunkEntities = newChunk;
+        this._chunkX = newChunkX;
         this.updateCollisionBox();
         this.updateGroundBoundingBox();
     };
@@ -311,16 +322,15 @@ export default abstract class Entity {
         return Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
     };
 
-    despawn() {
+    despawn(broadcast = true) {
+        if (this.despawned) return;
+        this.despawned = true;
         delete this.world.entities[this.id];
         this.onMovement();
-        const entities = this.chunkEntities;
-        if (entities) {
-            const index = entities.indexOf(this);
-            if (index !== -1) entities.splice(index, 1);
-        }
+        const entities = this.getChunkEntities();
+        if (entities) entities.delete(this);
 
-        this.broadcastDespawn();
+        if (broadcast) this.broadcastDespawn();
     };
 
     updateCollisionBox() {

@@ -29,7 +29,7 @@ export type TokenValue<T extends keyof TokenTypeMap = keyof TokenTypeMap> = T ex
     ? TokenValueArray
     : TokenTypeMap[T];
 
-export const WordRegex = /^[a-zA-Z~_^!][a-zA-Z~_^!\d]*/;
+export const WordRegex = /^[a-zA-Z~_^!.][a-zA-Z~_^!\d.]*/;
 
 export type AnyToken = Token | SelectorToken;
 
@@ -43,10 +43,12 @@ export function readBool(text: string, index: number): Token<"bool"> | null {
 export function readSelector(text: string, index: number): SelectorToken {
     const selName = <SelectorTagName>text[index + 1];
     if (text[index] !== "@" || !SelectorTags.includes(selName)) {
-        const word = readWord(text, index);
-        if (word.value.length > 1) return new SelectorToken(text, word.start, word.end, "a", {
-            __name__only__: word // this basically directly gets the player from the players object, a hacky solution
-        });
+        const word = readWord(text, index, /^[a-zA-Z_]+/);
+        if (word.value.length > 1) {
+            return new SelectorToken(text, word.start, word.end, "a", {
+                __name__only__: word // this basically directly gets the player from the players object, a hacky solution
+            });
+        }
 
         return null;
     }

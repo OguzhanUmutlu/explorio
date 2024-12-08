@@ -39,9 +39,12 @@ export default class ItemEntity extends Entity {
                 return;
             }
 
-            if (entity instanceof ItemEntity) {
+            if (entity instanceof ItemEntity && this.distance(entity.x, entity.y) < 1) {
                 const target = entity.item;
-                if (target.count > source.count && target.equals(source, false, true)) {
+                if (
+                    (target.count > source.count || (target.count === source.count && this.id > entity.id))
+                    && target.equals(source, false, true)
+                ) {
                     target.count += source.count;
                     entity.delay = Math.max(this.delay, entity.delay);
                     this.despawn();

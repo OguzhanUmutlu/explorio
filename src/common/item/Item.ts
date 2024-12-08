@@ -44,7 +44,7 @@ export default class Item {
             && (!nbt || JSON.stringify(item.nbt) === JSON.stringify(this.nbt));
     };
 
-    clone(count: number) {
+    clone(count = this.count) {
         return new Item(this.id, this.meta, count ?? this.count, JSON.parse(JSON.stringify(this.nbt)))
     };
 }

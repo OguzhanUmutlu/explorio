@@ -78,7 +78,7 @@ export type Collision = { x: number, y: number, meta: ItemMetadata, bb: Bounding
 export default class World {
     path: string;
     chunks: Record<number, ChunkData> = {};
-    chunkEntities: Record<number, Entity[]> = {};
+    chunkEntities: Record<number, Set<Entity>> = {};
     chunkReferees: Record<number, number> = {};
     entities: Record<number, Entity> = {};
     dirtyChunks = new Set<number>;
@@ -131,8 +131,8 @@ export default class World {
         return this.chunks[x];
     };
 
-    getChunkEntitiesAt(x: number): Entity[] {
-        return this.chunkEntities[x >> ChunkLengthBits] ??= [];
+    getChunkEntitiesAt(x: number): Set<Entity> {
+        return this.chunkEntities[x >> ChunkLengthBits] ??= new Set;
     };
 
     getBlock(x: number, y: number) {
@@ -183,7 +183,7 @@ export default class World {
         if (this.loadChunk(chunkX)) return;
         this.chunks[chunkX] ??= new Uint16Array(ChunkLength * WorldHeight);
 
-        this.chunkEntities[chunkX] ??= [];
+        this.chunkEntities[chunkX] ??= new Set;
 
         if (generate && this.generator && !this.chunksGenerated.has(chunkX)) {
             this.chunksGenerated.add(chunkX);
@@ -200,12 +200,19 @@ export default class World {
             buffer = zstdOptionalDecode(buffer);
             const chunk = ChunkStruct.deserialize(buffer);
             this.chunks[x] = chunk.data;
-            const existing = (this.chunkEntities[x] ??= []).filter(i => i instanceof Player);
+
+            const entities = this.chunkEntities[x] ??= new Set;
+            const players = Array.from(entities).filter(i => i instanceof Player);
+
+            entities.clear();
+
             for (const entity of chunk.entities) {
                 entity.world = this;
                 entity.init();
             }
-            this.chunkEntities[x].push(...existing);
+
+            for (const player of players) this.chunkEntities[x].add(player);
+
             this.chunksGenerated.add(x);
             for (const viewer of this.getChunkViewers(x)) {
                 this.sendChunk(viewer, x);
@@ -223,14 +230,16 @@ export default class World {
         if (!this.chunksGenerated.has(x)) return;
         const buffer = ChunkStruct.serialize({
             data: this.chunks[x],
-            entities: this.chunkEntities[x].filter(i => !(i instanceof Player))
+            entities: Array.from(this.chunkEntities[x]).filter(i => !(i instanceof Player))
         });
         this.setChunkBuffer(x, zstdOptionalEncode(buffer));
     };
 
     serverUpdate(dt: number): void {
         for (const x in this.chunkEntities) {
-            this.chunkEntities[x].forEach(e => e.serverUpdate(dt));
+            for (const e of this.chunkEntities[x]) {
+                e.serverUpdate(dt);
+            }
         }
     };
 
@@ -434,7 +443,7 @@ export default class World {
     getChunkViewers(chunkXMiddle: number) {
         const players: Player[] = [];
         for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
-            const entities = this.chunkEntities[chunkX] ??= [];
+            const entities = this.chunkEntities[chunkX] ??= new Set;
             for (const entity of entities) {
                 if (entity instanceof Player) players.push(entity);
             }
@@ -445,7 +454,9 @@ export default class World {
     broadcastPacketAt(x: number, pk: Packet, exclude: Entity[] = [], immediate = false) {
         const chunkX = x >> ChunkLengthBits;
         for (const player of this.getChunkViewers(chunkX)) {
-            if (!exclude.includes(player)) player.sendPacket(pk, immediate);
+            if (!exclude.includes(player)) {
+                player.sendPacket(pk, immediate);
+            }
         }
     };
 
@@ -460,6 +471,6 @@ export default class World {
 
     sendChunk(player: Player, chunkX: number) {
         this.ensureChunk(chunkX);
-        player.network?.sendChunk(chunkX, this.chunks[chunkX], this.chunkEntities[chunkX], true, true);
+        player.network?.sendChunk(chunkX, this.chunks[chunkX], Array.from(this.chunkEntities[chunkX]), true, true);
     };
 }

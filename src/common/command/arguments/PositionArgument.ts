@@ -17,10 +17,10 @@ export default class PositionArgument extends CommandArgument<Vector2> {
         let y = +argY;
 
         if (argX[0] === "~") x = at.x + +argX.substring(1);
-        else if (argX[0] === "^") x = at.x + +argX.substring(1); // todo
+        else if (argX[0] === "^") x = at.x + +argX.substring(1) * Math.cos(at.rotation / 180 * Math.PI);
 
         if (argY[0] === "~") y = at.y + +argY.substring(1);
-        else if (argY[0] === "^") y = at.y + +argY.substring(1); // todo
+        else if (argY[0] === "^") y = at.y - +argY.substring(1) * Math.sin(at.rotation / 180 * Math.PI);
 
         return new Vector2(x, y);
     };

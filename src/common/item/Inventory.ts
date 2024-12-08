@@ -29,6 +29,7 @@ export default class Inventory {
     };
 
     set(index: number, item: Item | null, update = true) {
+        if (item && item.count === 0) item = null;
         this.contents[index] = item;
         if (update) this.dirtyIndexes.add(index);
     };
@@ -146,13 +147,13 @@ export default class Inventory {
 
         if (!fromItem || fromItem.id === 0) return false; // source is empty
 
-        if (fromItem.count <= count) return false; // source is not sufficient
+        if (fromItem.count < count) return false; // source is not sufficient
 
         const sameItem = fromItem.equals(toItem, false, true);
         if (toItem && !sameItem) return false; // the source item and the target item were not the same
 
         const maxStack = fromItem.getMaxStack();
-        if (toItem && toItem.count + count > maxStack) return false; // target is full
+        if (toItem && toItem.count + count > maxStack) return false; // count is too much and overflows
 
         if (sameItem) {
             this.decreaseItemAt(from, count);
@@ -191,7 +192,12 @@ export default class Inventory {
         const item = this.get(index);
         if (item) {
             item.count += amount;
-            if (item.count >= item.getMaxStack()) item.count = item.getMaxStack();
+
+            if (item.count <= 0) return this.removeIndex(index);
+            if (item.count >= item.getMaxStack()) {
+                item.count = item.getMaxStack();
+            }
+
             this.updateIndex(index);
         }
     };
