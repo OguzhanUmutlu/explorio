@@ -3,12 +3,10 @@ import Item from "@/item/Item";
 
 // This is for double chests etc.
 export default class CombinedContainer extends Inventory {
-    inventories: Inventory[];
 
-    constructor(inventories: Inventory[] = []) {
+    constructor(public inventories: Inventory[] = [], public name: string) {
         const size = inventories.reduce((a, b) => a + b.size, 0);
-        super(size);
-        this.inventories = inventories;
+        super(size, name);
     };
 
     init() {
