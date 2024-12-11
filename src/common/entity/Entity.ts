@@ -8,6 +8,7 @@ import EffectInstance from "@/effect/EffectInstance";
 import Effect from "@/effect/Effect";
 import ObjectStructBinConstructor from "stramp/src/object/ObjectStructBin";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
+import {Bin} from "stramp";
 
 export const DefaultWalkSpeed = 5;
 export const DefaultFlySpeed = 7;
@@ -64,7 +65,7 @@ export default abstract class Entity {
     };
 
     get struct() {
-        return <ObjectStructBinConstructor<{}, {}, Entity>><unknown>EntityStructs[<keyof typeof EntityStructs>this.typeId];
+        return <ObjectStructBinConstructor<Record<string, Bin<unknown>>, Record<string, unknown>, Entity>><unknown>EntityStructs[<keyof typeof EntityStructs>this.typeId];
     };
 
     getSaveBuffer(): Buffer {

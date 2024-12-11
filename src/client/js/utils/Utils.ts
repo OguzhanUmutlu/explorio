@@ -1,7 +1,7 @@
 import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
 import CPlayer from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
-import {Canvas} from "@/utils/Texture";
+import Texture, {Canvas} from "@/utils/Texture";
 import BoundingBox from "@/entity/BoundingBox";
 import {camera, canvas, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
@@ -75,6 +75,8 @@ export async function initClientThings() {
     initClientEntities();
     await initCommon();
     await initBrowserFS();
+    // start loading breaking animations in the background immediately
+    for (let i = 0; i < 10; i++) Texture.get(`assets/textures/destroy/${i}.png`);
 }
 
 export async function initBrowserFS() {
@@ -207,7 +209,7 @@ export function renderPlayerModel(
     ctx: CanvasRenderingContext2D, {
         SIZE, bbPos, skin, bodyRotation,
         leftArmRotation, leftLegRotation, rightLegRotation, rightArmRotation,
-        headRotation, handItem
+        headRotation, handItem // todo: render hand item
     }
 ) {
     const side: Record<string, Canvas> = skin[bodyRotation ? 0 : 1];

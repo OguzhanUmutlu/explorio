@@ -9,6 +9,7 @@ const rules = {
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
+    {ignores: ["src/desktop/**/*"]},
     pluginJS.configs.recommended,
     {files: ["**/*.{js,mjs,cjs,ts,tsx}"], rules},
     {files: ["**/*.js"], languageOptions: {sourceType: "script"}, rules},

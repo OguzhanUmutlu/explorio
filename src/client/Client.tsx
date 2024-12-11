@@ -635,6 +635,7 @@ export function terminateClient() {
 // todo: add crafting table ui
 // todo: handle tool logic
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
+// todo: /give command
 
 function isInChat() {
     return chatContainer[0];

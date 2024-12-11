@@ -4,7 +4,17 @@ import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
 import {B, BM, I, IM, IS, ItemMetaBits, ItemMetaMax} from "@/meta/ItemIds";
 import BoundingBox from "@/entity/BoundingBox";
-import {BaseBlockBB, SlabBottomBB, SlabLeftBB, SlabRightBB, SlabTopBB} from "@/meta/BlockCollisions";
+import {
+    BaseBlockBB,
+    SlabBottomBB,
+    SlabLeftBB,
+    SlabRightBB,
+    SlabTopBB,
+    StairsLeftBottomBB,
+    StairsLeftTopBB,
+    StairsRightBottomBB,
+    StairsRightTopBB
+} from "@/meta/BlockCollisions";
 
 export type Side = "bottom" | "top" | "left" | "right";
 export type ToolType = "none" | "sword" | "axe" | "pickaxe" | "shovel" | "hoe" | "shears";
@@ -153,7 +163,7 @@ export class ItemMetadata {
             // bottom left top right
             this.bbs = [SlabBottomBB, SlabLeftBB, SlabTopBB, SlabRightBB][this.blockRotation];
         } else if (this.isStairs) {
-
+            this.bbs = [StairsLeftTopBB, StairsRightTopBB, StairsLeftBottomBB, StairsRightBottomBB][this.blockRotation];
         } else this.bbs = BaseBlockBB;
     };
 
