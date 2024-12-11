@@ -23,8 +23,10 @@ const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
 };
 
 // The ones you can shift-click to (you can shift click them, you just can't shift click any other thing to move to these)
-const nonShiftables = ["cursor", "player", "offhand", "hotbar", "armor", "craftingSmall",
+const nonShiftables: InventoryName[] = ["cursor", "player", "offhand", "hotbar", "armor", "craftingSmall",
     "craftingSmallResult", "craftingBig", "craftingBigResult"];
+
+const temporaryInventories: InventoryName[] = ["cursor", "craftingSmall", "craftingBig"];
 
 export default class Player extends Entity implements CommandSender {
     typeId = Entities.PLAYER;
@@ -66,7 +68,7 @@ export default class Player extends Entity implements CommandSender {
     init() {
         for (const k in Inventories) {
             const v = Inventories[<keyof typeof Inventories>k];
-            this.inventories[v] ??= new Inventory(InventorySizes[v]);
+            this.inventories[v] ??= new Inventory(InventorySizes[v], v);
         }
 
         super.init();
@@ -120,18 +122,21 @@ export default class Player extends Entity implements CommandSender {
         inventory.decreaseItemAt(index, count);
     };
 
-    emptyCursor() {
-        const cursorItem = this.cursorItem;
-        if (cursorItem) {
-            const leftCount = this.addItem(cursorItem);
-            if (leftCount > 0) this.dropItem(this.inventories.cursor, 0, leftCount);
-            this.cursorItem = null;
+    /**
+     * @description Empties temporary inventories
+     */
+    onCloseContainer() {
+        for (const name of temporaryInventories) {
+            const inv = this.inventories[name];
+            for (let i = 0; i < inv.size; i++) {
+                const item = inv.get(i);
+                if (!item) continue;
+                const left = this.addItem(item);
+                item.count = left;
+                inv.updateIndex(i);
+                if (left > 0) this.dropItem(inv, i);
+            }
         }
-    };
-
-    dropCursor() {
-        this.dropItem(this.inventories.cursor, 0);
-        this.cursorItem = null;
     };
 
     hasPermission(permission: string): boolean {

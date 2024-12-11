@@ -33,6 +33,10 @@ export function MultiPlayerPopup(O: {
                 }}>
                     {s.name}
                     <div className="delete-btn" onClick={() => {
+                        if (!confirm(`Are you sure you want to delete the server named '${s.name}'?`)) return;
+                        if (!confirm(`You sure? You're really deleting the server '${s.name}'?`)) return;
+                        if (!confirm(`This is the last time I'm going to ask you this. Are you sure you really want to delete the server named '${s.name}' from your server list?`)) return;
+                        if (prompt(`Type in the name of your server you want to delete:`) !== s.name) return;
                         removeServer(s.uuid);
                         O.refresh();
                     }}>Delete

@@ -7,11 +7,11 @@ export default class InventoryStruct extends Bin<Inventory> {
     name: string;
     listBin: Bin<Item[]>;
 
-    constructor(public size: number) {
+    constructor(public size: number, public invName: string) {
         super();
 
         this.listBin = X.array.typed(InventoryContentStruct).sized(size);
-        this.name = `Inventory<${size}>`;
+        this.name = `Inventory<${size}, name=${invName}>`;
     };
 
     unsafeWrite(bind: BufferIndex, value: Inventory): void {
@@ -19,7 +19,7 @@ export default class InventoryStruct extends Bin<Inventory> {
     };
 
     read(bind: BufferIndex) {
-        return new Inventory(this.size).setContents(this.listBin.read(bind));
+        return new Inventory(this.size, this.invName).setContents(this.listBin.read(bind));
     };
 
     unsafeSize(value: Inventory): number {
@@ -31,6 +31,6 @@ export default class InventoryStruct extends Bin<Inventory> {
     };
 
     get sample() {
-        return new Inventory(this.size);
+        return new Inventory(this.size, this.invName);
     };
 }

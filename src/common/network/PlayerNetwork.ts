@@ -5,9 +5,15 @@ import {PacketByName, Packets, readPacket} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
 import {getServer} from "@/utils/Utils";
 import {Version} from "@/Versions";
-import {Containers, InventoryName} from "@/meta/Inventories";
+import {Containers, CraftingMapFromResult, CraftingResultInventoryNames, InventoryName} from "@/meta/Inventories";
 import Entity from "@/entity/Entity";
 import {ItemTransferEvent} from "@/event/types/ItemTransferEvent";
+import {ItemSwapEvent} from "@/event/types/ItemSwapEvent";
+import {findCrafting, inventoryToGrid} from "@/crafting/CraftingUtils";
+import {Crafting} from "@/crafting/Crafting";
+import Inventory from "@/item/Inventory";
+import {PlayerOpenContainerEvent} from "@/event/types/PlayerOpenContainerEvent";
+import {PlayerCloseContainerEvent} from "@/event/types/PlayerCloseContainerEvent";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -124,20 +130,118 @@ export default class PlayerNetwork {
         this.player.world.broadcastPacketAt(this.player.x, new Packets.SEntityUpdate({
             entityId: this.player.id, typeId: Entities.PLAYER, props: {handIndex: data}
         }), [this.player]);
+        // todo: add events for most of the packets
     };
 
     processCOpenInventory(_: PacketByName<"COpenInventory">) {
         if (this.player.containerId !== Containers.Closed) return;
+        const cancel = new PlayerOpenContainerEvent(this.player, Containers.PlayerInventory).callGetCancel();
+        if (cancel) return // todo: this.sendPacket(new Packets.SCloseInventory(), true); I have to sleep early.
         this.player.containerId = Containers.PlayerInventory;
     };
 
     processCCloseInventory(_: PacketByName<"CCloseInventory">) {
+        const cancel = new PlayerCloseContainerEvent(this.player, this.player.containerId).callGetCancel();
+        if (cancel) return // todo: this.sendPacket(new Packets.SOpenInventory(this.player.containerId), true); I have to sleep early.
         this.player.containerId = Containers.Closed;
-        this.player.emptyCursor();
+        this.player.onCloseContainer();
     };
 
-    processCItemTransfer({data: {fromInventory, fromIndex, toInventory, toIndex, count}}
-                             : PacketByName<"CItemTransfer">) {
+    processCItemTransfer({data: {fromInventory, fromIndex, to}}: PacketByName<"CItemTransfer">) {
+        const inventories = this.player.inventories;
+        const from = inventories[fromInventory];
+        const isCraftResult = CraftingResultInventoryNames.includes(fromInventory);
+        let crafting: Crafting;
+        let craftingSource: Inventory;
+
+        let cancelled = false;
+
+        if (isCraftResult) {
+            craftingSource = inventories[CraftingMapFromResult[fromInventory]];
+            const grid = inventoryToGrid(craftingSource);
+            crafting = findCrafting(grid);
+            const result = crafting?.getResult(grid);
+            if (!result) {
+                cancelled = true;
+            } else {
+                from.set(0, result);
+                from.dirtyIndexes.delete(0);
+            }
+        }
+        const totalCount = to.reduce((a, b) => a + b.count, 0)
+
+        const fromItem = from.get(fromIndex);
+        const alreadyFrom = from.dirtyIndexes.has(fromIndex);
+        const accessibleInventories = this.player.getAccessibleInventoryNames();
+
+        cancelled =
+            cancelled
+            // Need something to transfer
+            || !fromItem
+            // If you're getting items from a crafting result, you have to take all of them
+            || (isCraftResult && fromItem?.count !== totalCount)
+            // Just a sanity check
+            || totalCount === 0
+            // You can't transfer between inventories that you don't have access to
+            || !accessibleInventories.includes(fromInventory);
+
+        if (!cancelled) for (const t of to) {
+            if (
+                // Target inventory cannot be a crafting result
+                CraftingResultInventoryNames.includes(t.inventory)
+                // You can't transfer between the same place, just doesn't make sense
+                || (fromInventory === t.inventory && fromIndex === t.index)
+                // You can't transfer between inventories that you don't have access to
+                || !accessibleInventories.includes(t.inventory)
+            ) {
+                cancelled = true;
+                break;
+            }
+        }
+
+        // Check if plugins want to cancel
+        if (!cancelled && new ItemTransferEvent(this.player, from, fromIndex, to.map(i => ({
+            inventory: inventories[i.inventory],
+            index: i.index,
+            count: i.count
+        }))).callGetCancel()) {
+            cancelled = true;
+        }
+
+        const undoes: (() => void)[] = [];
+
+        if (!cancelled) {
+            for (const t of to) {
+                const inv = inventories[t.inventory];
+
+                const alr = inv.dirtyIndexes.has(t.index);
+                const u = from.transfer(fromIndex, inv, t.index, t.count);
+
+                // no need to update it again, client already knows.
+                if (!alr) inv.dirtyIndexes.delete(t.index);
+
+                if (!u) {
+                    cancelled = true;
+                    break;
+                }
+                undoes.push(u);
+            }
+        }
+
+        if (cancelled) {
+            from.updateIndex(fromIndex);
+            for (const u of undoes) u();
+        } else {
+            if (isCraftResult) {
+                crafting.removeFrom(craftingSource);
+            }
+
+            // no need to update it again, client already knows.
+            if (!alreadyFrom) from.dirtyIndexes.delete(fromIndex);
+        }
+    };
+
+    processCItemSwap({data: {fromInventory, fromIndex, toInventory, toIndex}}: PacketByName<"CItemSwap">) {
         const from = this.player.inventories[fromInventory];
         const to = this.player.inventories[toInventory];
 
@@ -145,18 +249,33 @@ export default class PlayerNetwork {
         const alreadyTo = to.dirtyIndexes.has(toIndex);
         const accessibleInventories = this.player.getAccessibleInventoryNames();
 
-        const cancelled = !accessibleInventories.includes(fromInventory)
+        const cancelled =
+            // Target or source inventory cannot be a crafting result
+            CraftingResultInventoryNames.includes(fromInventory)
+            || CraftingResultInventoryNames.includes(toInventory)
+
+            // You can't swap between the same place, just doesn't make sense
+            || (from === to && fromIndex === toIndex)
+
+            // You can't swap between inventories that you don't have access to
+            || !accessibleInventories.includes(fromInventory)
             || !accessibleInventories.includes(toInventory)
-            || new ItemTransferEvent(this.player, from, fromIndex, to, toIndex, count).callGetCancel()
-            || !from.transfer(fromIndex, to, toIndex, count);
+
+            // Check if plugins want to cancel
+            || new ItemSwapEvent(this.player, from, fromIndex, to, toIndex).callGetCancel();
 
         if (cancelled) {
             from.updateIndex(fromIndex);
             to.updateIndex(toIndex);
         } else {
+            const fromItem = from.get(fromIndex);
+            const toItem = to.get(toIndex);
+            from.set(fromIndex, toItem);
+            to.set(toIndex, fromItem);
+
             // no need to update it again, client already knows.
-            if (!alreadyFrom && from.dirtyIndexes.has(fromIndex)) from.dirtyIndexes.delete(fromIndex);
-            if (!alreadyTo && to.dirtyIndexes.has(toIndex)) to.dirtyIndexes.delete(toIndex);
+            if (!alreadyFrom) from.dirtyIndexes.delete(fromIndex);
+            if (!alreadyTo) to.dirtyIndexes.delete(toIndex);
         }
     };
 
@@ -219,6 +338,7 @@ export default class PlayerNetwork {
     };
 
     async processPacketBuffer(data: Buffer) {
+        if (this.server.terminated) return;
         let pk: Packet;
         try {
             pk = readPacket(data);
@@ -294,7 +414,7 @@ export default class PlayerNetwork {
         if (this.closed) return;
         this.closed = true;
         if (this.player) {
-            this.player.emptyCursor();
+            this.player.onCloseContainer();
             this.player.save();
             delete this.server.players[this.player.name];
             this.player.despawn();

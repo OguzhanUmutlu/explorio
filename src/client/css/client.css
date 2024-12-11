@@ -1,3 +1,8 @@
+:root {
+    --item-empty-cursor: default;
+    --item-cursor: grab;
+}
+
 body {
     background-color: #79a4fa;
     margin: 0;
@@ -29,7 +34,7 @@ body {
 
 .inventory-item {
     position: relative;
-    cursor: grab !important;
+    cursor: var(--item-cursor);
     aspect-ratio: 1 / 1;
 }
 
@@ -302,7 +307,7 @@ body {
     position: absolute;
     left: 0;
     top: 0;
-    width: 64px;
+    width: 5%;
     z-index: 3;
     translate: -50% -50%;
     pointer-events: none;
@@ -371,4 +376,8 @@ body {
     bottom: 0;
     left: 0;
     background-image: url("../assets/textures/gui/controls/left.png");
+}
+
+.item-empty {
+    cursor: var(--item-empty-cursor);
 }

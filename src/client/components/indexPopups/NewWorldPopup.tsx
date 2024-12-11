@@ -10,7 +10,7 @@ export function NewWorldPopup(O: {
     refresh: () => void
 }) {
     const popupError = useState("");
-    const worldName = useState("");
+    const worldName = useState("My World");
     const worldSeed = useState("");
 
     return <MainMenuPopup className="new-world-container" state={O.nw} content={<>
@@ -27,13 +27,11 @@ export function NewWorldPopup(O: {
             const seed = Math.floor(+(worldSeed[0] || getRandomSeed()));
             if (seed <= 0 || !name || name.length > 128) {
                 popupError[1]("Invalid name or seed");
-                worldName[1]("");
-                worldSeed[1]("");
                 return;
             }
 
             popupError[1]("");
-            worldName[1]("");
+            worldName[1]("My World");
             worldSeed[1]("");
             addWorld(name, seed);
             O.refresh();
@@ -42,7 +40,7 @@ export function NewWorldPopup(O: {
         }}>Create
         </div>
     </>} onClose={() => {
-        worldName[1]("");
+        worldName[1]("My World");
         worldSeed[1]("");
         popupError[1]("");
     }}/>;

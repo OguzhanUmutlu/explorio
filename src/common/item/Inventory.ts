@@ -9,7 +9,7 @@ export default class Inventory {
     // _tile: ContainerTile | null = null;
     private contents: (Item | null)[] = [];
 
-    constructor(public readonly size: number) {
+    constructor(public readonly size: number, public readonly name: string) {
         this.contents = new Array(this.size).fill(null);
     };
 
@@ -40,7 +40,7 @@ export default class Inventory {
         this.contents.fill(null);
     };
 
-    add(item: Item, count = item.count) {
+    add(item: Item, count = item?.count || 0) {
         if (!item || item.count === 0 || count === 0) return count;
         for (let i = 0; i < this.size; i++) {
             count -= this.addAt(i, item, count);
@@ -50,7 +50,7 @@ export default class Inventory {
         return count;
     };
 
-    remove(item: Item, count = item.count) {
+    remove(item: Item, count = item?.count || 0) {
         if (!item || item.count === 0 || count === 0) return count;
         for (let i = 0; i < this.size; i++) {
             count -= this.removeAt(i, item, count);
@@ -60,7 +60,7 @@ export default class Inventory {
         return count;
     };
 
-    addFromBack(item: Item, count = item.count) {
+    addFromBack(item: Item, count = item?.count || 0) {
         if (!item || item.count === 0 || count === 0) return count;
         for (let i = this.size - 1; i >= 0; i--) {
             count -= this.addAt(i, item, count);
@@ -70,7 +70,7 @@ export default class Inventory {
         return count;
     };
 
-    removeFromBack(item: Item, count = item.count) {
+    removeFromBack(item: Item, count = item?.count || 0) {
         if (!item || item.count === 0 || count === 0) return count;
         for (let i = this.size - 1; i >= 0; i--) {
             count -= this.removeAt(i, item, count);
@@ -81,7 +81,7 @@ export default class Inventory {
     };
 
     removeDesc(desc: ItemDescriptor) {
-        if (!desc) return;
+        if (!desc) return 0;
         let count = desc.count ?? 1;
         if (Array.isArray(count)) throw new Error(".removeDesc() function cannot be ran with an item descriptor with multiple a bounded count.");
         for (let i = 0; i < this.size; i++) {
@@ -91,7 +91,7 @@ export default class Inventory {
         return count;
     };
 
-    addAt(index: number, item: Item, count = item.count) {
+    addAt(index: number, item: Item, count = item?.count || 0) {
         const mt = IM[item.id];
         if (!mt) printer.error("Item not found:", item.id)
         const maxStack = mt.maxStack;
@@ -110,10 +110,10 @@ export default class Inventory {
         return 0;
     };
 
-    removeAt(index: number, item: Item, count = item.count) {
-        if (!item) return;
+    removeAt(index: number, item: Item, count = item?.count || 0) {
+        if (!item) return 0;
         const it = this.get(index);
-        if (!it || !it.equals(item, false, true)) return;
+        if (!it || !it.equals(item, false, true)) return 0;
         if (it.count <= count) {
             this.removeIndex(index);
             return it.count;
@@ -143,27 +143,50 @@ export default class Inventory {
         const fromItem = this.get(from);
         const toItem = target.get(to);
 
-        if (count === 0) return false; // transfer count is 0
+        if (count === 0) return null; // transfer count is 0
 
-        if (!fromItem || fromItem.id === 0) return false; // source is empty
+        if (!fromItem || fromItem.id === 0) return null; // source is empty
 
-        if (fromItem.count < count) return false; // source is not sufficient
+        if (fromItem.count < count) return null; // source is not sufficient
 
         const sameItem = fromItem.equals(toItem, false, true);
-        if (toItem && !sameItem) return false; // the source item and the target item were not the same
+        if (toItem && !sameItem) return null; // the source item and the target item were not the same
 
         const maxStack = fromItem.getMaxStack();
-        if (toItem && toItem.count + count > maxStack) return false; // count is too much and overflows
+        if (toItem && toItem.count + count > maxStack) return null; // count is too much and overflows
+
+        const alrThis = this.dirtyIndexes.has(from);
+        const alrTar = target.dirtyIndexes.has(to);
 
         if (sameItem) {
+            const item = this.get(from);
+            const c = item.count;
             this.decreaseItemAt(from, count);
             target.increaseItemAt(to, count);
-        } else {
-            this.set(from, fromItem.clone(fromItem.count - count));
-            target.set(to, fromItem.clone(count));
+
+            return () => {
+                // undo.
+                // I used set instead of increase because it might be completely gone as it has been decreased.
+                this.set(from, item.clone(c));
+                target.decreaseItemAt(to, count);
+                if (!alrThis) this.dirtyIndexes.delete(from);
+                if (!alrTar) target.dirtyIndexes.delete(to);
+            };
         }
 
-        return true;
+        // here, target is empty.
+
+
+        this.set(from, fromItem.clone(fromItem.count - count));
+        target.set(to, fromItem.clone(count));
+
+        return () => {
+            this.set(from, fromItem.clone(fromItem.count));
+            // re-empty target
+            target.set(to, null);
+            if (!alrThis) this.dirtyIndexes.delete(from);
+            if (!alrTar) target.dirtyIndexes.delete(to);
+        };
     };
 
     updateIndex(index: number) {

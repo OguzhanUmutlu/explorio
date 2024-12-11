@@ -142,6 +142,8 @@ let _fps = [];
 function animate() {
     frameId = requestAnimationFrame(animate);
 
+    if (!chatBox || !canvas) return;
+
     if (!chatContainer[0] && chatBox.scrollTop !== chatBox.scrollHeight) {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -627,10 +629,12 @@ export function terminateClient() {
 // todo: add fall damage
 // todo: add crafting api
 // todo: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
-// todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 // todo: custom tree lengths and shapes like jungle etc.
 // todo: i think only trees of meta 0 1 2 3 are being chosen
-// todo: add client-side inventory interaction api
+// todo: render hand item
+// todo: add crafting table ui
+// todo: handle tool logic
+// todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 
 function isInChat() {
     return chatContainer[0];
@@ -778,7 +782,7 @@ export function Client(O: {
 
 
         {/* Options */}
-        <OptionsPopup showSaveAndQuit={true} opt={optionPopup}/>
+        <OptionsPopup showSaveAndQuit={true} opt={optionPopup} clientUUID={O.clientUUID}/>
 
 
         {/* Mobile Control Buttons */}

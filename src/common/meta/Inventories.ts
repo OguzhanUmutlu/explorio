@@ -8,6 +8,17 @@ export enum Containers {
 
 export type InventoryName = typeof Inventories[keyof typeof Inventories];
 
+export const CraftingResultInventoryNames: ReadonlyArray<InventoryName> = ["craftingSmallResult", "craftingBigResult"];
+export const CraftingInventoryNames: ReadonlyArray<InventoryName> = ["craftingSmall", "craftingBig"];
+export const CraftingMap = <Record<InventoryName, InventoryName>>{
+    "craftingSmall": "craftingSmallResult",
+    "craftingBig": "craftingBigResult"
+};
+export const CraftingMapFromResult = <Record<InventoryName, InventoryName>>{
+    "craftingSmallResult": "craftingSmall",
+    "craftingBigResult": "craftingBig"
+};
+
 export const Inventories = {
     Hotbar: "hotbar",
     Offhand: "offhand",

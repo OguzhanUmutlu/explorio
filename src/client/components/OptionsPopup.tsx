@@ -5,7 +5,8 @@ import {terminateClient} from "@dom/Client";
 
 export function OptionsPopup(O: {
     opt: ReactState<boolean>,
-    showSaveAndQuit: boolean
+    showSaveAndQuit: boolean,
+    clientUUID: ReactState<string>
 }) {
     loadOptions();
     const username = useState(Options.username);
@@ -88,6 +89,10 @@ export function OptionsPopup(O: {
                 <div className="option-value-text">{["Disabled", "Enabled"][pauseOnBlur[0]]}</div>
             </div>
         </div>
-        <div className="save-and-quit btn" hidden={!O.showSaveAndQuit} onClick={terminateClient}>Save and Quit</div>
+        <div className="save-and-quit btn" hidden={!O.showSaveAndQuit} onClick={() => {
+            terminateClient();
+            location.hash = "";
+        }}>Save and Quit
+        </div>
     </>}/>;
 }

@@ -30,9 +30,6 @@ export function NewServerPopup(O: {
             const port = Math.floor(+(serverPort[0] || "1881"));
             if (!name || name.length > 128 || !ip || ip.length > 128 || isNaN(port) || port <= 0 || port > 65535) {
                 popupError[1]("Invalid name or IP or port");
-                serverName[1]("");
-                serverIp[1]("");
-                serverPort[1]("");
                 return;
             }
 

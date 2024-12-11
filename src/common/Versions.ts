@@ -1,14 +1,9 @@
-export enum Versions {
-    v1_0_0$Alpha,
-    v1_0_1$Alpha,
-    v1_0_2$Alpha,
+const Versions = [
+    "v0.0.1-dev.1 Alpha",
+    "v0.0.1-dev.2 Alpha",
+    "v0.0.1-dev.3 Alpha",
+    "v0.0.1-dev.4 Alpha"
+];
 
-    __MAX__
-}
-
-export const Version = Versions.__MAX__ - 1;
-export const VersionString = Object.keys(Versions)
-    .find(i => i[0] !== "_" && Versions[i] === Version)
-    .replaceAll("_", ".")
-    .replaceAll("$", " ")
-    .substring(1);
+export const Version = Versions.length - 1;
+export const VersionString = Versions[Version];

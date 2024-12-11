@@ -48,7 +48,7 @@ export function Index(O: {
                           clientUUID={O.clientUUID}/>
         <NewWorldPopup nw={toggles.nw} sp={toggles.sp} refresh={refreshWorlds}/>
         <NewServerPopup ns={toggles.ns} mp={toggles.mp} refresh={refreshServers}/>
-        <OptionsPopup opt={toggles.opt} showSaveAndQuit={false}/>
+        <OptionsPopup opt={toggles.opt} showSaveAndQuit={false} clientUUID={O.clientUUID}/>
 
         <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio {VersionString}</div>
         <div className="text-right" style={isMobile ? {fontSize: "15px"} : {}}>

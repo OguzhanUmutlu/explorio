@@ -258,8 +258,16 @@ export default class ClientNetwork {
         this.sendPacket(new Packets.CSetHandIndex(index));
     };
 
-    sendItemTransfer(fromInventory: InventoryName, fromIndex: number, toInventory: InventoryName, toIndex: number, count: number) {
-        this.sendPacket(new Packets.CItemTransfer({fromInventory, fromIndex, toInventory, toIndex, count}));
+    sendItemTransfer(fromInventory: InventoryName, fromIndex: number, to: {
+        inventory: InventoryName,
+        index: number,
+        count: number
+    }[]) {
+        this.sendPacket(new Packets.CItemTransfer({fromInventory, fromIndex, to}));
+    };
+
+    sendItemSwap(fromInventory: InventoryName, fromIndex: number, toInventory: InventoryName, toIndex: number) {
+        this.sendPacket(new Packets.CItemSwap({fromInventory, fromIndex, toInventory, toIndex}));
     };
 
     sendPlaceBlock(x: number, y: number, rotation: number) {

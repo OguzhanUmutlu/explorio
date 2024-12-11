@@ -181,15 +181,23 @@ export const PacketStructs = {
     [PacketIds.CItemTransfer]: X.object.struct({
         fromInventory: InventoryNameBin,
         fromIndex: X.u8,
-        toInventory: InventoryNameBin,
-        toIndex: X.u8,
-        count: X.u8
+        to: X.array.typed(X.object.struct({
+            inventory: InventoryNameBin,
+            index: X.u8,
+            count: X.u8
+        }))
     }),
     [PacketIds.CItemDrop]: X.object.struct({
         inventory: InventoryNameBin,
         index: X.u8,
         count: X.u8
-    })
+    }),
+    [PacketIds.CItemSwap]: X.object.struct({
+        fromInventory: InventoryNameBin,
+        fromIndex: X.u8,
+        toInventory: InventoryNameBin,
+        toIndex: X.u8
+    }),
 } as const;
 
 export function readPacket(buffer: Buffer) {

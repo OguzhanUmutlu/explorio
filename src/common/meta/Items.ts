@@ -2,7 +2,7 @@ import Texture, {Canvas, texturePlaceholder} from "@/utils/Texture";
 import Item from "@/item/Item";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
-import {B, BM, I, IM, IS, ItemIds, ItemMetaBits, ItemMetaMax} from "@/meta/ItemIds";
+import {B, BM, I, IM, IS, ItemMetaBits, ItemMetaMax} from "@/meta/ItemIds";
 import BoundingBox from "@/entity/BoundingBox";
 import {BaseBlockBB, SlabBottomBB, SlabLeftBB, SlabRightBB, SlabTopBB} from "@/meta/BlockCollisions";
 
@@ -241,7 +241,7 @@ export class ItemMetadata {
     getDrops() {
         return this.drops.map(i => {
             const item = i.evaluate();
-            if (item && item.id === ItemIds.NATURAL_LOG) item.id = ItemIds.LOG;
+            if (item && item.id === I.NATURAL_LOG) item.id = I.LOG;
             return item;
         }).filter(i => i !== null);
     };
@@ -415,7 +415,7 @@ export function initItems() {
         dropsWithToolTypes: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN, intendedToolType: ["pickaxe"]
     };
     registerItem("cobblestone", I.COBBLESTONE, {
-        ...cobbOpts, name: "Cobblestone", smeltsTo: new ID(I.LOG), smeltXP: 0.1
+        ...cobbOpts, name: "Cobblestone", smeltsTo: new ID(I.STONE), smeltXP: 0.1
     });
 
     const logOptions: ItemMetaDataConfig = {
@@ -428,7 +428,7 @@ export function initItems() {
             {identifier: "log_acacia", name: "Acacia Log", texture: "assets/textures/blocks/log_acacia.png"}
         ],
         hardness: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood, dropsWithToolTypes: ["axe"],
-        intendedToolType: ["axe"], fuel: 1.5, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL)
+        intendedToolType: ["axe"], fuel: 3.5, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL)
     };
 
     const leavesOptions: ItemMetaDataConfig = {
@@ -516,8 +516,9 @@ export function initItems() {
     };
     const lapisOre: ItemMetaDataConfig = {
         step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
-        hardness: 15, drops: [new ID(I.LAPIS)], dropsWithToolTypes: ["pickaxe"], intendedToolType: ["pickaxe"],
-        requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(I.LAPIS), smeltXP: 0.7, xpDrops: [0, 1]
+        hardness: 15, drops: [new ID(I.LAPIS, 0, [1, 3])], dropsWithToolTypes: ["pickaxe"],
+        intendedToolType: ["pickaxe"], requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(I.LAPIS), smeltXP: 0.7,
+        xpDrops: [0, 1]
     };
     const redstoneOre: ItemMetaDataConfig = {
         hardness: 15, drops: [new ID(I.REDSTONE, 0, [1, 3])], step: S.stepStone, dig: S.stepStone, break: S.digStone,
@@ -580,7 +581,7 @@ export function initItems() {
 
     registerItem("planks", I.PLANKS, {
         name: "Planks", isBlock: true, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
-        hardness: 2, dropsWithToolTypes: ["axe"], intendedToolType: ["axe"], makeSlabs: I.WOODEN_SLAB,
+        hardness: 2, intendedToolType: ["axe"], makeSlabs: I.WOODEN_SLAB, fuel: 1,
         makeStairs: I.WOODEN_STAIRS, metas: [
             {name: "Oak Planks", identifier: "oak_planks", texture: "assets/textures/blocks/planks_oak.png"},
             {
@@ -600,11 +601,11 @@ export function initItems() {
     });
 
     registerItem("raw_iron", I.RAW_IRON, {
-        name: "Raw Iron", isBlock: false, smeltsTo: new ID(ItemIds.IRON_INGOT), smeltXP: 0.2
+        name: "Raw Iron", isBlock: false, smeltsTo: new ID(I.IRON_INGOT), smeltXP: 0.2
     });
 
     registerItem("raw_gold", I.RAW_GOLD, {
-        name: "Raw Gold", isBlock: false, smeltsTo: new ID(ItemIds.GOLD_INGOT), smeltXP: 0.2
+        name: "Raw Gold", isBlock: false, smeltsTo: new ID(I.GOLD_INGOT), smeltXP: 0.2
     });
 
     registerItem("lapis", I.LAPIS, {
@@ -617,5 +618,11 @@ export function initItems() {
 
     registerItem("diamond", I.DIAMOND, {
         name: "Diamond", isBlock: false
+    });
+
+    registerItem("crafting_table", I.CRAFTING_TABLE, {
+        name: "Crafting Table",
+        hardness: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
+        intendedToolType: ["axe"], fuel: 1.25, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL) // why not
     });
 }

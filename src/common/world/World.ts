@@ -227,7 +227,7 @@ export default class World {
     };
 
     saveChunk(x: number) {
-        if (!this.chunksGenerated.has(x)) return;
+        if (!this.chunksGenerated.has(x) || !this.chunks[x]) return;
         const buffer = ChunkStruct.serialize({
             data: this.chunks[x],
             entities: Array.from(this.chunkEntities[x]).filter(i => !(i instanceof Player))

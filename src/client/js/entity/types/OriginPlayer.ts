@@ -26,7 +26,6 @@ export default class OriginPlayer extends CPlayer {
             this.isFlying
                 ? sign * this.flySpeed * dt
                 : sign * (Keyboard.shift ? 1.2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed * dt,
-
             0, dt);
     };
 
@@ -45,6 +44,8 @@ export default class OriginPlayer extends CPlayer {
 
     update(dt: number) {
         super.update(dt);
+
+        if (this.containerId !== Containers.Closed) return;
 
         if (Keyboard.w || Keyboard[" "]) {
             if (this.isFlying) this.tryToMove(0, this.flySpeed * dt, dt);

@@ -1,18 +1,31 @@
 import React from "react";
-import {InventoryName, InventorySizes} from "@/meta/Inventories";
+import {
+    CraftingInventoryNames,
+    CraftingMap, CraftingMapFromResult,
+    CraftingResultInventoryNames,
+    InventoryName,
+    InventorySizes
+} from "@/meta/Inventories";
 import {clientNetwork, clientPlayer} from "@dom/Client";
 import {Div, ReactState} from "@c/utils/Utils";
 import {checkLag} from "@/utils/Utils";
+import {findCrafting, findCraftingFromInventory, inventoryToGrid} from "@/crafting/CraftingUtils";
 
-const InventoryDivs: Record<string, [InventoryName, CanvasRenderingContext2D[], Div[]]> = {};
+const InventoryDivs: Record<string, [InventoryName, CanvasRenderingContext2D[], Div[], Div[]]> = {};
 
 export function animateInventories() {
     checkLag("animate inventories", 10);
 
     const removed = {} as Record<InventoryName, Set<number>>;
 
+    const cursor = clientPlayer.cursorItem;
+    const s = document.documentElement.style;
+    s.setProperty("--item-empty-cursor", cursor ? "move" : "default");
+    s.setProperty("--item-cursor", cursor ? "resize" : "grab");
+    const updatedCraftingList = new Set<InventoryName>;
+
     for (const key in InventoryDivs) {
-        const [inventoryType, contexts, counts] = InventoryDivs[key];
+        const [inventoryType, contexts, counts, divs] = InventoryDivs[key];
         const inventory = clientPlayer.inventories[inventoryType];
         if (inventory.wholeDirty) {
             for (let i = 0; i < contexts.length; i++) {
@@ -28,9 +41,13 @@ export function animateInventories() {
             const item = inventory.get(index);
             const ctx = contexts[index];
             const count = counts[index];
+            const div = divs[index];
+
+            div.classList[item ? "remove" : "add"]("item-empty");
+
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
             if (!item) {
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 count.innerText = "";
                 rm.add(index);
                 continue;
@@ -42,6 +59,10 @@ export function animateInventories() {
 
             count.innerText = item.count <= 1 ? "" : item.count.toString();
         }
+
+        if (inventory.dirtyIndexes.size > 0 && CraftingInventoryNames.includes(inventoryType)) {
+            updatedCraftingList.add(inventoryType);
+        }
     }
 
     for (const k in removed) {
@@ -52,8 +73,30 @@ export function animateInventories() {
         }
     }
 
+    for (const k of updatedCraftingList) {
+        // update the crafting result in client-side
+        const inv = clientPlayer.inventories[k];
+        const result = clientPlayer.inventories[CraftingMap[k]];
+        const grid = inventoryToGrid(inv);
+        const crafting = findCrafting(grid);
+
+        result.set(0, crafting?.getResult(grid) || null);
+    }
+
     checkLag("animate inventories", 10);
 }
+
+export function clientRemoveCrafts(invName: InventoryName) {
+    const inv = clientPlayer.inventories[invName];
+    const crafting = findCraftingFromInventory(inv);
+    crafting.removeFrom(inv);
+}
+
+// you could technically set your time to the beginning of 1970, press E, click 1 item to trigger thrice-clicking
+// 1) why would you do this, it isn't like advantageous, completely client-sided feature
+// 2) why am I thinking of this
+let lastTakeInv = 0;
+let lastTakeInvIndex = -1;
 
 export default React.memo(function InventoryDiv(O: {
     inventoryType: InventoryName,
@@ -63,7 +106,8 @@ export default React.memo(function InventoryDiv(O: {
 }) {
     const contexts = [] as CanvasRenderingContext2D[];
     const counts = [] as Div[];
-    InventoryDivs[O.ikey] = [O.inventoryType, contexts, counts];
+    const divs = [] as Div[];
+    InventoryDivs[O.ikey] = [O.inventoryType, contexts, counts, divs];
     const size = InventorySizes[O.inventoryType];
     const props = {...O};
     delete props.inventoryType;
@@ -72,9 +116,11 @@ export default React.memo(function InventoryDiv(O: {
     return <div className="inventory" key={O.ikey} {...props}>
         {...new Array(size).fill(null).map((_, i) => {
             return <div key={O.ikey + " " + i}
+                        ref={el => divs[i] = el}
                         className={O.handindex && i === O.handindex[0] ? "inventory-item selected" : "inventory-item"}
                         onMouseDown={e => {
                             const source = clientPlayer.inventories[O.inventoryType];
+                            const clickedCraftResult = CraftingResultInventoryNames.includes(O.inventoryType);
                             const item = source.get(i)?.clone();
                             const cursor = clientPlayer.cursorItem;
                             const cursorInv = clientPlayer.inventories.cursor;
@@ -89,48 +135,123 @@ export default React.memo(function InventoryDiv(O: {
                                     : (accessible.includes("player") ? ["hotbar", "player"] : ["hotbar"]);
 
                                 let count = item.count;
-
-                                console.log(shiftingTo, accessible)
+                                const added: { inventory: InventoryName, index: number, count: number }[] = [];
 
                                 for (const targetType of shiftingTo) {
                                     if (targetType === O.inventoryType) continue;
+                                    if (count <= 0) break;
                                     const target = clientPlayer.inventories[targetType];
                                     for (let j = 0; j < target.size; j++) {
                                         const gave = target.addAt(j, item, count);
-                                        source.decreaseItemAt(i, gave);
-                                        count -= gave;
+
                                         if (gave > 0) {
-                                            clientNetwork.sendItemTransfer(O.inventoryType, i, targetType, j, gave);
+                                            added.push({inventory: targetType, index: j, count: gave});
                                         }
-                                        if (count <= 0) return;
+
+                                        count -= gave;
+
+                                        if (count <= 0) break;
+                                    }
+                                }
+
+                                // 1) has to transfer at least 1 item
+                                // 2) if it's a crafting result slot, it has to remove everything.
+                                if (count !== item.count && (!clickedCraftResult || count === 0)) {
+                                    clientNetwork.sendItemTransfer(O.inventoryType, i, added);
+                                    source.decreaseItemAt(i, item.count - count);
+                                } else {
+                                    // undo everything because it failed
+                                    for (let i = 0; i < added.length; i++) {
+                                        const addition = added[i];
+                                        const inv = clientPlayer.inventories[addition.inventory];
+                                        inv.decreaseItemAt(addition.index, addition.count);
                                     }
                                 }
                                 return;
                             }
 
-                            if (e.button === 2 && item && !cursor) {
-                                const gave = Math.floor(item.count / 2);
-                                cursorInv.set(0, item.clone(gave));
-                                source.decreaseItemAt(i, gave);
-                                clientNetwork.sendItemTransfer(O.inventoryType, i, "cursor", 0, gave);
+                            // Fun fact: You can write (item || cursor) && (!item || !cursor) as (+!!item^+!!cursor)
+                            if (e.button === 2 && (item || cursor) && !clickedCraftResult) {
+                                if (item && !cursor) {
+                                    const gave = Math.round(item.count / 2);
+                                    cursorInv.set(0, item.clone(gave));
+                                    source.decreaseItemAt(i, gave);
+                                    clientNetwork.sendItemTransfer(O.inventoryType, i, [{
+                                        inventory: "cursor",
+                                        index: 0,
+                                        count: gave
+                                    }]);
+                                } else {
+                                    if (item) source.increaseItemAt(i, 1);
+                                    else source.set(i, cursor.clone(1));
+                                    cursorInv.decreaseItemAt(0, 1);
+                                    clientNetwork.sendItemTransfer("cursor", 0, [{
+                                        inventory: O.inventoryType,
+                                        index: i,
+                                        count: 1
+                                    }]);
+                                }
                                 return;
                             }
 
                             if (cursor) {
+                                // putting cursor item down
+                                if (clickedCraftResult) {
+                                    // if it's possible, get more items from the craft result
+
+                                    // not the same items
+                                    if (!item || !item.equals(cursor, false, true)) return;
+
+                                    // can't get all of them
+                                    if (item.count + cursor.count > cursor.getMaxStack()) return;
+
+                                    // got 'em
+                                    cursorInv.increaseItemAt(0, item.count);
+
+                                    // give a tick to the renderer
+                                    clientPlayer.inventories[CraftingMapFromResult[O.inventoryType]].dirtyIndexes.add(0);
+
+                                    clientNetwork.sendItemTransfer(O.inventoryType, 0, [{
+                                        inventory: "cursor",
+                                        index: 0,
+                                        count: item.count
+                                    }])
+                                    return;
+                                }
                                 const maxStack = cursor.getMaxStack();
                                 if (!item || (item.equals(cursor, false, true) && item.count < maxStack)) {
                                     const count = Math.min(maxStack - (item ? item.count : 0), cursor.count);
                                     if (item) source.increaseItemAt(i, count);
                                     else source.set(i, cursor.clone());
                                     cursorInv.decreaseItemAt(0, count);
-                                    clientNetwork.sendItemTransfer("cursor", 0, O.inventoryType, i, count);
+                                    clientNetwork.sendItemTransfer("cursor", 0, [{
+                                        inventory: O.inventoryType,
+                                        index: i,
+                                        count
+                                    }]);
+                                } else if (item) {
+                                    cursorInv.set(0, item.clone());
+                                    source.set(i, cursor.clone());
+                                    clientNetwork.sendItemSwap("cursor", 0, O.inventoryType, i);
                                 }
                             } else if (item) {
+                                // taking items to cursor
+                                if (Date.now() - lastTakeInv < 1000 && lastTakeInvIndex === i) {
+                                    // clicked thrice, collect all the items like the ones in the cursor to the cursor
+                                    return;
+                                }
+                                lastTakeInv = Date.now();
+                                lastTakeInvIndex = i;
                                 cursorInv.set(0, item.clone());
                                 source.set(i, null);
-                                clientNetwork.sendItemTransfer(O.inventoryType, i, "cursor", 0, item.count);
+                                clientNetwork.sendItemTransfer(O.inventoryType, i, [{
+                                    inventory: "cursor",
+                                    index: 0,
+                                    count: item.count
+                                }]);
                             }
-                        }}>
+                        }
+                        }>
                 <canvas ref={el => {
                     if (el) {
                         const ctx = contexts[i] = el.getContext("2d");
@@ -138,7 +259,10 @@ export default React.memo(function InventoryDiv(O: {
                     }
                 }}></canvas>
                 <div ref={el => counts[i] = el}></div>
-            </div>;
-        })}
-    </div>;
+            </div>
+                ;
+        })
+        }
+    </div>
+        ;
 });

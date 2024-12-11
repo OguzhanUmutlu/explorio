@@ -3,7 +3,7 @@ import {ItemMetadata} from "@/meta/Items";
 export const ItemMetaBits = 5;
 export const ItemMetaMax = 1 << ItemMetaBits;
 
-export enum ItemIds {
+export enum I {
     AIR,
     BEDROCK,
     STONE,
@@ -73,20 +73,20 @@ export enum ItemIds {
     LAPIS,
     REDSTONE,
     DIAMOND,
+    CRAFTING_TABLE,
 
     __MAX__
 }
 
-export const I = <Record<keyof typeof ItemIds, number>>{};         // I.REDSTONE = item id
-export const IS = <Record<keyof typeof ItemIds, ItemMetadata>>{};  // IS.REDSTONE = item metadata
+export const IS = <Record<keyof typeof I, ItemMetadata>>{};  // IS.REDSTONE = item metadata
 export const IM = <Record<number, ItemMetadata>>{};                // IM[item id] = item metadata (with meta=0)
 
-export const B = <Record<keyof typeof ItemIds, number>>{};         // B.REDSTONE = block full id
+export const B = <Record<keyof typeof I, number>>{};         // B.REDSTONE = block full id
 export const BM = <Record<number, ItemMetadata>>{};                // BM[im2f(I.REDSTONE, 5)] = block metadata
 
 export const ItemsByAccess: Record<string, ItemMetadata> = {};          // ItemsByAccess["stone"] = item/block metadata
 
-for (let i = 0; i < ItemIds.__MAX__; i++) {
-    I[ItemIds[i]] = i;
-    B[ItemIds[i]] = i << ItemMetaBits;
+for (let i = 0; i < I.__MAX__; i++) {
+    I[I[i]] = i;
+    B[I[i]] = i << ItemMetaBits;
 }
