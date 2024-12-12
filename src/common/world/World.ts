@@ -19,6 +19,9 @@ import {BlockPlaceEvent} from "@/event/types/BlockPlaceEvent";
 import {BlockBreakEvent} from "@/event/types/BlockBreakEvent";
 import ItemEntity from "@/entity/types/ItemEntity";
 import Item from "@/item/Item";
+import {Entities, EntityClasses} from "@/meta/Entities";
+import {Containers} from "@/meta/Inventories";
+import {InteractBlockEvent} from "@/event/types/InteractBlockEvent";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -66,6 +69,8 @@ export const DefaultWorldMetadata: WorldMetaData = {
 };
 
 export type Collision = { x: number, y: number, meta: ItemMetadata, bb: BoundingBox };
+
+export const InteractableBlocks = [I.CRAFTING_TABLE];
 
 // Variable meanings:
 // x = World X
@@ -356,6 +361,33 @@ export default class World {
         return true;
     };
 
+    canInteractBlockAt(entity: Entity, x: number, y: number) {
+        x = Math.round(x);
+        y = Math.round(y);
+        const target = this.getBlock(x, y);
+        return this.inWorld(y)
+            && entity.distance(x, y) <= entity.getBlockReach()
+            && this.getBlockDepth(x, y) >= 3
+            && InteractableBlocks.includes(target.id);
+    };
+
+    tryAndInteractBlockAt(player: Player, x: number, y: number) {
+        if (!this.canInteractBlockAt(player, x, y)) return;
+
+        const block = this.getBlock(x, y);
+
+        if (new InteractBlockEvent(player, x, y, block).callGetCancel()) return;
+
+        switch (block.id) {
+            case I.CRAFTING_TABLE:
+                player.containerId = Containers.CraftingTable;
+                player.containerX = x;
+                player.containerY = y;
+                player.network?.sendContainer();
+                break;
+        }
+    };
+
     anyEntityTouchBlock(x: number, y: number) {
         const chunkXMiddle = x >> ChunkLengthBits;
         for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
@@ -366,8 +398,23 @@ export default class World {
         return false;
     };
 
+    createEntity<T extends Entity>(id: Entities, x: number, y: number) {
+        const entity = new (EntityClasses[id])();
+        entity.x = x;
+        entity.y = y;
+        entity.world = this;
+        return <T>entity;
+    };
+
+    summonEntity<T extends Entity>(id: Entities, x: number, y: number) {
+        const entity = this.createEntity<T>(id, x, y);
+        entity.init();
+        entity.broadcastSpawn();
+        return entity;
+    };
+
     dropItem(x: number, y: number, item: Item, vx = Math.random() - 0.5, vy = Math.random() + 0.3, delay = 0.3) {
-        const entity = new ItemEntity();
+        const entity = this.createEntity<ItemEntity>(Entities.ITEM, x, y);
         entity.x = x;
         entity.y = y;
         entity.vx = vx;

@@ -21,7 +21,7 @@ import {OptionsPopup} from "@dom/components/OptionsPopup";
 import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
-import {Inventories, InventorySizes} from "@/meta/Inventories";
+import {Containers, Inventories, InventorySizes} from "@/meta/Inventories";
 import {BM, I} from "@/meta/ItemIds";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
@@ -40,6 +40,7 @@ declare global {
 }
 
 let playerInventoryOn: ReactState<boolean>;
+let craftingTableOn: ReactState<boolean>;
 let chatContainer: ReactState<boolean>;
 export let clientUUID: ReactState<string>;
 let optionPopup: ReactState<boolean>;
@@ -315,21 +316,44 @@ function onWheel(e: WheelEvent) {
 // Whether any F3 sub-shortcut has been executed
 let executedF3 = false;
 
+export function updateContainerUI() {
+    closeAllInventoriesUI();
+    switch (clientPlayer?.containerId) {
+        case Containers.Closed:
+            break;
+        case Containers.PlayerInventory:
+            playerInventoryOn[1](true);
+            break;
+        case Containers.CraftingTable:
+            craftingTableOn[1](true);
+            break;
+    }
+}
+
+function isAnyInventoryUIOn() {
+    return playerInventoryOn[0] || craftingTableOn[0];
+}
+
+export function closeAllInventoriesUI() {
+    playerInventoryOn[1](false); // todo: every inventory should be set to false here.
+    craftingTableOn[1](false);
+}
+
 function onPressKey(e: KeyboardEvent) {
     if (isAnyUIOpen()) {
         if (!isInChat() && e.key === "e") {
-            playerInventoryOn[1](false); // todo: every inventory should be set to false here.
+            closeAllInventoriesUI();
             clientNetwork.sendCloseInventory();
         }
 
         if (e.key === "Escape") {
             closeChat();
 
-            if (playerInventoryOn[0]) {
+            if (isAnyInventoryUIOn()) {
                 clientNetwork.sendCloseInventory();
             }
 
-            playerInventoryOn[1](false);
+            closeAllInventoriesUI();
             optionPopup[1](false);
         }
     } else {
@@ -440,7 +464,7 @@ function onTouchEnd() {
     const broke = clientPlayer.justBreaking;
     if (!movedTouchOut && (!broke || broke[0] !== Mouse.rx || broke[1] !== Mouse.ry)) {
         // click! place!
-        clientPlayer.placeIfCan();
+        clientPlayer.rightClicked();
     }
     clientPlayer.justBreaking = null;
     touchDown--;
@@ -627,15 +651,16 @@ export function terminateClient() {
 }
 
 // todo: add fall damage
-// todo: add crafting api
-// todo: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
+// todo: bug: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
 // todo: custom tree lengths and shapes like jungle etc.
 // todo: i think only trees of meta 0 1 2 3 are being chosen
-// todo: render hand item
-// todo: add crafting table ui
 // todo: handle tool logic
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
-// todo: /give command
+// todo: render health/food/armor/breathe points
+// todo: lake generation
+// todo: falling blocks (sand/gravel)
+// todo: flowing blocks (water/lava)
+// todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does?
 
 function isInChat() {
     return chatContainer[0];
@@ -657,11 +682,11 @@ function toggleChat() {
 }
 
 function isAnyUIOpen() {
-    return playerInventoryOn[0] || saveScreen[0] || optionPopup[0] || isInChat();
+    return isAnyInventoryUIOn() || saveScreen[0] || optionPopup[0] || isInChat();
 }
 
 function hasBlur() {
-    return playerInventoryOn[0] || saveScreen[0] || optionPopup[0];
+    return isAnyInventoryUIOn() || saveScreen[0] || optionPopup[0];
 }
 
 export function Client(O: {
@@ -671,6 +696,7 @@ export function Client(O: {
     optionPopup = useState(false);
     saveScreen = useState(false);
     playerInventoryOn = useState(false);
+    craftingTableOn = useState(false);
     chatContainer = useState(false);
     handIndexState = useState(0);
     clientUUID = O.clientUUID;
@@ -749,7 +775,7 @@ export function Client(O: {
         <div className="background-blur" style={hasBlur() ? {opacity: "1", pointerEvents: "auto"} : {}}
              onClick={() => {
                  const cursorItem = clientPlayer.cursorItem;
-                 if (playerInventoryOn[0] && cursorItem) {
+                 if (isAnyInventoryUIOn() && cursorItem) {
                      const count = clientPlayer.cursorItem.count;
                      clientPlayer.cursorItem = null;
                      clientNetwork.sendDropItem("cursor", 0, count);
@@ -760,7 +786,6 @@ export function Client(O: {
         {/* Hotbar */}
         <InventoryDiv className="hotbar-inventory inventory" style={isMobile ? {width: "50%"} : {}}
                       inventoryType={Inventories.Hotbar} ikey="hi" handindex={handIndexState}></InventoryDiv>
-
 
         {/* Player Inventory */}
         <div className="player-inventory-container" style={playerInventoryOn[0] ? {scale: "1"} : {}}>
@@ -773,6 +798,17 @@ export function Client(O: {
                           ikey="pcs"></InventoryDiv>
             <InventoryDiv className="inv-pcr inventory" inventoryType={Inventories.CraftingSmallResult}
                           ikey="pcr"></InventoryDiv>
+        </div>
+
+        {/* Crafting Table Inventory */}
+        <div className="crafting-table-container" style={craftingTableOn[0] ? {scale: "1"} : {}}>
+            <InventoryDiv className="inv-cc inventory" inventoryType={Inventories.CraftingBig}
+                          ikey="cc"></InventoryDiv>
+            <InventoryDiv className="inv-ccr inventory" inventoryType={Inventories.CraftingBigResult}
+                          ikey="ccr"></InventoryDiv>
+            <InventoryDiv className="inv-cp inventory" inventoryType={Inventories.Player} ikey="cp"></InventoryDiv>
+            <InventoryDiv className="inv-ch inventory" inventoryType={Inventories.Hotbar}
+                          ikey="ch"></InventoryDiv>
         </div>
 
         {/* Cursor Inventory */}

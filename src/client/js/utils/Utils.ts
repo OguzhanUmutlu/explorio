@@ -1,7 +1,7 @@
 import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
 import CPlayer from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
-import Texture, {Canvas} from "@/utils/Texture";
+import Texture, {Canvas, SkinData} from "@/utils/Texture";
 import BoundingBox from "@/entity/BoundingBox";
 import {camera, canvas, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
@@ -11,6 +11,7 @@ import {WebStorage} from "@zenfs/dom";
 import Entity from "@/entity/Entity";
 import {Buffer} from "buffer";
 import CItemEntity from "@c/entity/types/CItemEntity";
+import Item from "@/item/Item";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
@@ -206,39 +207,56 @@ export async function pingServer(ip: string, port: number): Promise<string> {
 }
 
 export function renderPlayerModel(
-    ctx: CanvasRenderingContext2D, {
-        SIZE, bbPos, skin, bodyRotation,
-        leftArmRotation, leftLegRotation, rightLegRotation, rightArmRotation,
-        headRotation, handItem // todo: render hand item
+    ctx: CanvasRenderingContext2D, O: {
+        SIZE: number, bbPos: { x: number, y: number }, skin: SkinData, bodyRotation: boolean,
+        leftArmRotation: number, leftLegRotation: number, rightLegRotation: number, rightArmRotation: number,
+        headRotation: number, handItem: Item, offhandItem: Item
     }
 ) {
-    const side: Record<string, Canvas> = skin[bodyRotation ? 0 : 1];
+    const side: Record<string, Canvas> = O.skin[O.bodyRotation ? 0 : 1];
     const bb = EntityBoundingBoxes[Entities.PLAYER];
 
     const head = [
-        bbPos.x, bbPos.y - (bb.height + 0.21) * SIZE,
-        SIZE * 0.5, SIZE * 0.5
+        O.bbPos.x, O.bbPos.y - (bb.height + 0.21) * O.SIZE,
+        O.SIZE * 0.5, O.SIZE * 0.5
     ];
 
     const armBody = [
-        bbPos.x + 0.125 * SIZE, bbPos.y - (bb.height - 0.29) * SIZE,
-        SIZE * 0.25, SIZE * 0.75
+        O.bbPos.x + 0.125 * O.SIZE, O.bbPos.y - (bb.height - 0.29) * O.SIZE,
+        O.SIZE * 0.25, O.SIZE * 0.75
     ];
 
     const leg = [
-        bbPos.x + 0.125 * SIZE, bbPos.y - (bb.height - 1.04) * SIZE,
-        SIZE * 0.25, SIZE * 0.75
+        O.bbPos.x + 0.125 * O.SIZE, O.bbPos.y - (bb.height - 1.04) * O.SIZE,
+        O.SIZE * 0.25, O.SIZE * 0.75
     ];
 
     ctx.save();
     ctx.translate(armBody[0] + armBody[2] / 2, armBody[1]);
-    ctx.rotate(leftArmRotation);
+    ctx.rotate(O.leftArmRotation);
     ctx.drawImage(side.back_arm, -armBody[2] / 2, 0, armBody[2], armBody[3]);
+
+    if (O.offhandItem) {
+        const metadata = O.offhandItem.toMetadata();
+        const texture = metadata.getTexture();
+        if (metadata.toolType !== "none") {
+            ctx.drawImage(
+                O.bodyRotation ? texture.image : texture.flip(),
+                O.bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
+                O.SIZE * 0.8, O.SIZE * 0.8
+            );
+        } else ctx.drawImage(
+            texture.image,
+            O.bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
+            O.SIZE * 0.4, O.SIZE * 0.4
+        );
+    }
+
     ctx.restore();
 
     ctx.save();
     ctx.translate(leg[0] + leg[2] / 2, leg[1]);
-    ctx.rotate(leftLegRotation);
+    ctx.rotate(O.leftLegRotation);
     ctx.drawImage(side.back_leg, -leg[2] / 2, 0, leg[2], leg[3]);
     ctx.restore();
 
@@ -246,40 +264,41 @@ export function renderPlayerModel(
 
     ctx.save();
     ctx.translate(leg[0] + leg[2] / 2, leg[1]);
-    ctx.rotate(rightLegRotation);
+    ctx.rotate(O.rightLegRotation);
     ctx.drawImage(side.front_leg, -leg[2] / 2, 0, leg[2], leg[3]);
     ctx.restore();
 
-    // todo: render item
-
     ctx.save();
     ctx.translate(armBody[0] + armBody[2] / 2, armBody[1]);
-    ctx.rotate(rightArmRotation);
+    ctx.rotate(O.rightArmRotation);
     ctx.fillStyle = "white";
     ctx.drawImage(side.front_arm, -armBody[2] / 2, 0, armBody[2], armBody[3]);
-    /*if (item) {
-        const texture = getItemTexture(item.id, item.meta);
-        if (Metadata.toolTypeItems[item.id]) {
+
+    if (O.handItem) {
+        const metadata = O.handItem.toMetadata();
+        const texture = metadata.getTexture();
+        if (metadata.toolType !== "none") {
             ctx.drawImage(
-                bodyRotation ? texture.image : texture.flip(),
-                bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
-                SIZE * 0.8, SIZE * 0.8
+                O.bodyRotation ? texture.image : texture.flip(),
+                O.bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
+                O.SIZE * 0.8, O.SIZE * 0.8
             );
         } else ctx.drawImage(
             texture.image,
-            bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
-            SIZE * 0.4, SIZE * 0.4
+            O.bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
+            O.SIZE * 0.4, O.SIZE * 0.4
         );
-    }*/
+    }
+
     ctx.restore();
 
     ctx.save();
     ctx.translate(head[0] + head[2] / 2, head[1] + head[3] * 0.55);
-    ctx.rotate((headRotation + (bodyRotation ? 0 : 180)) * Math.PI / 180);
+    ctx.rotate((O.headRotation + (O.bodyRotation ? 0 : 180)) * Math.PI / 180);
     ctx.drawImage(side.head, -head[2] / 2, -head[3] / 2, head[2], head[3]);
-    head[0] -= 0.015 * SIZE;
-    head[1] -= 0.015 * SIZE;
-    head[3] = head[2] += 0.03 * SIZE;
+    head[0] -= 0.015 * O.SIZE;
+    head[1] -= 0.015 * O.SIZE;
+    head[3] = head[2] += 0.03 * O.SIZE;
     ctx.drawImage(side.head_topping, -head[2] / 2, -head[3] / 2, head[2], head[3]);
     ctx.restore();
 }

@@ -22,6 +22,8 @@ invalidCtx.fillStyle = "#d000d2";
 invalidCtx.fillRect(0, 1, 1, 1);
 invalidCtx.fillRect(1, 0, 1, 1);
 
+export type SkinData = Record<keyof typeof SKIN_PARTS, Canvas>[];
+
 // BASED ON 64x64
 const SKIN_PARTS = {
     head: [[0, 8, 8, 8], [16, 8, 8, 8]],
@@ -169,7 +171,7 @@ export default class Texture {
                 sides[i][name] = cropImage(image, part[i][0] * dim, part[i][1] * dim, part[i][2] * dim, part[i][3] * dim);
             }
         }
-        return <Record<keyof typeof SKIN_PARTS, Canvas>[]>sides;
+        return <SkinData>sides;
     };
 
     static get(src: string) {

@@ -14,4 +14,9 @@ export const EntityBoundingBoxes: Record<number, BoundingBox> = {
     [Entities.ITEM]: new BoundingBox(0, 0, 0.3, 0.3)
 };
 
+export const EntityNameMap = {
+    player: Entities.PLAYER,
+    item: Entities.ITEM
+} as const;
+
 export const EntityClasses = <Record<Entities, ClassOf<Entity>>>{};

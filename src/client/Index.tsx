@@ -52,7 +52,8 @@ export function Index(O: {
 
         <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio {VersionString}</div>
         <div className="text-right" style={isMobile ? {fontSize: "15px"} : {}}>
-            No copyright. Do distribute! <a href="https://github.com/OguzhanUmutlu/explorio" target="_blank">Click for
+            No copyright. Do distribute (if you want)! <a href="https://github.com/OguzhanUmutlu/explorio"
+                                                          target="_blank">Click for
             the source
             code!</a>
         </div>

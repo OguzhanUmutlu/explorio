@@ -5,6 +5,7 @@ import SelectorToken from "@/command/token/SelectorToken";
 import PositionArgument from "@/command/arguments/PositionArgument";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
 import Location from "@/utils/Location";
+import {EntityNameMap} from "@/meta/Entities";
 
 export default class ExecuteCommand extends Command {
     posArg = new PositionArgument("position");
@@ -28,7 +29,7 @@ export default class ExecuteCommand extends Command {
                 "§c/execute in <world>\n" +
                 "§c/execute rotated <selector>\n" +
                 "§c/execute rotated <degrees>\n" +
-                "§c/execute store storage|data\n" +
+                "§c/execute store <storage_path>\n" +
                 "§c/execute if|unless block <position> <block>\n" +
                 "§c/execute if|unless blocks <start: position> <end: position> <target: position>\n" +
                 "§c/execute if|unless entity <selector>\n" +
@@ -44,9 +45,11 @@ export default class ExecuteCommand extends Command {
             const token = tokens[i++];
             if (token.rawText === "run") {
                 let last: unknown;
+
                 for (const entity of entities) {
                     last = sender.server.executeCommandLabel(sender, entity, locations[entity.id], token.text.substring(skipWhitespace(token.text, token.end)));
                 }
+
                 return last;
             } else if (token.rawText === "as") {
                 const selector = tokens[i];
@@ -55,6 +58,7 @@ export default class ExecuteCommand extends Command {
                 const oldLocations = locations;
                 entities = [];
                 locations = {};
+
                 for (const entity of oldEntities) {
                     for (const ent of sender.server.executeSelector(entity, locations[entity.id], selector)) {
                         if (!entities.includes(ent)) {
@@ -75,6 +79,7 @@ export default class ExecuteCommand extends Command {
                     if (!this.posArg.blindCheck(tokens, i).pass) {
                         throw new CommandError("Expected a position after the 'at' keyword.");
                     }
+
                     for (const entity of entities) {
                         const loc = locations[entity.id];
                         const val = this.posArg.read(entity, loc, tokens, i);
@@ -85,9 +90,11 @@ export default class ExecuteCommand extends Command {
             } else if (token.rawText === "align") {
                 const got = tokens[i].rawText.split("");
                 const unique = Array.from(new Set(got));
+
                 if (got.length !== unique.length) {
                     throw new CommandError(`Cannot align the position with duplicate positions: ${got}`);
                 }
+
                 if (got.some(i => i !== "x" && i !== "y")) {
                     throw new CommandError(`Cannot align the position with positions other than 'x' and 'y': ${got}`);
                 }
@@ -146,38 +153,45 @@ export default class ExecuteCommand extends Command {
                     }
                 }
             } else if (token.rawText === "summon") {
-                // todo: implement this
-                /*const nameToken = tokens[i];
+                const nameToken = tokens[i];
+
                 if (!nameToken) {
                     throw new CommandError("Expected an entity name after the 'summon' keyword.");
                 }
+
                 const name = nameToken.rawText; // todo: validate this
                 const oldEntities = entities;
                 const oldLocations = locations;
                 entities = [];
                 locations = {};
+
                 for (const entity of oldEntities) {
                     const loc = oldLocations[entity.id];
-                     const newEntity = sender.server.spawnEntityByName(loc, name);
+                    const newEntity = loc.world.summonEntity(EntityNameMap[name], loc.x, loc.y);
                     entities.push(newEntity);
                     locations[newEntity.id] = newEntity.location.copy();
-                }*/
+                }
             } else if (token.rawText === "if" || token.rawText === "unless") {
                 const b = 1 - +(token.rawText === "if");
+
                 if (!tokens[i]) {
                     throw new CommandError(`Expected a condition type after the '${token.rawText}' keyword.`);
                 }
+
                 const comparator = tokens[i].rawText;
                 i++;
                 if (comparator === "block") {
                     if (!this.posArg.blindCheck(tokens, i).pass) {
                         throw new CommandError("Expected a position after the 'if block' subcommand.");
                     }
+
                     const posIndex = i;
                     i += 2;
+
                     if (!tokens[i]) {
                         throw new CommandError("Expected a block name after the 'if block <pos>' subcommand.");
                     }
+
                     const blockName = tokens[i].rawText;
                     const oldEntities = entities;
                     entities = [];
@@ -194,16 +208,21 @@ export default class ExecuteCommand extends Command {
                     if (!this.posArg.blindCheck(tokens, i).pass) {
                         throw new CommandError("Expected a position after the 'if blocks' subcommand.");
                     }
+
                     const pos1Index = i;
                     i += 2;
+
                     if (!this.posArg.blindCheck(tokens, i).pass) {
                         throw new CommandError("Expected a destination for the 2nd argument of the 'if blocks' subcommand.");
                     }
+
                     const pos2Index = i;
                     i += 2;
+
                     if (!this.posArg.blindCheck(tokens, i).pass) {
                         throw new CommandError("Expected a destination for the 3rd argument of the 'if blocks' subcommand.");
                     }
+
                     const pos3Index = i;
                     i += 2;
                     const oldEntities = entities;

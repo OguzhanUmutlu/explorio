@@ -132,32 +132,8 @@ export default class CPlayer extends Player implements CEntity {
             rightLegRotation: this.renderRightLegRotation,
             rightArmRotation: this.renderRightArmRotation,
             headRotation: this.renderHeadRotation,
-            handItem: this.handItem
+            handItem: this.handItem,
+            offhandItem: this.offhandItem
         });
-
-        // const {x: cx, y: cy} = getClientPosition(this.x, this.y);
-        //
-        // const skin = baseSkin[this.direction];
-        //
-        // ctx.drawImage(skin.head,
-        //     cx - bb.width / 2 * BLK,
-        //     cy + (-bb.height + this.bb.width) * BLK,
-        //     BLK * bb.width,
-        //     BLK * bb.width
-        // );
-        //
-        // ctx.drawImage(skin.body,
-        //     cx - bb.width / 4 * BLK,
-        //     cy + (-bb.height + 2 * this.bb.width) * BLK,
-        //     BLK * bb.width / 2,
-        //     BLK * (bb.height - bb.width) / 2
-        // );
-        //
-        // ctx.drawImage(skin.front_leg,
-        //     cx - bb.width / 4 * BLK,
-        //     cy + (-bb.height + 2 * this.bb.width + ((bb.height - bb.width) / 2)) * BLK - 1,
-        //     BLK * bb.width / 2,
-        //     BLK * (bb.height - bb.width) / 2
-        // );
     };
 }

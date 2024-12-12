@@ -22,6 +22,7 @@ import {z} from "zod";
 import ClearCommand from "@/command/defaults/ClearCommand";
 import EventManager from "@/event/EventManager";
 import PluginEvent from "@/event/PluginEvent";
+import GiveCommand from "@/command/defaults/GiveCommand";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -129,7 +130,8 @@ export default class Server {
             PermissionCommand,
             GameModeCommand,
             EffectCommand,
-            ClearCommand
+            ClearCommand,
+            GiveCommand
         ]) this.registerCommand(new clazz());
 
         this.createDirectory(this.path);

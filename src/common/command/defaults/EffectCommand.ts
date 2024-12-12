@@ -14,7 +14,7 @@ function handleArgs(sender: CommandSender, duration: number, amplifier: number) 
     duration = Math.floor(duration);
     if (duration > 2 ** 32 - 1) duration = Infinity;
 
-    if (duration < 0) {
+    if (duration <= 0) {
         sender.sendMessage("Effect duration must be greater than 0.");
         return null;
     }
@@ -34,6 +34,7 @@ export default class EffectCommand extends DefinitiveCommand {
 
     definitions = [
         new CommandDefinition()
+            .addLabelArgument("give")
             .addEffectArgument("effect")
             .addNumberArgument("duration")
             .addNumberArgument("amplifier", o => o.setOptional().setDefault(1))
@@ -54,6 +55,7 @@ export default class EffectCommand extends DefinitiveCommand {
                 }
             }),
         new CommandDefinition()
+            .addLabelArgument("give")
             .addEntitiesArgument("entities")
             .addEffectArgument("effect")
             .addNumberArgument("duration")
@@ -69,6 +71,19 @@ export default class EffectCommand extends DefinitiveCommand {
 
                 sender.sendMessage(
                     `Added the ${getEffectName(effect)} effect to ${players.length} ${players.length === 1 ? "entity" : "entities"}.`
+                );
+            }),
+        new CommandDefinition()
+            .addLabelArgument("clear")
+            .addEntitiesArgument("entities")
+            .addEffectArgument("effect")
+            .then((sender, _, __, players: Entity[], effect) => {
+                for (const player of players) {
+                    player.removeEffect(effect);
+                }
+
+                sender.sendMessage(
+                    `Removed the ${getEffectName(effect)} effect from ${players.length} ${players.length === 1 ? "entity" : "entities"}.`
                 );
             })
     ];

@@ -53,7 +53,7 @@ export default abstract class CommandArgument<T = unknown> {
     };
 
     abstract read(as: CommandAs, at: Location, args: AnyToken[], index: number): T;
-    abstract blindCheck(args: AnyToken[], index: number): { pass: boolean, index: number };
+    abstract blindCheck(args: AnyToken[], index: number): { pass: unknown, index: number };
 
     abstract toString(): string;
 

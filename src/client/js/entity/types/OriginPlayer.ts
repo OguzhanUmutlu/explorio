@@ -29,13 +29,18 @@ export default class OriginPlayer extends CPlayer {
             0, dt);
     };
 
-    placeIfCan() {
+    rightClicked() {
         const handItem = this.handItem;
-        if (handItem && this.placeTime <= 0 && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, handItem.id, handItem.meta, Mouse.rotation)) {
-            if (!this.infiniteResource) {
-                this.inventories.hotbar.decreaseItemAt(this.handIndex);
-            }
-            clientNetwork.sendPlaceBlock(Mouse.rx, Mouse.ry, Mouse.rotation);
+        if (this.placeTime <= 0) {
+            if (handItem && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, handItem.id, handItem.meta, Mouse.rotation)) {
+                if (!this.infiniteResource) {
+                    this.inventories.hotbar.decreaseItemAt(this.handIndex);
+                }
+                clientNetwork.sendPlaceBlock(Mouse.rx, Mouse.ry, Mouse.rotation);
+            } else if (this.world.canInteractBlockAt(this, Mouse.x, Mouse.y)) {
+                // interact!
+                clientNetwork.sendInteractBlock(Mouse.rx, Mouse.ry);
+            } else return;
             this.placeTime = this.placeCooldown;
         }
     };
@@ -80,7 +85,7 @@ export default class OriginPlayer extends CPlayer {
             this.breaking = null;
             this.breakingTime = 0;
         }
-        if (Mouse.right && !Mouse.left) this.placeIfCan();
+        if (Mouse.right && !Mouse.left) this.rightClicked();
         else this.placeTime = 0;
     };
 
@@ -88,7 +93,7 @@ export default class OriginPlayer extends CPlayer {
         if (!Options.sfx) return;
         const distance = clientPlayer.distance(x, y);
         if (distance > 20) return;
-        const lastVolume = volume * (1 - (distance / 20)) * 0.5 * Options.sfx / 100;
+        const lastVolume = volume * (1 - (distance / 20)) * 0.18 * Options.sfx / 100;
         Sound.play(path, lastVolume);
     };
 

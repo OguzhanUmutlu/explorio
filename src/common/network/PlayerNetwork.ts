@@ -118,7 +118,11 @@ export default class PlayerNetwork {
         }
     };
 
-    processCToggleFlight(_: PacketByName<"CToggleFlight">) {
+    processCInteractBlock({data: {x, y}}: PacketByName<"CInteractBlock">) {
+        this.player.world.tryAndInteractBlockAt(this.player, x, y);
+    };
+
+    processCToggleFlight() {
         if (this.player.canToggleFly) {
             this.player.setFlying(!this.player.isFlying);
         }
@@ -133,14 +137,14 @@ export default class PlayerNetwork {
         // todo: add events for most of the packets
     };
 
-    processCOpenInventory(_: PacketByName<"COpenInventory">) {
+    processCOpenInventory() {
         if (this.player.containerId !== Containers.Closed) return;
         const cancel = new PlayerOpenContainerEvent(this.player, Containers.PlayerInventory).callGetCancel();
         if (cancel) return // todo: this.sendPacket(new Packets.SCloseInventory(), true); I have to sleep early.
         this.player.containerId = Containers.PlayerInventory;
     };
 
-    processCCloseInventory(_: PacketByName<"CCloseInventory">) {
+    processCCloseInventory() {
         const cancel = new PlayerCloseContainerEvent(this.player, this.player.containerId).callGetCancel();
         if (cancel) return // todo: this.sendPacket(new Packets.SOpenInventory(this.player.containerId), true); I have to sleep early.
         this.player.containerId = Containers.Closed;
@@ -399,6 +403,14 @@ export default class PlayerNetwork {
             this.sendInventoryIndices(name, indices, immediate);
             inv.dirtyIndexes.clear();
         }
+    };
+
+    sendContainer(immediate = false) {
+        this.sendPacket(new Packets.SSetContainer({
+            container: this.player.containerId,
+            x: this.player.containerX,
+            y: this.player.containerY
+        }), immediate);
     };
 
     kick(reason = "Kicked by an operator") {

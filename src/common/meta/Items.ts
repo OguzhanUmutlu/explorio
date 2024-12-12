@@ -2,7 +2,7 @@ import Texture, {Canvas, texturePlaceholder} from "@/utils/Texture";
 import Item from "@/item/Item";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
-import {B, BM, I, IM, IS, ItemMetaBits, ItemMetaMax} from "@/meta/ItemIds";
+import {B, BM, I, IM, IS, ItemMetaBits, ItemMetaMax, ItemsByIdentifier} from "@/meta/ItemIds";
 import BoundingBox from "@/entity/BoundingBox";
 import {
     BaseBlockBB,
@@ -53,12 +53,13 @@ export type ItemMetaDataConfig = {
     isOpaque?: boolean,
     isSlab?: boolean,
     isStairs?: boolean,
-    isConsumeable?: boolean,
     foodPoints?: number, // How much food points the item gives
     armorType?: ArmorType,
     armorPoints?: number, // For client side
     maxStack?: number,
-    durability?: number // -1 for infinite durability
+    durability?: number // -1 for infinite durability,
+    toolType?: ToolType,
+    toolLevel?: ToolLevel
 };
 
 export function f2id(x: number) {
@@ -118,7 +119,6 @@ export class ItemMetadata {
         public id: number,
         public meta: number,
         public metas: { identifier: string, name: string, texture: string | Texture | Canvas | (() => Texture) }[],
-        public consumeable: boolean,
         public foodPoints: number,
         public armorType: ArmorType,
         public armorPoints: number,
@@ -149,7 +149,9 @@ export class ItemMetadata {
         public fireResistance: number,
         public isOpaque: boolean,
         public isSlab: boolean,
-        public isStairs: boolean
+        public isStairs: boolean,
+        public toolType: ToolType,
+        public toolLevel: ToolLevel
     ) {
         let nonRotatedMeta = meta;
         if (isSlab || isStairs) {
@@ -258,11 +260,11 @@ export class ItemMetadata {
 
     static fromOptions(id: number, meta: number, O: ItemMetaDataConfig) {
         return new ItemMetadata(
-            id, meta, O.metas, O.isConsumeable, O.foodPoints, O.armorType, O.armorPoints,
+            id, meta, O.metas, O.foodPoints, O.armorType, O.armorPoints,
             O.durability, O.maxStack, O.fuel, O.isBlock, O.smeltsTo, O.smeltXP, O.replaceableBy,
             O.canBePlacedOn, O.cannotBePlacedOn, O.canBePhased, O.drops, O.requiresSide, O.canFall, O.canHoldBlocks,
             O.explodeMaxDistance, O.hardness, O.requiredToolLevel, O.dropsWithToolTypes, O.intendedToolType, O.step,
-            O.dig, O.break, O.place, O.solid, O.fireResistance, O.isOpaque, O.isSlab, O.isStairs
+            O.dig, O.break, O.place, O.solid, O.fireResistance, O.isOpaque, O.isSlab, O.isStairs, O.toolType, O.toolLevel
         );
     };
 }
@@ -302,12 +304,13 @@ export const DefaultItemOptions = (identifier: string, name: string, t: string) 
     isOpaque: true,
     isSlab: false,
     isStairs: false,
-    isConsumeable: false,
     foodPoints: 0,
     armorType: null,
     armorPoints: 0,
     maxStack: 64,
-    durability: -1
+    durability: -1,
+    toolType: "none",
+    toolLevel: 0
 });
 
 export function introduceItemId(id: number, key: string, isBlock: boolean) {
@@ -320,35 +323,35 @@ export function registerItem(identifier: string, id: number, O: ItemMetaDataConf
     O = {...DefaultItemOptions(identifier, O.name, O.isBlock === false ? "items" : "blocks"), ...O};
     const key = Object.keys(I).find(i => I[i] === id);
     if (!key) throw new Error("First define item id: " + id + ", using introduceItemId(id, key, isBlock)");
-    BM[im2f(id, 0)] = ItemMetadata.fromOptions(id, 0, O);
+    ItemsByIdentifier[identifier] = BM[im2f(id, 0)] = ItemMetadata.fromOptions(id, 0, O);
+
     for (let meta = 1; meta < O.metas.length; meta++) {
-        BM[im2f(id, meta)] = ItemMetadata.fromOptions(id, meta, O);
+        const mMetadata = ItemMetadata.fromOptions(id, meta, O);
+        const mMetaBuild = O.metas[meta];
+
+        ItemsByIdentifier[mMetaBuild.identifier] = BM[im2f(id, meta)] = mMetadata;
     }
+
     const baseMeta = IS[key] = IM[id] = BM[id << ItemMetaBits];
 
     function slabStairsProtocol(adder: string, oProp: string, oIsProp: string, nameAdder: string, fnMatch: string[][]) {
         if (!O[oProp]) return;
 
-        const metas = Array(O.metas.length * fnMatch.length);
-        const newMetadata = registerItem(identifier + adder, O[oProp], {
-            ...O, makeSlabs: null, makeStairs: null, [oIsProp]: true, metas, isOpaque: false
-        });
-        for (const [index, opt] of Object.entries(fnMatch)) for (let i = 0; i < O.metas.length; i++) {
-            const meta = +index * O.metas.length + i;
-            const dat = O.metas[i];
-            metas[meta] = {
-                identifier: dat.identifier + opt[0],
+        const metas = Array(O.metas.length * fnMatch.length).fill({}).map((_, i) => {
+            const dat = O.metas[i % O.metas.length];
+            return {
+                identifier: dat.identifier + adder,
                 name: dat.name + " " + nameAdder,
                 texture: () => new Texture("", new Promise(r => {
-                    const texture = baseMeta.getTexture(meta);
-                    texture.wait().then(() => r(texture[opt[1]]()));
+                    const texture = baseMeta.getTexture(i);
+                    texture.wait().then(() => r(texture[fnMatch[i % fnMatch.length][1]]()));
                 }))
             };
-            BM[im2f(O[oProp], meta)] = ItemMetadata.fromOptions(O[oProp], meta, {
-                ...newMetadata,
-                drops: O.drops
-            });
-        }
+        });
+
+        registerItem(identifier + adder, O[oProp], {
+            ...O, makeSlabs: null, makeStairs: null, [oIsProp]: true, metas, isOpaque: false
+        });
     }
 
     slabStairsProtocol("_slab", "makeSlabs", "isSlab", "Slab", [
@@ -631,8 +634,7 @@ export function initItems() {
     });
 
     registerItem("crafting_table", I.CRAFTING_TABLE, {
-        name: "Crafting Table",
-        hardness: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
+        name: "Crafting Table", hardness: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
         intendedToolType: ["axe"], fuel: 1.25, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL) // why not
     });
 }

@@ -5,7 +5,7 @@ import PacketError from "@/network/PacketError";
 import CPlayer from "@c/entity/types/CPlayer";
 import CWorld from "@c/world/CWorld";
 import {PacketIds} from "@/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "@dom/Client";
+import {clientPlayer, isMultiPlayer, particleManager, ServerInfo, updateContainerUI} from "@dom/Client";
 import SocketWorker from "@c/worker/SocketWorker?worker";
 import {Version} from "@/Versions";
 import {BM} from "@/meta/ItemIds";
@@ -216,6 +216,13 @@ export default class ClientNetwork {
         }
     };
 
+    processSSetContainer({data: {container, x, y}}: PacketByName<"SSetContainer">) {
+        clientPlayer.containerId = container;
+        clientPlayer.containerX = x;
+        clientPlayer.containerY = y;
+        updateContainerUI();
+    };
+
 
     processSendMessage({data}: PacketByName<"SendMessage">) {
         clientPlayer.sendMessage(data);
@@ -270,8 +277,12 @@ export default class ClientNetwork {
         this.sendPacket(new Packets.CItemSwap({fromInventory, fromIndex, toInventory, toIndex}));
     };
 
-    sendPlaceBlock(x: number, y: number, rotation: number) {
-        this.sendPacket(new Packets.CPlaceBlock({x, y, rotation}));
+    sendPlaceBlock(x: number, y: number, rotation: number, immediate = false) {
+        this.sendPacket(new Packets.CPlaceBlock({x, y, rotation}), immediate);
+    };
+
+    sendInteractBlock(x: number, y: number, immediate = false) {
+        this.sendPacket(new Packets.CInteractBlock({x, y}), immediate);
     };
 
     sendOpenInventory() {

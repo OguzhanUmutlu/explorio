@@ -7,6 +7,7 @@ import ChunkBlocksBin from "@/structs/world/ChunkBlocksBin";
 import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 import {InventoryNameBin} from "@/structs/item/InventoryNameBin";
 import {InventoryContentStruct} from "@/structs/item/ItemStruct";
+import {ContainerIDBin} from "@/meta/Inventories";
 
 const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
@@ -153,6 +154,11 @@ export const PacketStructs = {
             item: InventoryContentStruct
         }))
     }),
+    [PacketIds.SSetContainer]: X.object.struct({
+        container: ContainerIDBin,
+        x: X.i32,
+        y: X.u32
+    }),
 
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,
@@ -175,6 +181,10 @@ export const PacketStructs = {
         x: X.i32,
         y: X.u32,
         rotation: X.u8
+    }),
+    [PacketIds.CInteractBlock]: X.object.struct({
+        x: X.i32,
+        y: X.u32
     }),
     [PacketIds.CToggleFlight]: X.null,
     [PacketIds.CSetHandIndex]: X.u8,

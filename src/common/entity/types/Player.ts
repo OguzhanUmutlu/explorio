@@ -63,6 +63,8 @@ export default class Player extends Entity implements CommandSender {
     messageTimes: number[] = [];
 
     containerId = Containers.Closed;
+    containerX = 0;
+    containerY = 0;
     inventories = <Record<InventoryName, Inventory>>{};
 
     init() {
@@ -104,6 +106,18 @@ export default class Player extends Entity implements CommandSender {
 
     get handItem() {
         return this.inventories.hotbar.get(this.handIndex);
+    };
+
+    set handItem(item: Item | null) {
+        this.inventories.hotbar.set(this.handIndex, item);
+    };
+
+    get offhandItem() {
+        return this.inventories.offhand.get(0);
+    };
+
+    set offhandItem(item: Item | null) {
+        this.inventories.offhand.set(0, item);
     };
 
     get cursorItem() {

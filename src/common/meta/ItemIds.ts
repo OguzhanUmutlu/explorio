@@ -78,13 +78,13 @@ export enum I {
     __MAX__
 }
 
-export const IS = <Record<keyof typeof I, ItemMetadata>>{};  // IS.REDSTONE = item metadata
-export const IM = <Record<number, ItemMetadata>>{};                // IM[item id] = item metadata (with meta=0)
+export const IS = <Record<keyof typeof I, ItemMetadata>>{};          // IS.REDSTONE = item metadata
+export const IM = <Record<number, ItemMetadata>>{};                  // IM[item id] = item metadata (with meta=0)
 
-export const B = <Record<keyof typeof I, number>>{};         // B.REDSTONE = block full id
-export const BM = <Record<number, ItemMetadata>>{};                // BM[im2f(I.REDSTONE, 5)] = block metadata
+export const B = <Record<keyof typeof I, number>>{};                 // B.REDSTONE = block full id
+export const BM = <Record<number, ItemMetadata>>{};                  // BM[im2f(I.REDSTONE, 5)] = block metadata
 
-export const ItemsByAccess: Record<string, ItemMetadata> = {};          // ItemsByAccess["stone"] = item/block metadata
+export const ItemsByIdentifier: Record<string, ItemMetadata> = {};   // ItemsByAccess["stone"] = item/block metadata
 
 for (let i = 0; i < I.__MAX__; i++) {
     I[I[i]] = i;

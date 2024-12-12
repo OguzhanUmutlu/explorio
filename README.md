@@ -6,6 +6,11 @@ Explorio is a 2D block game
 
 Assets are taken from a few repositories on GitHub like: https://github.com/PixiGeko/Minecraft-default-assets
 
+If you're a Microsoft/Mojang employee reading this:
+
+I acknowledge that I don't own the assets. I'm just a college student trying to make a project. There are thousands of
+pages with the literal source code of the game, and I'm just using the assets of the game I paid for, so...
+
 </div>
 
 ## How to play?

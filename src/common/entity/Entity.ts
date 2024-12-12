@@ -351,6 +351,15 @@ export default abstract class Entity {
         this.effects.add(new EffectInstance(effect, amplifier, duration));
     };
 
+    removeEffect(effect: Effect) {
+        for (const e of Array.from(this.effects)) {
+            if (e.effect.id === effect.id) {
+                this.effects.delete(e);
+                break;
+            }
+        }
+    };
+
     toString() {
         return this.name;
     };

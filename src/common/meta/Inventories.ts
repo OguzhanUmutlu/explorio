@@ -1,3 +1,5 @@
+import X from "stramp";
+
 export enum Containers {
     Closed,
     PlayerInventory,
@@ -5,6 +7,8 @@ export enum Containers {
     DoubleChest,
     CraftingTable
 }
+
+export const ContainerIDBin = X.any.ofValues(...<Containers[]>Object.values(Containers));
 
 export type InventoryName = typeof Inventories[keyof typeof Inventories];
 

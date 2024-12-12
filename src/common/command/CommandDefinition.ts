@@ -12,6 +12,7 @@ import Location from "@/utils/Location";
 import EntityArgument from "@/command/arguments/EntityArgument";
 import LabelArgument from "@/command/arguments/LabelArgument";
 import EffectArgument from "@/command/arguments/EffectArgument";
+import ItemArgument from "@/command/arguments/ItemArgument";
 
 export type Append<T extends unknown[] | [], V> = T extends [] ? [V] : [...T, V];
 
@@ -39,6 +40,10 @@ export default class CommandDefinition<T extends CommandArgument[] = []> {
 
     addEffectArgument<M extends EffectArgument>(name: string, fn?: (n: EffectArgument) => M): CommandDefinition<Append<T, M>> {
         return this.addArgumentViaClass(EffectArgument, name, fn);
+    };
+
+    addItemArgument<M extends ItemArgument>(name: string, fn?: (n: ItemArgument) => M): CommandDefinition<Append<T, M>> {
+        return this.addArgumentViaClass(ItemArgument, name, fn);
     };
 
     addPositionArgument<M extends PositionArgument>(name: string, fn?: (n: PositionArgument) => M): CommandDefinition<Append<T, M>> {
