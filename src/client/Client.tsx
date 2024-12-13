@@ -661,6 +661,7 @@ export function terminateClient() {
 // todo: falling blocks (sand/gravel)
 // todo: flowing blocks (water/lava)
 // todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does?
+// todo: more events, most of the packets in the PlayerNetwork.ts should be handled as events
 
 function isInChat() {
     return chatContainer[0];

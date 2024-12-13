@@ -353,7 +353,7 @@ export default class World {
 
         this.setFullBlock(x, y, B.AIR, true, polluteBlock, broadcast);
 
-        for (const item of drops) {
+        if (!(entity instanceof Player) || !entity.infiniteResource) for (const item of drops) {
             this.dropItem(x + Math.random() * 0.2, y + Math.random() * 0.2, item);
         }
 

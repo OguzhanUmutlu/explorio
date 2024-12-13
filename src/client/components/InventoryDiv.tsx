@@ -1,7 +1,8 @@
 import React from "react";
 import {
     CraftingInventoryNames,
-    CraftingMap, CraftingMapFromResult,
+    CraftingMap,
+    CraftingMapFromResult,
     CraftingResultInventoryNames,
     InventoryName,
     InventorySizes
@@ -238,12 +239,40 @@ export default React.memo(function InventoryDiv(O: {
                                 // taking items to cursor
                                 if (Date.now() - lastTakeInv < 1000 && lastTakeInvIndex === i) {
                                     // clicked thrice, collect all the items like the ones in the cursor to the cursor
+                                    let count = 0;
+                                    const maxStack = item.getMaxStack();
+                                    for (const invName of accessible) {
+                                        if (count >= maxStack) break;
+                                        const inv = clientPlayer.inventories[invName];
+                                        for (let j = 0; j < inv.size; j++) {
+                                            const item2 = inv.get(j);
+
+                                            if (!item2 || !item2.equals(item, false, true)) continue;
+
+                                            const moving = Math.min(maxStack - count, item2.count);
+                                            count += moving;
+                                            inv.decreaseItemAt(j, moving);
+
+                                            clientNetwork.sendItemTransfer(invName, j, [{
+                                                inventory: "cursor",
+                                                index: 0,
+                                                count: moving
+                                            }]);
+
+                                            if (count >= maxStack) {
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    if (count >= 0) cursorInv.set(0, item.clone(count));
                                     return;
                                 }
                                 lastTakeInv = Date.now();
                                 lastTakeInvIndex = i;
                                 cursorInv.set(0, item.clone());
                                 source.set(i, null);
+                                console.log(1)
                                 clientNetwork.sendItemTransfer(O.inventoryType, i, [{
                                     inventory: "cursor",
                                     index: 0,

@@ -134,7 +134,6 @@ export default class PlayerNetwork {
         this.player.world.broadcastPacketAt(this.player.x, new Packets.SEntityUpdate({
             entityId: this.player.id, typeId: Entities.PLAYER, props: {handIndex: data}
         }), [this.player]);
-        // todo: add events for most of the packets
     };
 
     processCOpenInventory() {
