@@ -114,7 +114,7 @@ export default class PlayerNetwork {
         if (!handItem || !world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta, rotation)) return this.sendBlock(x, y);
 
         if (!this.player.infiniteResource) {
-            this.player.inventories.hotbar.decreaseItemAt(this.player.handIndex);
+            this.player.hotbarInventory.decreaseItemAt(this.player.handIndex);
         }
     };
 
@@ -288,6 +288,16 @@ export default class PlayerNetwork {
         if (!item || item.count < count) return;
         const alreadyDirty = inv.dirtyIndexes.has(index);
         this.player.dropItem(inv, index, count);
+        if (!alreadyDirty && inv.dirtyIndexes.has(index)) inv.dirtyIndexes.delete(index);
+    };
+
+    processCSetItem({data: {inventory, index, item}}: PacketByName<"CSetItem">) {
+        if (!this.player.canAccessInventory(inventory)) return;
+
+        const inv = this.player.inventories[inventory];
+
+        const alreadyDirty = inv.dirtyIndexes.has(index);
+        inv.set(index, item);
         if (!alreadyDirty && inv.dirtyIndexes.has(index)) inv.dirtyIndexes.delete(index);
     };
 

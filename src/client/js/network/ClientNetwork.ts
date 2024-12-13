@@ -13,6 +13,7 @@ import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
 import {DefaultGravity} from "@/entity/Entity";
 import {Containers, InventoryName} from "@/meta/Inventories";
+import Item from "@/item/Item";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -298,6 +299,12 @@ export default class ClientNetwork {
     sendDropItem(inventory: InventoryName, index: number, count: number) {
         this.sendPacket(new Packets.CItemDrop({
             index, count, inventory
+        }));
+    };
+
+    sendSetItem(inventory: InventoryName, index: number, item: Item) {
+        this.sendPacket(new Packets.CSetItem({
+            inventory, index, item
         }));
     };
 

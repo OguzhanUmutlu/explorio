@@ -105,27 +105,71 @@ export default class Player extends Entity implements CommandSender {
     };
 
     get handItem() {
-        return this.inventories.hotbar.get(this.handIndex);
+        return this.hotbarInventory.get(this.handIndex);
     };
 
     set handItem(item: Item | null) {
-        this.inventories.hotbar.set(this.handIndex, item);
+        this.hotbarInventory.set(this.handIndex, item);
     };
 
     get offhandItem() {
-        return this.inventories.offhand.get(0);
+        return this.offhandInventory.get(0);
     };
 
     set offhandItem(item: Item | null) {
-        this.inventories.offhand.set(0, item);
+        this.offhandInventory.set(0, item);
     };
 
     get cursorItem() {
-        return this.inventories.cursor.get(0);
+        return this.cursorInventory.get(0);
     };
 
     set cursorItem(item: Item | null) {
-        this.inventories.cursor.set(0, item);
+        this.cursorInventory.set(0, item);
+    };
+
+    get hotbarInventory() {
+        return this.inventories.hotbar;
+    };
+
+    get offhandInventory() {
+        return this.inventories.offhand;
+    };
+
+    get playerInventory() {
+        return this.inventories.player;
+    };
+
+    get armorInventory() {
+        return this.inventories.armor;
+    };
+
+    get cursorInventory() {
+        return this.inventories.cursor;
+    };
+
+    get chestInventory() {
+        return this.inventories.chest;
+    };
+
+    get doubleChestInventory() {
+        return this.inventories.doubleChest;
+    };
+
+    get craftingSmallInventory() {
+        return this.inventories.craftingSmall;
+    };
+
+    get craftingSmallResultInventory() {
+        return this.inventories.craftingSmallResult;
+    };
+
+    get craftingBigInventory() {
+        return this.inventories.craftingBig;
+    };
+
+    get craftingBigResultInventory() {
+        return this.inventories.craftingBigResult;
     };
 
     dropItem(inventory: Inventory, index: number, count = Infinity) {
@@ -254,15 +298,15 @@ export default class Player extends Entity implements CommandSender {
     };
 
     addItem(item: Item) {
-        const h = this.inventories.hotbar.add(item);
+        const h = this.hotbarInventory.add(item);
         if (h === 0) return 0;
-        return this.inventories.player.add(item);
+        return this.playerInventory.add(item, h);
     };
 
     removeItem(item: Item) {
-        const h = this.inventories.hotbar.remove(item);
+        const h = this.hotbarInventory.remove(item);
         if (h === 0) return 0;
-        return this.inventories.player.remove(item);
+        return this.playerInventory.remove(item, h);
     };
 
     clearInventories() {

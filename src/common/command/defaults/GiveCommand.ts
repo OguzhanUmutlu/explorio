@@ -22,6 +22,7 @@ export default class GiveCommand extends DefinitiveCommand {
 
                 for (const player of players) {
                     player.addItem(item.toItem(count));
+                    player.playSound("assets/sounds/random/pop.ogg");
                 }
 
                 sender.sendMessage(`${players.length} players have been given ${item.getName()}.`);

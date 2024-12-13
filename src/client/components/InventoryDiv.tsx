@@ -124,7 +124,7 @@ export default React.memo(function InventoryDiv(O: {
                             const clickedCraftResult = CraftingResultInventoryNames.includes(O.inventoryType);
                             const item = source.get(i)?.clone();
                             const cursor = clientPlayer.cursorItem;
-                            const cursorInv = clientPlayer.inventories.cursor;
+                            const cursorInv = clientPlayer.cursorInventory;
                             const accessible = clientPlayer.getAccessibleInventoryNames();
                             const shiftables = clientPlayer.getShiftableInventoryNames();
 
@@ -272,7 +272,6 @@ export default React.memo(function InventoryDiv(O: {
                                 lastTakeInvIndex = i;
                                 cursorInv.set(0, item.clone());
                                 source.set(i, null);
-                                console.log(1)
                                 clientNetwork.sendItemTransfer(O.inventoryType, i, [{
                                     inventory: "cursor",
                                     index: 0,

@@ -209,8 +209,10 @@ function animate() {
                 const pos = getClientPosition(x - 0.5, y - 0.5);
                 ctx.strokeStyle = "#ff0000";
                 ctx.strokeRect(pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
-                ctx.strokeStyle = "#00ff00";
-                ctx.strokeRect(pos.x + Options.tileSize / 2, pos.y - Options.tileSize / 2, subLength + 0.5, -subLength - 0.5);
+                // ctx.strokeStyle = "#00ff00";
+                // ctx.strokeRect(pos.x + Options.tileSize / 2, pos.y - Options.tileSize / 2, subLength + 0.5, -subLength - 0.5);
+                ctx.fillStyle = "#0000ff";
+                ctx.fillRect(pos.x - Options.tileSize / 2, 0, 1, canvas.height);
             }
         }
     }
@@ -295,6 +297,14 @@ function update(dt: number) {
             parseFloat(clientPlayer.y.toFixed(2)),
             parseFloat(clientPlayer.rotation.toFixed(1))
         );
+    }
+
+    if (Keyboard.r) {
+        const handItem = clientPlayer.handItem;
+        if (handItem) {
+            clientNetwork.sendDropItem("hotbar", clientPlayer.handIndex, handItem.count);
+            clientPlayer.handItem = null;
+        }
     }
 }
 
@@ -385,7 +395,7 @@ function onPressKey(e: KeyboardEvent) {
         if (e.key === "q") {
             const handItem = clientPlayer.handItem;
             if (handItem) {
-                clientPlayer.inventories.hotbar.decreaseItemAt(clientPlayer.handIndex);
+                clientPlayer.hotbarInventory.decreaseItemAt(clientPlayer.handIndex);
                 clientNetwork.sendDropItem("hotbar", clientPlayer.handIndex, 1);
             }
         }
@@ -393,6 +403,12 @@ function onPressKey(e: KeyboardEvent) {
 }
 
 let lastSpace = 0;
+
+const F3Macro = {
+    "b": () => renderCollisionBoxes = !renderCollisionBoxes,
+    "g": () => showChunkBorders = !showChunkBorders,
+    "d": () => chatBox.innerText = ""
+};
 
 function onReleaseKey(e: KeyboardEvent) {
     Keyboard[e.key.toLowerCase()] = false;
@@ -406,18 +422,15 @@ function onReleaseKey(e: KeyboardEvent) {
 
     if (!isAnyUIOpen()) {
         if (e.key === "F3") {
-            if (Keyboard.b) renderCollisionBoxes = !renderCollisionBoxes;
-            else if (!executedF3) f3On[1](!f3On[0]);
-        } else if (e.key === "b") {
-            if (Keyboard.f3) {
-                renderCollisionBoxes = !renderCollisionBoxes;
-                executedF3 = true;
+            for (const key in F3Macro) if (Keyboard[key]) {
+                F3Macro[key]();
+                return;
             }
-        } else if (e.key === "g") {
-            if (Keyboard.f3) {
-                showChunkBorders = !showChunkBorders;
-                executedF3 = true;
-            }
+
+            if (!executedF3) f3On[1](!f3On[0]);
+        } else if (Keyboard.f3 && F3Macro[e.key]) {
+            F3Macro[e.key]();
+            executedF3 = true;
         }
     }
 }
@@ -481,7 +494,13 @@ function handleMouseMovement(x: number, y: number) {
 
 function onCanvasMouseDown(e: MouseEvent) {
     if (e.button === 0) Mouse.left = true;
-    if (e.button === 1) Mouse.middle = true;
+    if (e.button === 1) {
+        Mouse.middle = true;
+        const block = clientPlayer.world.getBlock(Mouse.x, Mouse.y);
+        const item = block.toItem();
+        clientPlayer.handItem = item;
+        clientNetwork.sendSetItem("hotbar", clientPlayer.handIndex, item);
+    }
     if (e.button === 2) Mouse.right = true;
 }
 
@@ -559,7 +578,7 @@ export function initClient() {
     const req = {socket: {remoteAddress: "::ffff:127.0.0.1"}};
 
     clientPlayer = OriginPlayer.spawn(clientServer.defaultWorld);
-    clientPlayer.name = Options.username;
+    clientPlayer.name = isMultiPlayer ? Options.username : "Player";
 
     clientPlayer.immobile = true;
     clientNetwork = new ClientNetwork;

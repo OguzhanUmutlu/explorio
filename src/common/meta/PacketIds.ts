@@ -42,6 +42,7 @@ export enum PacketIds {
     CItemTransfer,
     CItemDrop,
     CItemSwap,
+    CSetItem,
     // CContainerSwap,
     // CInteractBlock,
     // CToggleFlight,

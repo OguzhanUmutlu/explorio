@@ -16,6 +16,7 @@ export default class Sound {
     static sounds: Record<string, Sound> = {};
     static ambients: Record<string, SoundContext> = {};
     buffer: AudioBuffer | null = null;
+    timestamps: number[] = [];
 
     constructor(public _promise: Promise<AudioBuffer>, public actualSrc: string) {
         _promise.then(buffer => this.buffer = buffer);
@@ -127,6 +128,11 @@ export default class Sound {
     };
 
     play(volume = 1, cb = () => void 0) {
+        volume = Math.min(5, volume);
+        const now = Date.now();
+        this.timestamps.push(now);
+        this.timestamps = this.timestamps.filter(i => i > now - 1000);
+        if (this.timestamps.length > 5) return; // limit to 5 plays per second
         this.playAsync(volume).then(cb);
     };
 

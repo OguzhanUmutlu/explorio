@@ -4,6 +4,8 @@ import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
 import Item from "@/item/Item";
 import Player from "@/entity/types/Player";
 
+const maxStack = 255;
+
 export default class ItemEntity extends Entity {
     typeId = Entities.ITEM;
     typeName = "item";
@@ -33,8 +35,10 @@ export default class ItemEntity extends Entity {
         for (const entity of this.getChunkEntities()) {
             if (this.delay <= 0 && entity instanceof Player && entity.bb.copy().expand(3, 1.2).collides(this.bb)) {
                 const rem = entity.addItem(source);
+                const alr = source.count;
+                source.count = rem;
                 if (rem === 0) this.despawn();
-                else source.count = rem;
+                if (rem === alr) return;
                 this.world.playSound("assets/sounds/random/pop.ogg", this.x, this.y);
                 return;
             }
@@ -44,10 +48,15 @@ export default class ItemEntity extends Entity {
                 if (
                     (target.count > source.count || (target.count === source.count && this.id > entity.id))
                     && target.equals(source, false, true)
+                    && target.count < maxStack
                 ) {
-                    target.count += source.count;
-                    entity.delay = Math.max(this.delay, entity.delay);
-                    this.despawn();
+                    const moving = Math.min(maxStack - target.count, source.count);
+                    target.count += moving;
+                    source.count -= moving;
+                    if (source.count <= 0) {
+                        entity.delay = Math.max(this.delay, entity.delay);
+                        this.despawn();
+                    }
                     return;
                 }
             }

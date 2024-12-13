@@ -96,24 +96,27 @@ export default class Inventory {
         if (!mt) printer.error("Item not found:", item.id)
         const maxStack = mt.maxStack;
         const it = this.get(index);
+
         if (!it) {
             const putting = Math.min(maxStack, count);
             this.set(index, item.clone(putting));
             return putting;
         }
+
         if (it.equals(item, false, true) && it.count < maxStack) {
             const putting = Math.min(maxStack - it.count, count);
             it.count += putting;
             this.dirtyIndexes.add(index);
             return putting;
         }
+
         return 0;
     };
 
     removeAt(index: number, item: Item, count = item?.count || 0) {
-        if (!item) return 0;
         const it = this.get(index);
-        if (!it || !it.equals(item, false, true)) return 0;
+        if (!item || !it || !it.equals(item, false, true)) return count;
+
         if (it.count <= count) {
             this.removeIndex(index);
             return it.count;
@@ -126,12 +129,15 @@ export default class Inventory {
     removeDescAt(index: number, desc: ItemDescriptor, count: number) {
         const it = this.get(index);
         if (!it || !desc.equalsItem(it)) return count;
+
         if (it.count <= count) {
             this.removeIndex(index);
             return count - it.count;
         }
+
         it.count -= count;
         this.dirtyIndexes.add(index);
+
         return 0;
     };
 

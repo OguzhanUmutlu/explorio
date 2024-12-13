@@ -6,7 +6,7 @@ import X, {Bin, BufferIndex} from "stramp";
 import ChunkBlocksBin from "@/structs/world/ChunkBlocksBin";
 import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 import {InventoryNameBin} from "@/structs/item/InventoryNameBin";
-import {InventoryContentStruct} from "@/structs/item/ItemStruct";
+import ItemStruct, {InventoryContentStruct} from "@/structs/item/ItemStruct";
 import {ContainerIDBin} from "@/meta/Inventories";
 
 const EntityUpdateStruct = X.object.struct({
@@ -208,6 +208,11 @@ export const PacketStructs = {
         toInventory: InventoryNameBin,
         toIndex: X.u8
     }),
+    [PacketIds.CSetItem]: X.object.struct({ // only when infiniteResource is on (for now it's just for creative gamemode)
+        inventory: InventoryNameBin,
+        index: X.u8,
+        item: ItemStruct
+    })
 } as const;
 
 export function readPacket(buffer: Buffer) {
