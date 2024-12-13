@@ -5,7 +5,7 @@ import PacketError from "@/network/PacketError";
 import CPlayer from "@c/entity/types/CPlayer";
 import CWorld from "@c/world/CWorld";
 import {PacketIds} from "@/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, particleManager, ServerInfo, updateContainerUI} from "@dom/Client";
+import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "@dom/Client";
 import SocketWorker from "@c/worker/SocketWorker?worker";
 import {Version} from "@/Versions";
 import {BM} from "@/meta/ItemIds";
@@ -14,6 +14,8 @@ import {ChunkLengthBits} from "@/meta/WorldConstants";
 import {DefaultGravity} from "@/entity/Entity";
 import {Containers, InventoryName} from "@/meta/Inventories";
 import Item from "@/item/Item";
+import Player from "@/entity/types/Player";
+import {Entities} from "@/meta/Entities";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -99,15 +101,18 @@ export default class ClientNetwork {
     spawnEntityFromData(data: PacketByName<"SChunk">["data"]["entities"][number]) {
         const entity = new ClientEntityClasses[data.typeId](clientPlayer.world);
         entity.id = data.entityId;
+
         for (const k in data.props) {
             entity[k] = data.props[k];
         }
+
         entity.renderX = entity.x;
         entity.renderY = entity.y;
         entity.lastX = entity.x;
         entity._x = entity.x;
         entity._y = entity.y;
         entity.world = clientPlayer.world;
+        if (entity.typeId === Entities.PLAYER) entity.gravity = 0;
         entity.init();
         return entity;
     };
@@ -134,6 +139,9 @@ export default class ClientNetwork {
         if (!entity) return this.spawnEntityFromData(data);
         const dist = entity.distance(data.props.x, data.props.y);
         Object.assign(entity, data.props);
+        if ("handItemId" in data.props && "handItemMeta" in data.props && entity instanceof Player) {
+            entity.handItem = new Item(data.props.handItemId, data.props.handItemMeta);
+        }
 
         if (entity === clientPlayer) {
             clientPlayer.updateCacheState();
@@ -221,7 +229,10 @@ export default class ClientNetwork {
         clientPlayer.containerId = container;
         clientPlayer.containerX = x;
         clientPlayer.containerY = y;
-        updateContainerUI();
+    };
+
+    processSSetHandIndex({data}: PacketByName<"SSetHandIndex">) {
+        clientPlayer.handIndex = data;
     };
 
 

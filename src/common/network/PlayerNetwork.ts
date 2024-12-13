@@ -7,13 +7,22 @@ import {getServer} from "@/utils/Utils";
 import {Version} from "@/Versions";
 import {Containers, CraftingMapFromResult, CraftingResultInventoryNames, InventoryName} from "@/meta/Inventories";
 import Entity from "@/entity/Entity";
-import {ItemTransferEvent} from "@/event/types/ItemTransferEvent";
-import {ItemSwapEvent} from "@/event/types/ItemSwapEvent";
+import {ItemTransferEvent} from "@/event/defaults/ItemTransferEvent";
+import {ItemSwapEvent} from "@/event/defaults/ItemSwapEvent";
 import {findCrafting, inventoryToGrid} from "@/crafting/CraftingUtils";
 import {Crafting} from "@/crafting/Crafting";
 import Inventory from "@/item/Inventory";
-import {PlayerOpenContainerEvent} from "@/event/types/PlayerOpenContainerEvent";
-import {PlayerCloseContainerEvent} from "@/event/types/PlayerCloseContainerEvent";
+import {PlayerOpenContainerEvent} from "@/event/defaults/PlayerOpenContainerEvent";
+import {PlayerCloseContainerEvent} from "@/event/defaults/PlayerCloseContainerEvent";
+import {PlayerLoginEvent} from "@/event/defaults/PlayerLoginEvent";
+import {PlayerJoinEvent} from "@/event/defaults/PlayerJoinEvent";
+import {PlayerToggleFlightEvent} from "@/event/defaults/PlayerToggleFlightEvent";
+import {PlayerSetHandIndexEvent} from "@/event/defaults/PlayerSetHandIndexEvent";
+import {PlayerMoveEvent} from "@/event/defaults/PlayerMoveEvent";
+import {PlayerStartBreakingEvent} from "@/event/defaults/PlayerStartBreakingEvent";
+import {PlayerStopBreakingEvent} from "@/event/defaults/PlayerStopBreakingEvent";
+import {PlayerDropItemEvent} from "@/event/defaults/PlayerDropItemEvent";
+import {PlayerCreativeItemAccessEvent} from "@/event/defaults/PlayerCreativeItemAccessEvent";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -54,28 +63,35 @@ export default class PlayerNetwork {
         }
     };
 
-    processCMovement({data}: PacketByName<"CMovement">) {
+    processCMovement({data: {x, y, rotation}}: PacketByName<"CMovement">) {
         if (
-            Math.abs(this.player.x - data.x) > 1.5
-            || Math.abs(this.player.y - data.y) > 5
-        ) {
-            return this.sendPosition();
-        }
-        this.player.x = data.x;
-        this.player.y = data.y;
-        this.player.rotation = data.rotation;
+            Math.abs(this.player.x - x) > 1.5
+            || Math.abs(this.player.y - y) > 5
+            || new PlayerMoveEvent(this.player, x, y, rotation).callGetCancel()
+        ) return this.sendPosition();
+
+        this.player.x = x;
+        this.player.y = y;
+        this.player.rotation = rotation;
         this.player.onMovement();
     };
 
     processCStartBreaking({data}: PacketByName<"CStartBreaking">) {
-        if (!this.player.world.canBreakBlockAt(this.player, data.x, data.y)) return this.sendBlock(data.x, data.y);
+        if (
+            !this.player.world.canBreakBlockAt(this.player, data.x, data.y)
+            || new PlayerStartBreakingEvent(this.player).callGetCancel()
+        ) return this.sendBlock(data.x, data.y);
+
         this.player.breaking = [data.x, data.y];
         this.player.breakingTime = this.player.world.getBlock(data.x, data.y).getHardness();
         this.player.broadcastBlockBreaking();
     };
 
     processCStopBreaking() {
-        if (!this.player.breaking) return;
+        if (
+            !this.player.breaking
+            || new PlayerStopBreakingEvent(this.player).callGetCancel()
+        ) return;
         this.player.breaking = null;
         this.player.breakingTime = 0;
         this.player.broadcastBlockBreaking();
@@ -85,8 +101,16 @@ export default class PlayerNetwork {
         if (version !== Version) {
             return this.kick(version > Version ? "Client is outdated" : "Server is outdated");
         }
+
         if (this.player || name in this.server.players) {
             return this.kick("You are already in game");
+        }
+
+        const loginEvent = new PlayerLoginEvent(name, this.ip);
+        loginEvent.call();
+
+        if (loginEvent.cancelled) {
+            return this.kick(loginEvent.kickMessage ?? "You are not allowed to join the server");
         }
 
         const player = this.player = Player.loadPlayer(name);
@@ -105,6 +129,8 @@ export default class PlayerNetwork {
         }), true);
         this.sendInventories(true);
         this.sendAttributes(true);
+
+        new PlayerJoinEvent(player).call();
     };
 
     processCPlaceBlock({data: {x, y, rotation}}: PacketByName<"CPlaceBlock">) {
@@ -124,28 +150,40 @@ export default class PlayerNetwork {
 
     processCToggleFlight() {
         if (this.player.canToggleFly) {
-            this.player.setFlying(!this.player.isFlying);
+            const ev = new PlayerToggleFlightEvent(this.player, !this.player.isFlying);
+            ev.call();
+            if (ev.cancelled) return;
+            this.player.setFlying(ev.enabled);
         }
     };
 
     processCSetHandIndex({data}: PacketByName<"CSetHandIndex">) {
-        if (data > 8 || data < 0) return;
-        this.player.handIndex = data;
-        this.player.world.broadcastPacketAt(this.player.x, new Packets.SEntityUpdate({
-            entityId: this.player.id, typeId: Entities.PLAYER, props: {handIndex: data}
-        }), [this.player]);
+        if (data > 8 || data < 0 || this.player.handIndex === data) return;
+
+        const ev = new PlayerSetHandIndexEvent(this.player, data);
+        ev.call();
+
+        if (ev.cancelled) return;
+
+        this.player.handIndex = ev.handIndex;
+
+        if (ev.handIndex !== data) {
+            this.sendHandIndex();
+        }
+
+        this.player.broadcastHandItem();
     };
 
     processCOpenInventory() {
         if (this.player.containerId !== Containers.Closed) return;
         const cancel = new PlayerOpenContainerEvent(this.player, Containers.PlayerInventory).callGetCancel();
-        if (cancel) return // todo: this.sendPacket(new Packets.SCloseInventory(), true); I have to sleep early.
+        if (cancel) return this.sendContainer();
         this.player.containerId = Containers.PlayerInventory;
     };
 
     processCCloseInventory() {
         const cancel = new PlayerCloseContainerEvent(this.player, this.player.containerId).callGetCancel();
-        if (cancel) return // todo: this.sendPacket(new Packets.SOpenInventory(this.player.containerId), true); I have to sleep early.
+        if (cancel) return this.sendContainer();
         this.player.containerId = Containers.Closed;
         this.player.onCloseContainer();
     };
@@ -283,9 +321,18 @@ export default class PlayerNetwork {
     };
 
     processCItemDrop({data: {inventory, index, count}}: PacketByName<"CItemDrop">) {
+        if (!this.player.canAccessInventory(inventory)) return;
+
         const inv = this.player.inventories[inventory];
         const item = inv.get(index);
+
         if (!item || item.count < count) return;
+
+        if (new PlayerDropItemEvent(this.player, inv, index, count, item).callGetCancel()) {
+            // let the client know
+            return inv.dirtyIndexes.add(index);
+        }
+
         const alreadyDirty = inv.dirtyIndexes.has(index);
         this.player.dropItem(inv, index, count);
         if (!alreadyDirty && inv.dirtyIndexes.has(index)) inv.dirtyIndexes.delete(index);
@@ -296,51 +343,22 @@ export default class PlayerNetwork {
 
         const inv = this.player.inventories[inventory];
 
+        if (new PlayerCreativeItemAccessEvent(this.player, inv, index, item).callGetCancel()) {
+            // let the client know
+            return inv.dirtyIndexes.add(index);
+        }
+
         const alreadyDirty = inv.dirtyIndexes.has(index);
         inv.set(index, item);
         if (!alreadyDirty && inv.dirtyIndexes.has(index)) inv.dirtyIndexes.delete(index);
     };
 
-
     processSendMessage({data}: PacketByName<"SendMessage">) {
         if (!data) return;
+
         this.player.server.processMessage(this.player, data);
     };
 
-    sendBlock(x: number, y: number, fullId = null, immediate = false) {
-        this.sendPacket(new Packets.SBlockUpdate({
-            x, y,
-            fullId: fullId ?? this.player.world.getFullBlockAt(x, y)
-        }), immediate);
-    };
-
-    sendPosition(immediate = false) {
-        this.sendPacket(new Packets.SEntityUpdate({
-            typeId: Entities.PLAYER,
-            entityId: this.player.id,
-            props: {x: this.player.x, y: this.player.y}
-        }), immediate);
-    };
-
-    sendMessage(message: string, immediate = false) {
-        this.sendPacket(new Packets.SendMessage(message), immediate);
-    };
-
-    sendAttributes(immediate = false) {
-        this.sendPacket(new Packets.SSetAttributes(this.player), immediate);
-    };
-
-    sendSound(path: string, x: number, y: number, volume = 1, immediate = false) {
-        this.sendPacket(new Packets.SPlaySound({path, x, y, volume}), immediate);
-    };
-
-    sendChunk(chunkX: number, data: Uint16Array, entities?: Entity[], resetEntities = true, immediate = false) {
-        this.sendPacket(new Packets.SChunk({
-            x: chunkX, data, entities: entities.filter(i => i !== this.player).map(i => ({
-                entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
-            })), resetEntities
-        }), immediate);
-    };
 
     sendPacket(pk: Packet, immediate = false) {
         if (immediate) {
@@ -419,6 +437,45 @@ export default class PlayerNetwork {
             container: this.player.containerId,
             x: this.player.containerX,
             y: this.player.containerY
+        }), immediate);
+    };
+
+    sendHandIndex(immediate = false) {
+        this.sendPacket(new Packets.SSetHandIndex(this.player.handIndex), immediate);
+    };
+
+    sendBlock(x: number, y: number, fullId = null, immediate = false) {
+        this.sendPacket(new Packets.SBlockUpdate({
+            x, y,
+            fullId: fullId ?? this.player.world.getFullBlockAt(x, y)
+        }), immediate);
+    };
+
+    sendPosition(immediate = false) {
+        this.sendPacket(new Packets.SEntityUpdate({
+            typeId: Entities.PLAYER,
+            entityId: this.player.id,
+            props: {x: this.player.x, y: this.player.y}
+        }), immediate);
+    };
+
+    sendMessage(message: string, immediate = false) {
+        this.sendPacket(new Packets.SendMessage(message), immediate);
+    };
+
+    sendAttributes(immediate = false) {
+        this.sendPacket(new Packets.SSetAttributes(this.player), immediate);
+    };
+
+    sendSound(path: string, x: number, y: number, volume = 1, immediate = false) {
+        this.sendPacket(new Packets.SPlaySound({path, x, y, volume}), immediate);
+    };
+
+    sendChunk(chunkX: number, data: Uint16Array, entities?: Entity[], resetEntities = true, immediate = false) {
+        this.sendPacket(new Packets.SChunk({
+            x: chunkX, data, entities: entities.filter(i => i !== this.player).map(i => ({
+                entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
+            })), resetEntities
         }), immediate);
     };
 

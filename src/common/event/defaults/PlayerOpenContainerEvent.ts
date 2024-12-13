@@ -4,8 +4,8 @@ import {Containers} from "@/meta/Inventories";
 
 export class PlayerOpenContainerEvent extends PluginEvent {
     constructor(
-        public player: Player,
-        public container: Containers
+        public readonly player: Player,
+        public readonly container: Containers
     ) {
         super();
     };

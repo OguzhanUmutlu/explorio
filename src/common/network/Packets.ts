@@ -159,6 +159,7 @@ export const PacketStructs = {
         x: X.i32,
         y: X.u32
     }),
+    [PacketIds.SSetHandIndex]: X.u8,
 
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,

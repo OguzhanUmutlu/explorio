@@ -1,6 +1,6 @@
 import Plugin from "@/plugin/Plugin";
 import {event} from "@/event/EventUtils";
-import {BlockBreakEvent} from "@/event/types/BlockBreakEvent";
+import {BlockBreakEvent} from "@/event/defaults/BlockBreakEvent";
 import Player from "@/entity/types/Player";
 
 export default class MyPlugin extends Plugin {

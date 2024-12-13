@@ -108,7 +108,7 @@ export function readWordOrString(text: string, index: number, regex: RegExp = Wo
 
 export function readNumber(text: string, index: number) {
     if (isNaN(+text[index])) return null; // Only allowing X and X.X syntax for numbers.
-    const word = readWord(text, index, /^-?(\d+)|-?(\d+\.\d+)/);
+    const word = readWord(text, index, /^-?\d+(\.\d+)?/);
     return Token.number(text, word.start, word.end, parseFloat(word.value));
 }
 

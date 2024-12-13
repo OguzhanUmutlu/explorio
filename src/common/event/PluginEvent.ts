@@ -15,6 +15,10 @@ export default abstract class PluginEvent {
         this.stopped = v;
     };
 
+    call() {
+        return EventManager.emit(this);
+    };
+
     callGetCancel() {
         return EventManager.emit(this);
     };

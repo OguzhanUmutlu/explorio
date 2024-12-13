@@ -36,7 +36,7 @@ export class ShapelessCrafting extends Crafting {
     removeFrom(inventory: Inventory) {
         for (let i = 0; i < this.items.length; i++) {
             const id = this.items[i];
-            inventory.remove(id.evaluate());
+            inventory.removeDesc(id);
         }
     };
 }

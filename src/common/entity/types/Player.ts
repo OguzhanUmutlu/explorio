@@ -12,6 +12,7 @@ import Packet from "@/network/Packet";
 import {GameMode} from "@/command/arguments/GameModeArgument";
 import Effect from "@/effect/Effect";
 import {ChunkLengthBits} from "@/meta/WorldConstants";
+import {PlayerKickEvent} from "@/event/defaults/PlayerKickEvent";
 
 const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
     [Containers.Closed]: ["hotbar", "offhand"],
@@ -42,6 +43,7 @@ export default class Player extends Entity implements CommandSender {
     breakingTime = 0;
     sentChunks = new Set<number>;
     viewingChunks: number[] = [];
+    broadcastedItem: Item | null = null;
 
     handIndex = 0;
 
@@ -95,6 +97,15 @@ export default class Player extends Entity implements CommandSender {
 
     getShiftableInventories() {
         return this.getShiftableInventoryNames().map(name => this.inventories[name]);
+    };
+
+    getSpawnData() {
+        const item = this.handItem;
+        return {
+            ...super.getSpawnData(),
+            handItemId: item?.id || 0,
+            handItemMeta: item?.meta || 0
+        };
     };
 
     getMovementData() {
@@ -235,9 +246,9 @@ export default class Player extends Entity implements CommandSender {
             const by = this.breaking[1];
             this.breaking = null;
 
-
             if (!this.world.tryToBreakBlockAt(this, bx, by)) {
                 this.network.sendBlock(bx, by);
+                this.broadcastBlockBreaking();
                 return;
             }
         }
@@ -273,6 +284,20 @@ export default class Player extends Entity implements CommandSender {
         }), [this]);
     };
 
+    broadcastHandItem() {
+        const item = this.handItem;
+
+        if (this.broadcastedItem === null && item === null) return;
+        if (this.broadcastedItem && this.broadcastedItem.equals(item, false, false)) return;
+
+        this.broadcastedItem = item;
+        this.world.broadcastPacketAt(this.x, new Packets.SEntityUpdate({
+            entityId: this.id,
+            typeId: this.typeId,
+            props: {handItemId: item ? item.id : 0, handItemMeta: item ? item.meta : 0}
+        }), [this]);
+    };
+
     sendMessage(message: string): void {
         for (const msg of message.split("\n")) {
             this.network.sendMessage(msg);
@@ -280,15 +305,18 @@ export default class Player extends Entity implements CommandSender {
     };
 
     kick(reason = "Kicked by an operator") {
-        this.network.kick(reason);
+        const ev = new PlayerKickEvent(this, reason);
+        if (ev.callGetCancel()) return;
+
+        this.network.kick(ev.reason);
     };
 
     save() {
-        this.server.createDirectory(`${this.server.path}/players`);
+        this.server.createDirectory("players");
 
         const buffer = this.getSaveBuffer();
         const encoded = zstdOptionalEncode(buffer);
-        this.server.writeFile(`${this.server.path}/players/${this.name}.dat`, encoded);
+        this.server.writeFile(`players/${this.name}.dat`, encoded);
     };
 
     updateCollisionBox() {
@@ -333,7 +361,7 @@ export default class Player extends Entity implements CommandSender {
 
     static loadPlayer(name: string) {
         const server = getServer();
-        const datPath = `${server.path}/players/${name}.dat`;
+        const datPath = `players/${name}.dat`;
         if (!server.fileExists(datPath)) {
             return Player.new(name);
         }
@@ -466,5 +494,11 @@ export default class Player extends Entity implements CommandSender {
     setFlying(flying: boolean) {
         this.isFlying = flying;
         this.network?.sendAttributes();
+    };
+
+    setHandIndex(index: number) {
+        this.handIndex = index;
+        this.broadcastHandItem();
+        this.network?.sendHandIndex();
     };
 }

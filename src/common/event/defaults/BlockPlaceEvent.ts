@@ -3,7 +3,12 @@ import {ItemMetadata} from "@/meta/Items";
 import Entity from "@/entity/Entity";
 
 export class BlockPlaceEvent extends PluginEvent {
-    constructor(public entity: Entity, public x: number, public y: number, public block: ItemMetadata) {
+    constructor(
+        public readonly entity: Entity,
+        public readonly x: number,
+        public readonly y: number,
+        public readonly block: ItemMetadata
+    ) {
         super();
     };
 }

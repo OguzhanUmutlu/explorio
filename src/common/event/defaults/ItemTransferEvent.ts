@@ -4,10 +4,10 @@ import Inventory from "@/item/Inventory";
 
 export class ItemTransferEvent extends PluginEvent {
     constructor(
-        public player: Player,
-        public fromInventory: Inventory,
-        public fromIndex: number,
-        public to: {
+        public readonly player: Player,
+        public readonly fromInventory: Inventory,
+        public readonly fromIndex: number,
+        public readonly to: {
             inventory: Inventory,
             index: number,
             count: number

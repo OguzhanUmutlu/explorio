@@ -4,7 +4,13 @@ import Item from "@/item/Item";
 import Entity from "@/entity/Entity";
 
 export class BlockBreakEvent extends PluginEvent {
-    constructor(public entity: Entity, public x: number, public y: number, public block: ItemMetadata, public drops: Item[]) {
+    constructor(
+        public readonly entity: Entity,
+        public readonly x: number,
+        public readonly y: number,
+        public readonly block: ItemMetadata,
+        public readonly drops: Item[]
+    ) {
         super();
     };
 }

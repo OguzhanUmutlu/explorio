@@ -15,13 +15,13 @@ import {Packets} from "@/network/Packets";
 import ChunkStruct from "@/structs/world/ChunkStruct";
 import {z} from "zod";
 import {ChunkLength, ChunkLengthBits, ChunkLengthN, WorldHeight} from "@/meta/WorldConstants";
-import {BlockPlaceEvent} from "@/event/types/BlockPlaceEvent";
-import {BlockBreakEvent} from "@/event/types/BlockBreakEvent";
+import {BlockPlaceEvent} from "@/event/defaults/BlockPlaceEvent";
+import {BlockBreakEvent} from "@/event/defaults/BlockBreakEvent";
 import ItemEntity from "@/entity/types/ItemEntity";
 import Item from "@/item/Item";
 import {Entities, EntityClasses} from "@/meta/Entities";
 import {Containers} from "@/meta/Inventories";
-import {InteractBlockEvent} from "@/event/types/InteractBlockEvent";
+import {InteractBlockEvent} from "@/event/defaults/InteractBlockEvent";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -97,7 +97,7 @@ export default class World {
         public chunksGenerated: Set<number>
     ) {
         if (generator) generator.setWorld(this);
-        this.path = server.path + "/worlds/" + folder;
+        this.path = "worlds/" + folder;
     };
 
     ensureSpawnChunks() {

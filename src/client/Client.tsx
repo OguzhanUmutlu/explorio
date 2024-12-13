@@ -39,8 +39,7 @@ declare global {
     const bfs: typeof import("fs");
 }
 
-let playerInventoryOn: ReactState<boolean>;
-let craftingTableOn: ReactState<boolean>;
+let containerState: ReactState<Containers>;
 let chatContainer: ReactState<boolean>;
 export let clientUUID: ReactState<string>;
 let optionPopup: ReactState<boolean>;
@@ -269,6 +268,8 @@ function animate() {
     if (handIndexState[0] !== clientPlayer.handIndex) {
         handIndexState[1](clientPlayer.handIndex);
     }
+
+    if (containerState[0] !== clientPlayer.containerId) containerState[1](clientPlayer.containerId);
 }
 
 function update(dt: number) {
@@ -326,44 +327,21 @@ function onWheel(e: WheelEvent) {
 // Whether any F3 sub-shortcut has been executed
 let executedF3 = false;
 
-export function updateContainerUI() {
-    closeAllInventoriesUI();
-    switch (clientPlayer?.containerId) {
-        case Containers.Closed:
-            break;
-        case Containers.PlayerInventory:
-            playerInventoryOn[1](true);
-            break;
-        case Containers.CraftingTable:
-            craftingTableOn[1](true);
-            break;
-    }
-}
-
-function isAnyInventoryUIOn() {
-    return playerInventoryOn[0] || craftingTableOn[0];
-}
-
-export function closeAllInventoriesUI() {
-    playerInventoryOn[1](false); // todo: every inventory should be set to false here.
-    craftingTableOn[1](false);
-}
-
 function onPressKey(e: KeyboardEvent) {
     if (isAnyUIOpen()) {
         if (!isInChat() && e.key === "e") {
-            closeAllInventoriesUI();
+            clientPlayer.containerId = Containers.Closed;
             clientNetwork.sendCloseInventory();
         }
 
         if (e.key === "Escape") {
             closeChat();
 
-            if (isAnyInventoryUIOn()) {
+            if (clientPlayer.containerId !== Containers.Closed) {
+                clientPlayer.containerId = Containers.Closed;
                 clientNetwork.sendCloseInventory();
             }
 
-            closeAllInventoriesUI();
             optionPopup[1](false);
         }
     } else {
@@ -375,7 +353,7 @@ function onPressKey(e: KeyboardEvent) {
         }
 
         if (e.key === "e") {
-            playerInventoryOn[1](true);
+            clientPlayer.containerId = Containers.PlayerInventory;
             clientNetwork.sendOpenInventory();
         }
 
@@ -498,6 +476,7 @@ function onCanvasMouseDown(e: MouseEvent) {
         Mouse.middle = true;
         const block = clientPlayer.world.getBlock(Mouse.x, Mouse.y);
         const item = block.toItem();
+        if (!item) return;
         clientPlayer.handItem = item;
         clientNetwork.sendSetItem("hotbar", clientPlayer.handIndex, item);
     }
@@ -587,7 +566,7 @@ export function initClient() {
         singlePlayerServer = new Server(bfs, `singleplayer/${WorldInfo.uuid}`);
         Error.stackTraceLimit = 50;
 
-        if (!singlePlayerServer.fileExists("singleplayer")) singlePlayerServer.createDirectory("singleplayer");
+        if (!bfs.existsSync("singleplayer")) bfs.mkdirSync("singleplayer");
         singlePlayerServer.config = DefaultServerConfig;
 
         singlePlayerServer.init();
@@ -669,6 +648,7 @@ export function terminateClient() {
     console.clear();
 }
 
+// todo: disconnect screen
 // todo: add fall damage
 // todo: bug: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
 // todo: custom tree lengths and shapes like jungle etc.
@@ -680,7 +660,6 @@ export function terminateClient() {
 // todo: falling blocks (sand/gravel)
 // todo: flowing blocks (water/lava)
 // todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does?
-// todo: more events, most of the packets in the PlayerNetwork.ts should be handled as events
 
 function isInChat() {
     return chatContainer[0];
@@ -702,21 +681,22 @@ function toggleChat() {
 }
 
 function isAnyUIOpen() {
-    return isAnyInventoryUIOn() || saveScreen[0] || optionPopup[0] || isInChat();
+    return containerState[0] !== Containers.Closed || saveScreen[0] || optionPopup[0] || isInChat();
 }
 
 function hasBlur() {
-    return isAnyInventoryUIOn() || saveScreen[0] || optionPopup[0];
+    return containerState[0] !== Containers.Closed || saveScreen[0] || optionPopup[0];
 }
 
 export function Client(O: {
     clientUUID: ReactState<string>,
     favicon: ReactState<string>
 }) {
+    // @ts-ignore
+    window.dbg = {s: singlePlayerServer, p: clientPlayer};
     optionPopup = useState(false);
     saveScreen = useState(false);
-    playerInventoryOn = useState(false);
-    craftingTableOn = useState(false);
+    containerState = useState(Containers.Closed);
     chatContainer = useState(false);
     handIndexState = useState(0);
     clientUUID = O.clientUUID;
@@ -795,7 +775,7 @@ export function Client(O: {
         <div className="background-blur" style={hasBlur() ? {opacity: "1", pointerEvents: "auto"} : {}}
              onClick={() => {
                  const cursorItem = clientPlayer.cursorItem;
-                 if (isAnyInventoryUIOn() && cursorItem) {
+                 if (containerState[0] !== Containers.Closed && cursorItem) {
                      const count = clientPlayer.cursorItem.count;
                      clientPlayer.cursorItem = null;
                      clientNetwork.sendDropItem("cursor", 0, count);
@@ -808,7 +788,8 @@ export function Client(O: {
                       inventoryType={Inventories.Hotbar} ikey="hi" handindex={handIndexState}></InventoryDiv>
 
         {/* Player Inventory */}
-        <div className="player-inventory-container" style={playerInventoryOn[0] ? {scale: "1"} : {}}>
+        <div className="player-inventory-container"
+             style={containerState[0] === Containers.PlayerInventory ? {scale: "1"} : {}}>
             <InventoryDiv className="inv-pp inventory" inventoryType={Inventories.Player}
                           ikey="pp"></InventoryDiv>
             <InventoryDiv className="inv-ph inventory" inventoryType={Inventories.Hotbar}
@@ -821,7 +802,8 @@ export function Client(O: {
         </div>
 
         {/* Crafting Table Inventory */}
-        <div className="crafting-table-container" style={craftingTableOn[0] ? {scale: "1"} : {}}>
+        <div className="crafting-table-container"
+             style={containerState[0] === Containers.CraftingTable ? {scale: "1"} : {}}>
             <InventoryDiv className="inv-cc inventory" inventoryType={Inventories.CraftingBig}
                           ikey="cc"></InventoryDiv>
             <InventoryDiv className="inv-ccr inventory" inventoryType={Inventories.CraftingBigResult}

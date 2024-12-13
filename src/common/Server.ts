@@ -23,6 +23,10 @@ import ClearCommand from "@/command/defaults/ClearCommand";
 import EventManager from "@/event/EventManager";
 import PluginEvent from "@/event/PluginEvent";
 import GiveCommand from "@/command/defaults/GiveCommand";
+import {PlayerSpamKickEvent} from "@/event/defaults/PlayerSpamKickEvent";
+import {CommandPreProcessEvent} from "@/event/defaults/CommandPreProcessEvent";
+import {PlayerMessagePreProcessEvent} from "@/event/defaults/PlayerMessagePreProcessEvent";
+import {PlayerChatEvent} from "@/event/defaults/PlayerChatEvent";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -86,27 +90,27 @@ export default class Server {
     };
 
     deleteFile(path: string) {
-        if (this.fileExists(path)) this.fs.rmSync(path, {recursive: true});
+        if (this.fileExists(path)) this.fs.rmSync(`${this.path}/${path}`, {recursive: true});
     };
 
     fileExists(path: string): boolean {
-        return this.fs.existsSync(path);
+        return this.fs.existsSync(`${this.path}/${path}`);
     };
 
     createDirectory(path: string) {
-        if (!this.fileExists(path)) this.fs.mkdirSync(path, {recursive: true, mode: 0o777});
+        if (!this.fileExists(path)) this.fs.mkdirSync(`${this.path}/${path}`, {recursive: true, mode: 0o777});
     };
 
     writeFile(path: string, contents: Buffer | string) {
-        this.fs.writeFileSync(path, contents);
+        this.fs.writeFileSync(`${this.path}/${path}`, contents);
     };
 
     readFile(path: string): Buffer | null {
-        return this.fs.readFileSync(path);
+        return this.fs.readFileSync(`${this.path}/${path}`);
     };
 
     readDirectory(path: string): string[] | null {
-        return this.fs.readdirSync(path);
+        return this.fs.readdirSync(`${this.path}/${path}`);
     };
 
     isClientSide() {
@@ -138,16 +142,18 @@ export default class Server {
 
         this.loadConfig();
 
-        this.createDirectory(`${this.path}/players`);
-        this.createDirectory(`${this.path}/worlds`);
-        this.createDirectory(`${this.path}/plugins`);
+        this.createDirectory("players");
+        this.createDirectory("worlds");
+        this.createDirectory("plugins");
+
+        if (this.fileExists("bans.txt")) this.writeFile("bans.txt", "");
 
         this.pluginPromise = this.loadPlugins();
 
         for (const folder in this.config.defaultWorlds) {
             this.createWorld(folder, this.config.defaultWorlds[folder]);
         }
-        for (const folder of this.readDirectory(this.path + "/worlds")) {
+        for (const folder of this.readDirectory("worlds")) {
             if (this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
             else printer.fail("Failed to load world %c" + folder, "color: yellow");
         }
@@ -160,14 +166,14 @@ export default class Server {
 
     loadConfig() {
         if (this.config) return;
-        if (!this.fileExists(`${this.path}/server.json`)) {
+        if (!this.fileExists("server.json")) {
             this.config ??= DefaultServerConfig;
-            this.writeFile(`${this.path}/server.json`, JSON.stringify(this.config, null, 2));
+            this.writeFile("server.json", JSON.stringify(this.config, null, 2));
             printer.warn("Created server.json, please edit it and restart the server");
             this.terminateProcess();
         } else {
             try {
-                const got = JSON.parse(this.readFile(`${this.path}/server.json`).toString());
+                const got = JSON.parse(this.readFile("server.json").toString());
                 ZServerConfig.parse(got);
                 this.config = got;
             } catch (e) {
@@ -184,9 +190,9 @@ export default class Server {
 
         const url = await import(/* @vite-ignore */ "url");
 
-        for (const folder of this.readDirectory(this.path + "/plugins")) {
+        for (const folder of this.readDirectory("plugins")) {
             try {
-                const meta = <PluginMetadata>JSON.parse(this.readFile(`${this.path}/plugins/${folder}/plugin.json`).toString());
+                const meta = <PluginMetadata>JSON.parse(this.readFile(`plugins/${folder}/plugin.json`).toString());
                 ZPluginMetadata.parse(meta);
 
                 if (meta.name in this.pluginMetas) {
@@ -194,7 +200,7 @@ export default class Server {
                 }
 
                 this.pluginMetas[meta.name] = meta;
-                const mainPath = `${this.path}/plugins/${folder}/${meta.main}`;
+                const mainPath = `plugins/${folder}/${meta.main}`;
                 const exp = await import(/* @vite-ignore */ url.pathToFileURL(mainPath).toString());
                 if (!("default" in exp) || typeof exp.default !== "function") {
                     throw new Error("Plugin main file doesn't have a default function export.");
@@ -450,11 +456,11 @@ export default class Server {
     };
 
     worldExists(folder: string): boolean {
-        return this.fileExists(this.path + "/worlds/" + folder);
+        return this.fileExists("worlds/" + folder);
     };
 
     getWorldData(folder: string): WorldMetaData | null {
-        const path = this.path + "/worlds/" + folder + "/world.json";
+        const path = "worlds/" + folder + "/world.json";
         if (!this.fileExists(path)) return null;
 
         const buf = this.readFile(path);
@@ -470,9 +476,9 @@ export default class Server {
     };
 
     getWorldChunkList(folder: string): number[] | null {
-        const worldPath = this.path + "/worlds/" + folder;
+        const worldPath = "worlds/" + folder;
         if (!this.fileExists(worldPath)) return null;
-        const chunksPath = this.path + "/worlds/" + folder + "/chunks";
+        const chunksPath = "worlds/" + folder + "/chunks";
         this.createDirectory(chunksPath);
         return (this.readDirectory(chunksPath)).map(file => parseInt(file.split(".")[0]));
     };
@@ -492,9 +498,9 @@ export default class Server {
 
     createWorld(folder: string, data: WorldMetaData): boolean {
         if (this.worldExists(folder)) return false;
-        this.createDirectory(this.path + "/worlds/" + folder);
-        this.createDirectory(this.path + "/worlds/" + folder + "/chunks");
-        this.writeFile(this.path + "/worlds/" + folder + "/world.json", JSON.stringify(data, null, 2));
+        this.createDirectory("worlds/" + folder);
+        this.createDirectory("worlds/" + folder + "/chunks");
+        this.writeFile("worlds/" + folder + "/world.json", JSON.stringify(data, null, 2));
         return true;
     };
 
@@ -532,6 +538,13 @@ export default class Server {
     };
 
     processChat(sender: CommandSender, message: string) {
+        if (sender instanceof Player) {
+            const ev = new PlayerChatEvent(sender, message);
+            ev.call();
+            if (ev.cancelled) return;
+            message = ev.message;
+        }
+
         this.broadcastMessage(sender.name + " > " + message);
     };
 
@@ -539,10 +552,12 @@ export default class Server {
         const split = label.split(" ");
         const commandLabel = split[0].toLowerCase();
         const command = this.commands[commandLabel];
+
         if (!command) {
             sender.sendMessage(`§cUnknown command: ${commandLabel}. Type /help for a list of commands`);
             return;
         }
+
         const args = split.slice(1);
         try {
             if (command.permission && !sender.hasPermission(command.permission)) {
@@ -562,25 +577,32 @@ export default class Server {
         return Error;
     };
 
-    processMessage(sender: CommandSender, message: string) {
+    processMessage(player: Player, message: string) {
         message = cleanText(message).substring(0, this.config.maxMessageLength);
         if (!message) return;
 
-        if (this.config.spamFilter.enabled && sender instanceof Player) {
-            sender.messageTimes = sender.messageTimes.filter(i => i + 1000 * this.config.spamFilter.seconds > Date.now());
-            sender.messageTimes.push(Date.now());
-            if (sender.messageTimes.length > this.config.spamFilter.threshold) {
-                sender.kick("Kicked for spam");
+        if (this.config.spamFilter.enabled) {
+            player.messageTimes = player.messageTimes.filter(i => i + 1000 * this.config.spamFilter.seconds > Date.now());
+            player.messageTimes.push(Date.now());
+            if (player.messageTimes.length > this.config.spamFilter.threshold) {
+                const ev = new PlayerSpamKickEvent(player);
+                if (!ev.callGetCancel()) return player.kick(ev.kickMessage);
             }
         }
+
+        const ev = new PlayerMessagePreProcessEvent(player, message);
+        ev.call();
+        if (ev.cancelled) return;
+        message = ev.message;
+
         if (message[0] === "/") {
-            this.executeCommandLabel(
-                sender,
-                sender,
-                sender instanceof Entity ? (<Entity>sender).location : new Location(0, 0, 0, this.defaultWorld),
+            if (!new CommandPreProcessEvent(player, message).callGetCancel()) this.executeCommandLabel(
+                player,
+                player,
+                player instanceof Entity ? (<Entity>player).location : new Location(0, 0, 0, this.defaultWorld),
                 message.substring(1)
             );
-        } else this.processChat(sender, message);
+        } else this.processChat(player, message);
     };
 
     registerCommand(command: Command) {
