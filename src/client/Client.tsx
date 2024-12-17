@@ -605,7 +605,7 @@ export function initClient() {
 
     Mouse._x = innerWidth / 2;
     Mouse._y = innerHeight / 2;
-    Mouse._px = 0.5;
+    Mouse._px = 1;
     Mouse._py = 0.5;
     Mouse._xSmooth = Mouse._x;
     Mouse._ySmooth = Mouse._y;

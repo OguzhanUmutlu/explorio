@@ -486,7 +486,7 @@ export default class World {
     };
 
     getShadowOpacity(x: number, y: number) {
-        return [0, 0, 0.25, 0.5, 1][this.getBlockDepth(x, y)];
+        return [0, 0, 1, 1, 1][this.getBlockDepth(x, y)];
         /*const normalDepth = this.getBlockDepth(x, y);
         const light = this.getLightLevelAt(x, y);
 
