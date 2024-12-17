@@ -1,7 +1,7 @@
 import Plugin from "@/plugin/Plugin";
 import {event} from "@/event/EventUtils";
-import {BlockBreakEvent} from "@/event/defaults/BlockBreakEvent";
-import Player from "@/entity/types/Player";
+import BlockBreakEvent from "@/event/defaults/BlockBreakEvent";
+import Player from "@/entity/defaults/Player";
 
 export default class MyPlugin extends Plugin {
     onEnable() {

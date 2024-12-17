@@ -50,9 +50,9 @@ export function Index(O: {
         <NewServerPopup ns={toggles.ns} mp={toggles.mp} refresh={refreshServers}/>
         <OptionsPopup opt={toggles.opt} showSaveAndQuit={false} clientUUID={O.clientUUID}/>
 
-        <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio {VersionString}</div>
+        <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio v{VersionString}</div>
         <div className="text-right" style={isMobile ? {fontSize: "15px"} : {}}>
-            No copyright. Do distribute (if you want)! <a href="https://github.com/OguzhanUmutlu/explorio"
+            No copyright. Not affiliated with Mojang. <a href="https://github.com/OguzhanUmutlu/explorio"
                                                           target="_blank">Click for
             the source
             code!</a>

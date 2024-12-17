@@ -1,6 +1,6 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 import {GameModeNames} from "@/command/arguments/GameModeArgument";
 import CommandError from "@/command/CommandError";
 
@@ -25,9 +25,9 @@ export default class GameModeCommand extends DefinitiveCommand {
                 }
             }),
         new CommandDefinition()
-            .addEntitiesArgument("players", o => o.setFilter(e => e instanceof Player))
             .addGameModeArgument("gamemode")
-            .then((sender, _, __, players, gamemode) => {
+            .addEntitiesArgument("players", o => o.setFilter(e => e instanceof Player))
+            .then((sender, _, __, gamemode, players) => {
                 if (players.length === 0) {
                     throw new CommandError("No players given.");
                 }

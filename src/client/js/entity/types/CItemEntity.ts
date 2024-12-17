@@ -1,6 +1,6 @@
 import CEntity from "@c/entity/CEntity";
-import ItemEntity from "@/entity/types/ItemEntity";
-import {getClientPosition, Options} from "@c/utils/Utils";
+import ItemEntity from "@/entity/defaults/ItemEntity";
+import {getClientPosition, TileSize} from "@c/utils/Utils";
 import {BM} from "@/meta/ItemIds";
 import {im2f} from "@/meta/Items";
 
@@ -17,7 +17,7 @@ export default class CItemEntity extends ItemEntity implements CEntity {
 
         const bb = this.bb;
         const pos = getClientPosition(bb.x, bb.y);
-        const s = Options.tileSize / 4;
+        const s = TileSize.value / 4;
         this.getItem()?.render(ctx, pos.x, pos.y - s, s, s, false);
     };
 }

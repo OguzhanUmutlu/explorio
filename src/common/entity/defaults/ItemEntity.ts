@@ -2,7 +2,7 @@ import Entity from "@/entity/Entity";
 import BoundingBox from "@/entity/BoundingBox";
 import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
 import Item from "@/item/Item";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 
 const maxStack = 255;
 

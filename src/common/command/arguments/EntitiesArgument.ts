@@ -5,13 +5,14 @@ import Entity from "@/entity/Entity";
 import CommandError from "@/command/CommandError";
 import {CommandAs} from "@/command/CommandSender";
 import Location from "@/utils/Location";
+import {UsernameRegex} from "@/utils/Utils";
 
 export default class EntitiesArgument<T extends Entity[] = Entity[]> extends CommandArgument<T> {
     default = <T>[];
     filterError = null;
     filter = null;
-    limit = Infinity;
-    strictLimit = false;
+    min = 0;
+    max = Infinity;
 
     setFilterError(message: string | null) {
         this.filterError = message;
@@ -23,20 +24,22 @@ export default class EntitiesArgument<T extends Entity[] = Entity[]> extends Com
         return <EntitiesArgument<S[]>><unknown>this;
     };
 
-    setLimit(limit: number) {
-        this.limit = limit;
+    setMin(min: number) {
+        this.min = min;
         return this;
     };
 
-    setLimitStrict(strictLimit: boolean) {
-        this.strictLimit = strictLimit;
+    setMax(max: number) {
+        this.max = max;
         return this;
     };
 
     read(as: CommandAs, at: Location, args: AnyToken[], index: number) {
-        const arg = <SelectorToken>args[index];
+        const arg = args[index];
 
-        const entities = as.server.executeSelector(as, at, arg);
+        const entities = arg instanceof SelectorToken
+            ? as.server.executeSelector(as, at, arg)
+            : arg.rawText in as.server.players ? [as.server.players[arg.rawText]] : [];
 
         const filtered = this.filter ? entities.filter(this.filter) : entities;
 
@@ -44,15 +47,15 @@ export default class EntitiesArgument<T extends Entity[] = Entity[]> extends Com
 
         if (filtered.length === 0) throw new CommandError("No entities found.");
 
-        if (this.strictLimit && filtered.length !== this.limit) throw new CommandError("Expected to find exactly " + this.limit + " entities.");
+        if (filtered.length > this.max) throw new CommandError("Expected to find at most " + this.max + " entities.");
+        if (filtered.length < this.min) throw new CommandError("Expected to find at least " + this.min + " entities.");
 
-        if (filtered.length > this.limit) throw new CommandError("Expected to find at most " + this.limit + " entities.");
-
-        return <T>filtered.slice(0, this.limit);
+        return <T>filtered;
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: args[index] instanceof SelectorToken, index: index + 1};
+        const arg = args[index];
+        return {pass: arg && (arg instanceof SelectorToken || UsernameRegex.test(arg.rawText)), index: index + 1};
     };
 
     toString() {

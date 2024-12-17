@@ -4,13 +4,13 @@ import {PacketIds} from "@/meta/PacketIds";
 import Packet from "@/network/Packet";
 import {ZstdInit} from "@oneidentity/zstd-js";
 import {Entities, EntityClasses} from "@/meta/Entities";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 import {Effects} from "@/utils/Effects";
 import Effect from "@/effect/Effect";
-import SpeedEffect from "@/effect/types/SpeedEffect";
-import SlownessEffect from "@/effect/types/SlownessEffect";
+import SpeedEffect from "@/effect/defaults/SpeedEffect";
+import SlownessEffect from "@/effect/defaults/SlownessEffect";
 import {Bin} from "stramp";
-import ItemEntity from "@/entity/types/ItemEntity";
+import ItemEntity from "@/entity/defaults/ItemEntity";
 
 export function initEffects() {
     for (const clazz of [

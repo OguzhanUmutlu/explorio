@@ -1,5 +1,5 @@
 import Particle from "@c/particle/Particle";
-import {getClientPosition, Options} from "@c/utils/Utils";
+import {getClientPosition, TileSize} from "@c/utils/Utils";
 
 export default class ParticleManager {
     particles = new Set<Particle>;
@@ -16,7 +16,7 @@ export default class ParticleManager {
         for (const particle of this.particles) {
             particle.update(dt);
             const pos = getClientPosition(particle.x, particle.y);
-            particle.render(ctx, pos.x, pos.y, Options.tileSize);
+            particle.render(ctx, pos.x, pos.y, TileSize.value);
             if (particle.done) this.particles.delete(particle);
         }
     };

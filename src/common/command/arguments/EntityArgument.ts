@@ -7,7 +7,12 @@ import EntitiesArgument from "@/command/arguments/EntitiesArgument";
 
 export default class EntityArgument<T extends Entity = Entity> extends CommandArgument<T> {
     default = <T>null;
-    base = new EntitiesArgument("").setLimit(1).setLimitStrict(true);
+    base = new EntitiesArgument("").setMax(1).setMin(1);
+
+    setFilterError(message: string | null) {
+        this.base.setFilterError(message);
+        return this;
+    };
 
     setFilter<S extends T>(filter: (entity: T) => entity is S) {
         this.base.filter = filter;

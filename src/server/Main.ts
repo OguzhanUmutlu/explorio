@@ -68,19 +68,19 @@ process.on("uncaughtException", onCrash);
 process.on("unhandledRejection", onCrash);
 process.on("SIGINT", exit);
 
-
 const soundPath = path.resolve(`${__dirname}/../client/assets/sounds`);
 SoundFiles.push(...readdirRecursive(fs, soundPath)
     .map(i => i.replaceAll("\\", "/").substring(soundPath.length - "assets/sounds".length)));
 
 await initCommon();
 
+const t = Date.now();
 printer.info("Starting server...");
 const wss = new WebSocketServer({port: 1881});
 const server = new Server(fs, ".");
 server.init();
 
-// todo: mobile support, desktop app support, mobile app support
+// todo: desktop app support, mobile app support
 
 wss.on("connection", (ws, req) => {
     const network = new PlayerNetwork(ws, req);
@@ -96,4 +96,5 @@ async function listenForTerminal() {
     setTimeout(listenForTerminal);
 }
 
+printer.info("Server started in " + (Date.now() - t) + "ms");
 listenForTerminal().then(void 0);

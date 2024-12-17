@@ -49,7 +49,7 @@ export default class CustomGenerator extends Generator {
 
     generate(chunkX: number): void {
         const world = this.world;
-        const chunk = world.chunks[chunkX];
+        const chunk = world.chunks[chunkX].blocks;
         const chunkXM = chunkX * ChunkLength;
         const chunkNoise = this.noise(chunkX / 60, 0);
 

@@ -3,6 +3,6 @@ import ChunkBlocksBin from "@/structs/world/ChunkBlocksBin";
 import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 
 export default X.object.struct({
-    data: ChunkBlocksBin,
+    blocks: ChunkBlocksBin,
     entities: X.array.typed(EntitySaveStruct)
 });

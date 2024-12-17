@@ -1,6 +1,6 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 import CommandError from "@/command/CommandError";
 
 export default class PermissionCommand extends DefinitiveCommand {

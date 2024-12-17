@@ -10,6 +10,7 @@ export enum I {
     GRASS_BLOCK,
     SNOWY_GRASS_BLOCK,
     DIRT,
+    SAND,
     GLASS,
     COBBLESTONE,
     LOG,
@@ -78,15 +79,30 @@ export enum I {
     __MAX__
 }
 
-export const IS = <Record<keyof typeof I, ItemMetadata>>{};          // IS.REDSTONE = item metadata
-export const IM = <Record<number, ItemMetadata>>{};                  // IM[item id] = item metadata (with meta=0)
+/**
+ * @description Maps item ids to item metadata
+ * @example IM[im2f(I.STONE, 5)] // gives metadata for item with id=stone and meta=5
+ */
+export const IM = <Record<number, ItemMetadata>>{};
 
-export const B = <Record<keyof typeof I, number>>{};                 // B.REDSTONE = block full id
-export const BM = <Record<number, ItemMetadata>>{};                  // BM[im2f(I.REDSTONE, 5)] = block metadata
+/**
+ * @description Maps upper case block names to block full ids
+ * @example B.REDSTONE // gives block full id for redstone
+ */
+export const B = <Record<keyof typeof I, number>>{};
+/**
+ * @description Maps block full ids to block metadata
+ * @example BM[im2f(I.REDSTONE, 5)] // gives metadata for block with id=redstone and meta=5
+ */
+export const BM = <Record<number, ItemMetadata>>{};
 
-export const ItemsByIdentifier: Record<string, ItemMetadata> = {};   // ItemsByAccess["stone"] = item/block metadata
+/**
+ * @description Maps item identifiers to item metadata
+ * @example ItemsByIdentifier["stone"] // gives metadata for item with identifier=stone
+ */
+export const ItemsByIdentifier: Record<string, ItemMetadata> = {};
 
-for (let i = 0; i < I.__MAX__; i++) {
-    I[I[i]] = i;
-    B[I[i]] = i << ItemMetaBits;
+for (let id = 0; id < I.__MAX__; id++) {
+    I[I[id]] = id;
+    B[I[id]] = id << ItemMetaBits;
 }

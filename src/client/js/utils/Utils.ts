@@ -1,7 +1,7 @@
 import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
 import CPlayer from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
-import Texture, {Canvas, SkinData} from "@/utils/Texture";
+import Texture, {Canvas, Image, SkinData} from "@/utils/Texture";
 import BoundingBox from "@/entity/BoundingBox";
 import {camera, canvas, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
@@ -123,6 +123,7 @@ export type OptionsType = {
 };
 
 export let Options: OptionsType;
+export const TileSize = {value: 64};
 
 export function loadOptions() {
     Options = JSON.parse(localStorage.getItem("explorio.options")) || {};
@@ -130,7 +131,6 @@ export function loadOptions() {
     Options.music ??= 100;
     Options.sfx ??= 100;
     Options.cameraSpeed ??= 12;
-    Options.tileSize ??= 64;
     Options.updatesPerSecond ??= 60;
     Options.chatLimit ??= 100;
     Options.particles ??= 2;
@@ -206,11 +206,26 @@ export async function pingServer(ip: string, port: number): Promise<string> {
     return res.statusText;
 }
 
+export function drawShadow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, opacity: number) {
+    if (opacity <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.fillStyle = "black";
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+}
+
+export function drawShadowImage(ctx: CanvasRenderingContext2D, image: Image, x: number, y: number, w: number, h: number, opacity: number) {
+    ctx.drawImage(image, x, y, w, h);
+    const p = 0.5;
+    drawShadow(ctx, x - p, y - p, w + p * 2, h + p * 2, opacity);
+}
+
 export function renderPlayerModel(
     ctx: CanvasRenderingContext2D, O: {
         SIZE: number, bbPos: { x: number, y: number }, skin: SkinData, bodyRotation: boolean,
         leftArmRotation: number, leftLegRotation: number, rightLegRotation: number, rightArmRotation: number,
-        headRotation: number, handItem: Item, offhandItem: Item
+        headRotation: number, handItem: Item, offhandItem: Item, shadowOpacity: number
     }
 ) {
     const side: Record<string, Canvas> = O.skin[O.bodyRotation ? 0 : 1];
@@ -234,21 +249,21 @@ export function renderPlayerModel(
     ctx.save();
     ctx.translate(armBody[0] + armBody[2] / 2, armBody[1]);
     ctx.rotate(O.leftArmRotation);
-    ctx.drawImage(side.back_arm, -armBody[2] / 2, 0, armBody[2], armBody[3]);
+    drawShadowImage(ctx, side.back_arm, -armBody[2] / 2, 0, armBody[2], armBody[3], O.shadowOpacity);
 
     if (O.offhandItem) {
         const metadata = O.offhandItem.toMetadata();
         const texture = metadata.getTexture();
         if (metadata.toolType !== "none") {
-            ctx.drawImage(
+            drawShadowImage(ctx,
                 O.bodyRotation ? texture.image : texture.flip(),
                 O.bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
-                O.SIZE * 0.8, O.SIZE * 0.8
+                O.SIZE * 0.8, O.SIZE * 0.8, O.shadowOpacity
             );
-        } else ctx.drawImage(
+        } else drawShadowImage(ctx,
             texture.image,
             O.bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
-            O.SIZE * 0.4, O.SIZE * 0.4
+            O.SIZE * 0.4, O.SIZE * 0.4, O.shadowOpacity
         );
     }
 
@@ -257,36 +272,36 @@ export function renderPlayerModel(
     ctx.save();
     ctx.translate(leg[0] + leg[2] / 2, leg[1]);
     ctx.rotate(O.leftLegRotation);
-    ctx.drawImage(side.back_leg, -leg[2] / 2, 0, leg[2], leg[3]);
+    drawShadowImage(ctx, side.back_leg, -leg[2] / 2, 0, leg[2], leg[3], O.shadowOpacity);
     ctx.restore();
 
-    ctx.drawImage(side.body, armBody[0], armBody[1], armBody[2], armBody[3]);
+    drawShadowImage(ctx, side.body, armBody[0], armBody[1], armBody[2], armBody[3], O.shadowOpacity);
 
     ctx.save();
     ctx.translate(leg[0] + leg[2] / 2, leg[1]);
     ctx.rotate(O.rightLegRotation);
-    ctx.drawImage(side.front_leg, -leg[2] / 2, 0, leg[2], leg[3]);
+    drawShadowImage(ctx, side.front_leg, -leg[2] / 2, 0, leg[2], leg[3], O.shadowOpacity);
     ctx.restore();
 
     ctx.save();
     ctx.translate(armBody[0] + armBody[2] / 2, armBody[1]);
     ctx.rotate(O.rightArmRotation);
     ctx.fillStyle = "white";
-    ctx.drawImage(side.front_arm, -armBody[2] / 2, 0, armBody[2], armBody[3]);
+    drawShadowImage(ctx, side.front_arm, -armBody[2] / 2, 0, armBody[2], armBody[3], O.shadowOpacity);
 
     if (O.handItem) {
         const metadata = O.handItem.toMetadata();
         const texture = metadata.getTexture();
         if (metadata.toolType !== "none") {
-            ctx.drawImage(
+            drawShadowImage(ctx,
                 O.bodyRotation ? texture.image : texture.flip(),
                 O.bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
-                O.SIZE * 0.8, O.SIZE * 0.8
+                O.SIZE * 0.8, O.SIZE * 0.8, O.shadowOpacity
             );
-        } else ctx.drawImage(
+        } else drawShadowImage(ctx,
             texture.image,
             O.bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
-            O.SIZE * 0.4, O.SIZE * 0.4
+            O.SIZE * 0.4, O.SIZE * 0.4, O.shadowOpacity
         );
     }
 
@@ -300,19 +315,20 @@ export function renderPlayerModel(
     head[1] -= 0.015 * O.SIZE;
     head[3] = head[2] += 0.03 * O.SIZE;
     ctx.drawImage(side.head_topping, -head[2] / 2, -head[3] / 2, head[2], head[3]);
+    drawShadow(ctx, -head[2] / 2, -head[3] / 2, head[2], head[3], O.shadowOpacity);
     ctx.restore();
 }
 
 export function getClientPosition(x: number, y: number) {
     return {
-        x: (x - camera.x) * Options.tileSize + canvas.width / 2,
-        y: (-y + camera.y) * Options.tileSize + canvas.height / 2
+        x: (x - camera.x) * TileSize.value + canvas.width / 2,
+        y: (-y + camera.y) * TileSize.value + canvas.height / 2
     };
 }
 
 export function renderBoundingBox(bb: BoundingBox) {
     const {x, y} = getClientPosition(bb.x, bb.y);
-    ctx.strokeRect(x, y, bb.width * Options.tileSize, -bb.height * Options.tileSize);
+    ctx.strokeRect(x, y, bb.width * TileSize.value, -bb.height * TileSize.value);
 }
 
 export function drawDotTo(x: number, y: number) {

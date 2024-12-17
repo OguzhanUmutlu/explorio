@@ -43,13 +43,12 @@ export function readBool(text: string, index: number): Token<"bool"> | null {
 export function readSelector(text: string, index: number): SelectorToken {
     const selName = <SelectorTagName>text[index + 1];
     if (text[index] !== "@" || !SelectorTags.includes(selName)) {
-        const word = readWord(text, index, /^[a-zA-Z_]+/);
+        /*const word = readWord(text, index, /^[a-zA-Z_]+/);
         if (word.value.length > 1) {
             return new SelectorToken(text, word.start, word.end, "a", {
                 __name__only__: word // this basically directly gets the player from the players object, a hacky solution
             });
-        }
-
+        }*/
         return null;
     }
 
@@ -90,7 +89,7 @@ export function readString(text: string, index: number): Token<"text"> | null {
         value += text[i];
     }
 
-    throw new Error(`Unclosed string at ${startIndex + 1}th character`);
+    throw new CommandError(`Unclosed string at ${startIndex + 1}th character`);
 }
 
 export function readWord(text: string, index: number, regex: RegExp = WordRegex): Token<"text"> {
@@ -108,7 +107,7 @@ export function readWordOrString(text: string, index: number, regex: RegExp = Wo
 
 export function readNumber(text: string, index: number) {
     if (isNaN(+text[index])) return null; // Only allowing X and X.X syntax for numbers.
-    const word = readWord(text, index, /^-?\d+(\.\d+)?/);
+    const word = readWord(text, index, /^-?\d+(\.\d+)?(?=[^a-zA-Z]|$)/);
     return Token.number(text, word.start, word.end, parseFloat(word.value));
 }
 
@@ -164,10 +163,10 @@ export function readObject<isRaw extends boolean>(
 
         const key = readWordOrString(text, i);
         if (!key || (key.type === "text" && !key.value)) {
-            throw new Error(`Unexpected character '${text[i]}' at ${i + 1}th character`);
+            throw new CommandError(`Unexpected character '${text[i]}' at ${i + 1}th character`);
         }
         if (!key.value) {
-            throw new Error(`Empty key at ${i + 1}th character`);
+            throw new CommandError(`Empty key at ${i + 1}th character`);
         }
 
         i = skipWhitespace(text, key.end);
@@ -183,15 +182,17 @@ export function readObject<isRaw extends boolean>(
         i = skipWhitespace(text, i);
 
         const value = (allowSelector ? readSelector(text, i) : null) || readAny(text, i, allowSelector, raw);
+
         if (!value || (value.type === "text" && !value.value)) {
-            throw new Error(`Unexpected character '${text[i]}' at ${i + 1}th character`);
+            throw new CommandError(`Unexpected character '${text[i]}' at ${i + 1}th character`);
         }
+
         i = skipWhitespace(text, value.end);
         if (not) value.yes = 0;
         object[key.value] = raw ? value : value.value;
     }
 
-    throw new Error(`Unclosed object at ${startIndex + 1}th character`);
+    throw new CommandError(`Unclosed object at ${startIndex + 1}th character`);
 }
 
 export function readArray<isRaw extends boolean>(
@@ -211,12 +212,12 @@ export function readArray<isRaw extends boolean>(
         }
 
         const value = (allowSelector ? readSelector(text, i) : null) || readAny(text, i, allowSelector, raw);
-        if (!value) throw new Error(`Invalid value at ${i + 1}th character`);
+        if (!value) throw new CommandError(`Invalid value at ${i + 1}th character`);
         i = skipWhitespace(text, value.end);
         array.push(raw ? value : value.value);
     }
 
-    throw new Error(`Unclosed array at ${startIndex + 1}th character`)
+    throw new CommandError(`Unclosed array at ${startIndex + 1}th character`)
 }
 
 export function skipWhitespace(text: string, index: number) {

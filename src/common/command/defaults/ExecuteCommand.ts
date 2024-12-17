@@ -47,7 +47,7 @@ export default class ExecuteCommand extends Command {
                 let last: unknown;
 
                 for (const entity of entities) {
-                    last = sender.server.executeCommandLabel(sender, entity, locations[entity.id], token.text.substring(skipWhitespace(token.text, token.end)));
+                    last = sender.server.executeCommandLabel(sender, entity, locations[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
                 }
 
                 return last;

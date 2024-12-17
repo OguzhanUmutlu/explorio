@@ -1,28 +1,28 @@
 import Packet from "@/network/Packet";
 import {Entities} from "@/meta/Entities";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 import {PacketByName, Packets, readPacket} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
-import {getServer} from "@/utils/Utils";
+import {getServer, UsernameRegex} from "@/utils/Utils";
 import {Version} from "@/Versions";
 import {Containers, CraftingMapFromResult, CraftingResultInventoryNames, InventoryName} from "@/meta/Inventories";
 import Entity from "@/entity/Entity";
-import {ItemTransferEvent} from "@/event/defaults/ItemTransferEvent";
-import {ItemSwapEvent} from "@/event/defaults/ItemSwapEvent";
+import ItemTransferEvent from "@/event/defaults/ItemTransferEvent";
+import ItemSwapEvent from "@/event/defaults/ItemSwapEvent";
 import {findCrafting, inventoryToGrid} from "@/crafting/CraftingUtils";
 import {Crafting} from "@/crafting/Crafting";
 import Inventory from "@/item/Inventory";
-import {PlayerOpenContainerEvent} from "@/event/defaults/PlayerOpenContainerEvent";
-import {PlayerCloseContainerEvent} from "@/event/defaults/PlayerCloseContainerEvent";
-import {PlayerLoginEvent} from "@/event/defaults/PlayerLoginEvent";
-import {PlayerJoinEvent} from "@/event/defaults/PlayerJoinEvent";
-import {PlayerToggleFlightEvent} from "@/event/defaults/PlayerToggleFlightEvent";
-import {PlayerSetHandIndexEvent} from "@/event/defaults/PlayerSetHandIndexEvent";
-import {PlayerMoveEvent} from "@/event/defaults/PlayerMoveEvent";
-import {PlayerStartBreakingEvent} from "@/event/defaults/PlayerStartBreakingEvent";
-import {PlayerStopBreakingEvent} from "@/event/defaults/PlayerStopBreakingEvent";
-import {PlayerDropItemEvent} from "@/event/defaults/PlayerDropItemEvent";
-import {PlayerCreativeItemAccessEvent} from "@/event/defaults/PlayerCreativeItemAccessEvent";
+import PlayerOpenContainerEvent from "@/event/defaults/PlayerOpenContainerEvent";
+import PlayerCloseContainerEvent from "@/event/defaults/PlayerCloseContainerEvent";
+import PlayerLoginEvent from "@/event/defaults/PlayerLoginEvent";
+import PlayerJoinEvent from "@/event/defaults/PlayerJoinEvent";
+import PlayerToggleFlightEvent from "@/event/defaults/PlayerToggleFlightEvent";
+import PlayerSetHandIndexEvent from "@/event/defaults/PlayerSetHandIndexEvent";
+import PlayerMoveEvent from "@/event/defaults/PlayerMoveEvent";
+import PlayerStartBreakingEvent from "@/event/defaults/PlayerStartBreakingEvent";
+import PlayerStopBreakingEvent from "@/event/defaults/PlayerStopBreakingEvent";
+import PlayerDropItemEvent from "@/event/defaults/PlayerDropItemEvent";
+import PlayerCreativeItemAccessEvent from "@/event/defaults/PlayerCreativeItemAccessEvent";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -49,17 +49,16 @@ export default class PlayerNetwork {
         this.ip = req.socket.remoteAddress;
     };
 
-    async processPacket(pk: Packet) {
-        await this.server.pluginPromise;
-        if (this.server.terminated) return;
+    processPacket(pk: Packet) {
+        if (!this.server.pluginsReady || this.server.terminated) return;
         const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
         if (key in this) this[key](pk);
         else printer.warn("Unhandled packet: ", pk);
     };
 
-    async processBatch({data}: PacketByName<"Batch">) {
+    processBatch({data}: PacketByName<"Batch">) {
         for (const p of data) {
-            await this.processPacket(p);
+            this.processPacket(p);
         }
     };
 
@@ -100,6 +99,10 @@ export default class PlayerNetwork {
     processCAuth({data: {name, skin, version}}: PacketByName<"CAuth">) {
         if (version !== Version) {
             return this.kick(version > Version ? "Client is outdated" : "Server is outdated");
+        }
+
+        if (!UsernameRegex.test(name)) {
+            return this.kick(`Invalid username, usernames have to fit the regex: ${UsernameRegex.toString()}`);
         }
 
         if (this.player || name in this.server.players) {
@@ -368,7 +371,7 @@ export default class PlayerNetwork {
         }
     };
 
-    async processPacketBuffer(data: Buffer) {
+    processPacketBuffer(data: Buffer) {
         if (this.server.terminated) return;
         let pk: Packet;
         try {
@@ -387,7 +390,7 @@ export default class PlayerNetwork {
             this.processCAuth(<PacketByName<"CAuth">>pk);
         } else {
             try {
-                await this.processPacket(pk);
+                this.processPacket(pk);
             } catch (e) {
                 printer.error(pk, e);
                 this.kick("Internal server error");
@@ -471,12 +474,15 @@ export default class PlayerNetwork {
         this.sendPacket(new Packets.SPlaySound({path, x, y, volume}), immediate);
     };
 
-    sendChunk(chunkX: number, data: Uint16Array, entities?: Entity[], resetEntities = true, immediate = false) {
-        this.sendPacket(new Packets.SChunk({
-            x: chunkX, data, entities: entities.filter(i => i !== this.player).map(i => ({
-                entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
-            })), resetEntities
-        }), immediate);
+    sendChunk(chunkX: number, data: Uint16Array, entities?: Entity[], immediate = false) {
+        this.sendPacket(new Packets.SChunk({x: chunkX, data}), immediate);
+        if (entities) {
+            this.sendPacket(new Packets.SSetChunkEntities({
+                x: chunkX, entities: entities.filter(i => i !== this.player).map(i => ({
+                    entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
+                }))
+            }));
+        }
     };
 
     kick(reason = "Kicked by an operator") {

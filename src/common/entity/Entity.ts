@@ -1,13 +1,12 @@
 import BoundingBox from "@/entity/BoundingBox";
 import World from "@/world/World";
-import {EntityStructs, getServer, zstdOptionalDecode} from "@/utils/Utils";
+import {EntityStructs, getServer, x2cx, zstdOptionalDecode} from "@/utils/Utils";
 import Location, {getRotationTowards} from "@/utils/Location";
 import {Packets} from "@/network/Packets";
 import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import EffectInstance from "@/effect/EffectInstance";
 import Effect from "@/effect/Effect";
 import ObjectStructBinConstructor from "stramp/src/object/ObjectStructBin";
-import {ChunkLengthBits} from "@/meta/WorldConstants";
 import {Bin} from "stramp";
 
 export const DefaultWalkSpeed = 5;
@@ -85,6 +84,14 @@ export default abstract class Entity {
 
     get y() {
         return this.location.y;
+    };
+
+    get chunkX() {
+        return x2cx(this.x);
+    };
+
+    get chunk() {
+        return this.world.getChunk(this.chunkX, false);
     };
 
     get rotation() {
@@ -244,7 +251,7 @@ export default abstract class Entity {
     };
 
     getChunkEntities() {
-        return this.world.chunkEntities[this._chunkX] ??= new Set;
+        return this.chunk.entities;
     };
 
     get isClient() {
@@ -255,18 +262,24 @@ export default abstract class Entity {
     onMovement() {
         this._x = this.x;
         this._y = this.y;
+
         const oldChunkX = this._chunkX;
-        const newChunkX = this.x >> ChunkLengthBits;
+        const newChunkX = this.chunkX;
+
         const world = this.world;
-        const oldEntities = world.chunkEntities[oldChunkX];
-        const newEntities = world.chunkEntities[newChunkX] ??= new Set;
+
+        const oldChunk = isNaN(oldChunkX) ? null : world.getChunk(oldChunkX, false);
+        const newChunk = world.getChunk(newChunkX, false);
+
+        const oldEntities = oldChunk?.entities;
+        const newEntities = newChunk.entities;
 
         if (oldChunkX !== newChunkX) {
             newEntities.add(this);
-            world.dirtyChunks.add(newChunkX);
+            newChunk.pollute();
             if (oldEntities) {
                 oldEntities.delete(this);
-                world.dirtyChunks.add(oldChunkX);
+                oldChunk.pollute();
             }
         }
 

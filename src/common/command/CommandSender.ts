@@ -19,4 +19,6 @@ export default interface CommandSender {
     sendMessage(message: string): void;
 
     hasPermission(permission: string): boolean; // just use common Utils function permissionCheck
+
+    chat(message: string): void;
 }

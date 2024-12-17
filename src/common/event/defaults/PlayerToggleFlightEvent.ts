@@ -1,7 +1,7 @@
 import PluginEvent from "@/event/PluginEvent";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 
-export class PlayerToggleFlightEvent extends PluginEvent {
+export default class PlayerToggleFlightEvent extends PluginEvent {
     constructor(
         public readonly player: Player,
         public enabled: boolean

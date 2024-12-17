@@ -6,8 +6,11 @@ import Location from "@/utils/Location";
 import PlayerStruct from "@/structs/entity/PlayerStruct";
 import ItemEntityStruct from "@/structs/entity/ItemEntityStruct";
 import {IM} from "@/meta/ItemIds";
+import {ChunkLengthBits, ChunkLengthN} from "@/meta/WorldConstants";
 
 let server: Server;
+
+export const UsernameRegex = /^[a-zA-Z\d]{5,20}$/;
 
 export type ClassOf<T, K = unknown> = new (...args: K[]) => T;
 
@@ -203,4 +206,59 @@ export function readdirRecursive(fs: typeof import("fs"), path: string) {
 
 export function splitByUnderscore(str: string) {
     return str.split("_").map(i => i[0] + i.slice(1).toLowerCase());
+}
+
+/** @description World X to chunkX */
+export function x2cx(x: number) {
+    return x >> ChunkLengthBits;
+}
+
+/** @description World X to relX */
+export function x2rx(x: number) {
+    return x & ChunkLengthN;
+}
+
+/** @description Converts Chunk X and Chunk Relative X values to World X */
+export function cx2x(chunkX: number, relX = 0) {
+    return (chunkX << ChunkLengthBits) + relX;
+}
+
+/** @description World Y to chunkY */
+export function y2cy(y: number) {
+    return y >> ChunkLengthBits;
+}
+
+/** @description World Y to relY */
+export function y2ry(y: number) {
+    return y & ChunkLengthN;
+}
+
+/** @description ChunkY and relY to world Y */
+export function cy2y(chunkY: number, relY = 0) {
+    return (chunkY << ChunkLengthBits) + relY;
+}
+
+/** @description Rel x and world y to chunk index */
+export function rxy2ci(x: number, y: number) {
+    return x + (y << ChunkLengthBits);
+}
+
+/** @description Rel X and rel Y to chunk index */
+export function rxry2ci(relX: number, relY: number) {
+    return relX + (relY << ChunkLengthBits);
+}
+
+/** @description World X and world Y to chunk index */
+export function xy2ci(x: number, y: number) {
+    return (x & ChunkLengthN) + (y << ChunkLengthBits);
+}
+
+/** @description Chunk index to chunk relative X */
+export function i2rx(i: number) {
+    return i & ChunkLengthN;
+}
+
+/** @description Chunk index to chunk relative Y */
+export function i2ry(i: number) {
+    return i >> ChunkLengthBits;
 }

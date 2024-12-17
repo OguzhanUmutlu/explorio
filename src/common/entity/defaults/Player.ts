@@ -11,8 +11,7 @@ import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import Packet from "@/network/Packet";
 import {GameMode} from "@/command/arguments/GameModeArgument";
 import Effect from "@/effect/Effect";
-import {ChunkLengthBits} from "@/meta/WorldConstants";
-import {PlayerKickEvent} from "@/event/defaults/PlayerKickEvent";
+import PlayerKickEvent from "@/event/defaults/PlayerKickEvent";
 
 const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
     [Containers.Closed]: ["hotbar", "offhand"],
@@ -58,6 +57,7 @@ export default class Player extends Entity implements CommandSender {
     canToggleFly = false;
     instantBreak = false;
     infiniteResource = false;
+    seeShadows = true;
     placeCooldown = 0.3;
     food = 20;
     maxFood = 20;
@@ -218,24 +218,30 @@ export default class Player extends Entity implements CommandSender {
 
     serverUpdate(dt: number) {
         super.serverUpdate(dt);
-        const chunkX = this.x >> ChunkLengthBits;
+        const chunkX = this.chunkX;
         const chunks = [];
         const chunkDist = this.server.config.renderDistance;
+
         for (let x = chunkX - chunkDist; x <= chunkX + chunkDist; x++) {
             chunks.push(x);
-            this.world.ensureChunk(x);
-            if (!this.sentChunks.has(x)) {
+            const chunk = this.world.getChunk(chunkX, true);
+            const lastDirtyCheck = chunk.playerCleanTimes[this.name] || -1;
+
+            if (!this.sentChunks.has(x) && lastDirtyCheck !== chunk.dirtyTime) {
                 this.sentChunks.add(x);
                 this.world.sendChunk(this, x);
             }
-            ++this.world.chunkReferees[x];
+
+            chunk.reference();
         }
+
         for (const x of this.sentChunks) {
             if (!chunks.includes(x)) {
-                this.world.chunkReferees[x]--;
+                this.world.getChunk(x, true).dereference();
                 this.sentChunks.delete(x);
             }
         }
+
         this.viewingChunks = chunks;
 
         this.breakingTime = Math.max(0, this.breakingTime - dt);
@@ -263,7 +269,7 @@ export default class Player extends Entity implements CommandSender {
     despawn() {
         super.despawn();
         for (const x of this.viewingChunks) {
-            this.world.chunkReferees[x]--;
+            this.world.getChunk(x, true).dereference();
         }
     };
 
@@ -304,11 +310,34 @@ export default class Player extends Entity implements CommandSender {
         }
     };
 
+    chat(message: string) {
+        this.server.processMessage(this, message);
+    };
+
     kick(reason = "Kicked by an operator") {
         const ev = new PlayerKickEvent(this, reason);
         if (ev.callGetCancel()) return;
 
         this.network.kick(ev.reason);
+    };
+
+    ban(reason = "Banned by an operator") {
+        this.server.addBan(this.name, reason);
+        this.kick(reason);
+    };
+
+    banIP(reason = "Banned by an operator") {
+        for (const name in this.server.players) {
+            const player = this.server.players[name];
+            if (player.isOnline() && player !== this) player.kick(reason);
+        }
+
+        this.server.addIPBan(this.name, this.network.ip, reason);
+        this.kick(reason);
+    };
+
+    isOnline() {
+        return !this.network?.closed;
     };
 
     save() {
@@ -412,6 +441,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = false;
                 this.instantBreak = false;
                 this.infiniteResource = false;
+                this.seeShadows = true;
                 this.placeCooldown = 0.3;
                 this.canPhase = false;
                 this.invincible = false;
@@ -426,6 +456,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = true;
                 this.instantBreak = true;
                 this.infiniteResource = true;
+                this.seeShadows = true;
                 this.placeCooldown = 0;
                 this.canPhase = false;
                 this.invincible = true;
@@ -440,6 +471,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = false;
                 this.instantBreak = false;
                 this.infiniteResource = false;
+                this.seeShadows = true;
                 this.placeCooldown = 0;
                 this.canPhase = false;
                 this.invincible = false;
@@ -454,6 +486,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = false;
                 this.instantBreak = false;
                 this.infiniteResource = false;
+                this.seeShadows = false;
                 this.placeCooldown = 0;
                 this.canPhase = true;
                 this.invincible = true;

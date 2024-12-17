@@ -1,5 +1,5 @@
 import X, {Bin, BufferIndex} from "stramp";
-import {ChunkLength, WorldHeight} from "@/meta/WorldConstants";
+import {ChunkBlockAmount} from "@/meta/WorldConstants";
 
 function findSmallPatterns(array: Uint16Array, max = 255) {
     const result = [];
@@ -36,7 +36,7 @@ function blocksToBuffer(blocks: Uint16Array) {
     return buf;
 }
 
-const baseBlocks = X.u16array.sized(ChunkLength * WorldHeight);
+const baseBlocks = X.u16array.sized(ChunkBlockAmount);
 
 export default new class ChunkBlocksBin extends Bin<Uint16Array> {
     name = "Chunk";
@@ -49,7 +49,7 @@ export default new class ChunkBlocksBin extends Bin<Uint16Array> {
     };
 
     read(bind: BufferIndex): Uint16Array {
-        const blocks = new Uint16Array(ChunkLength * WorldHeight);
+        const blocks = new Uint16Array(ChunkBlockAmount);
         let i = 0;
         for (; i < blocks.length; i++) {
             if (bind.current === 0xff) {
@@ -82,6 +82,6 @@ export default new class ChunkBlocksBin extends Bin<Uint16Array> {
     };
 
     get sample(): Uint16Array {
-        return new Uint16Array(ChunkLength * WorldHeight);
+        return new Uint16Array(ChunkBlockAmount);
     };
 }

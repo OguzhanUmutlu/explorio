@@ -1,7 +1,7 @@
 import PluginEvent from "@/event/PluginEvent";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 
-export class PlayerJoinEvent extends PluginEvent {
+export default class PlayerJoinEvent extends PluginEvent {
     protected readonly cancellable = false;
 
     constructor(public readonly player: Player) {

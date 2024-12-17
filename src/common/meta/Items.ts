@@ -2,7 +2,7 @@ import Texture, {Canvas, texturePlaceholder} from "@/utils/Texture";
 import Item from "@/item/Item";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
-import {B, BM, I, IM, IS, ItemMetaBits, ItemMetaMax, ItemsByIdentifier} from "@/meta/ItemIds";
+import {B, BM, I, IM, ItemMetaBits, ItemMetaMax, ItemsByIdentifier} from "@/meta/ItemIds";
 import BoundingBox from "@/entity/BoundingBox";
 import {
     BaseBlockBB,
@@ -42,7 +42,7 @@ export type ItemMetaDataConfig = {
     dig?: typeof S[keyof typeof S] | null, // null for no sound
     break?: typeof S[keyof typeof S] | null, // null for no sound
     place?: typeof S[keyof typeof S] | null, // null for no sound
-    solid?: boolean,
+    liquid?: boolean,
     fuel?: number, // How many items it can smelt
     smeltsTo?: ID | IPool | null, // null means it will just disappear after smelting, and possibly give XP from smeltXP property
     xpDrops?: number | number[],
@@ -62,18 +62,31 @@ export type ItemMetaDataConfig = {
     toolLevel?: ToolLevel
 };
 
+
+/**
+ * @description Returns the id of a full id
+ * @example f2meta(im2f(I.LOG, 5)) // I.LOG
+ */
 export function f2id(x: number) {
     return x >> ItemMetaBits;
 }
 
+/**
+ * @description Returns the meta of a full id
+ * @example f2meta(im2f(I.LOG, 5)) // 5
+ */
 export function f2meta(x: number) {
     return x & ItemMetaBits;
 }
 
+/**
+ * @description Converts an item id and meta to a single number also called as the full id
+ * @example im2f(I.LOG, 5)
+ */
 export function im2f(id: number, meta: number = 0) {
     const m = IM[id];
     const maxMeta = m ? m.metas.length : ItemMetaMax;
-    return id << ItemMetaBits | (meta % maxMeta);
+    return (id << ItemMetaBits) | (meta % maxMeta);
 }
 
 export const ToolLevels = {
@@ -145,7 +158,7 @@ export class ItemMetadata {
         public dig: typeof S[keyof typeof S] | null,
         public breakSound: typeof S[keyof typeof S] | null,
         public place: typeof S[keyof typeof S] | null,
-        public solid: boolean,
+        public liquid: boolean,
         public fireResistance: number,
         public isOpaque: boolean,
         public isSlab: boolean,
@@ -209,11 +222,11 @@ export class ItemMetadata {
     };
 
     getName(meta = this.meta) {
-        return this.metas[meta % this.metas.length].name;
+        return this.metas[meta % this.metas.length]?.name ?? "Air";
     };
 
     getIdentifier(meta = this.meta) {
-        return this.metas[meta % this.metas.length].identifier;
+        return this.metas[meta % this.metas.length]?.identifier ?? "air";
     };
 
     getTexture(meta = this.meta): Texture {
@@ -231,7 +244,7 @@ export class ItemMetadata {
     };
 
     toItem(count = 1) {
-        if (this.id === 0) return null; // air is denoted by null
+        if (this.id === I.AIR) return null; // air is denoted by null
         return new Item(this.id, this.meta % this.metas.length, count);
     };
 
@@ -243,7 +256,7 @@ export class ItemMetadata {
         if (!this.hasTexture()) return;
         const texture = this.getTexture();
         if (!texture.loaded) {
-            if (waitToLoad) texture.wait().then(() => ctx.drawImage(texture.image, x, y, w, h));
+            if (waitToLoad) return texture.wait().then(() => ctx.drawImage(texture.image, x, y, w, h));
             return false;
         }
         ctx.drawImage(texture.image, x, y, w, h);
@@ -264,7 +277,7 @@ export class ItemMetadata {
             O.durability, O.maxStack, O.fuel, O.isBlock, O.smeltsTo, O.smeltXP, O.replaceableBy,
             O.canBePlacedOn, O.cannotBePlacedOn, O.canBePhased, O.drops, O.requiresSide, O.canFall, O.canHoldBlocks,
             O.explodeMaxDistance, O.hardness, O.requiredToolLevel, O.dropsWithToolTypes, O.intendedToolType, O.step,
-            O.dig, O.break, O.place, O.solid, O.fireResistance, O.isOpaque, O.isSlab, O.isStairs, O.toolType, O.toolLevel
+            O.dig, O.break, O.place, O.liquid, O.fireResistance, O.isOpaque, O.isSlab, O.isStairs, O.toolType, O.toolLevel
         );
     };
 }
@@ -293,7 +306,7 @@ export const DefaultItemOptions = (identifier: string, name: string, t: string) 
     dig: null,
     break: null,
     place: null,
-    solid: true,
+    liquid: false,
     fuel: 0,
     smeltsTo: null,
     xpDrops: 0,
@@ -316,7 +329,7 @@ export const DefaultItemOptions = (identifier: string, name: string, t: string) 
 export function introduceItemId(id: number, key: string, isBlock: boolean) {
     if (I[key]) throw new Error("Item already introduced: " + key);
     I[key] = id;
-    if (isBlock) B[key] = id << ItemMetaBits;
+    if (isBlock) B[key] = im2f(id);
 }
 
 export function registerItem(identifier: string, id: number, O: ItemMetaDataConfig) {
@@ -332,7 +345,7 @@ export function registerItem(identifier: string, id: number, O: ItemMetaDataConf
         ItemsByIdentifier[mMetaBuild.identifier] = BM[im2f(id, meta)] = mMetadata;
     }
 
-    const baseMeta = IS[key] = IM[id] = BM[id << ItemMetaBits];
+    const baseMeta = IM[id] = BM[im2f(id)];
 
     function slabStairsProtocol(adder: string, oProp: string, oIsProp: string, nameAdder: string, fnMatch: string[][]) {
         if (!O[oProp]) return;
@@ -485,8 +498,9 @@ export function initItems() {
         name: "Gravel", hardness: 0.6, canFall: true, intendedToolType: ["shovel"],
         drops: [new IPool([new ID(I.GRAVEL), new ID(I.FLINT)], [90, 10])]
     });
+
     registerItem("water", I.WATER, {
-        drops: [], explodeMaxDistance: -1, solid: false, canBePhased: true, isOpaque: false,
+        drops: [], explodeMaxDistance: -1, liquid: true, canBePhased: true, isOpaque: false, replaceableBy: "*",
         metas: [
             {identifier: "water", name: "Water", texture: "assets/textures/blocks/water_8.png"},
             {identifier: "water7", name: "Water", texture: "assets/textures/blocks/water_7.png"},
@@ -498,8 +512,9 @@ export function initItems() {
             {identifier: "water1", name: "Water", texture: "assets/textures/blocks/water_1.png"}
         ]
     });
+
     registerItem("lava", I.LAVA, {
-        drops: [], explodeMaxDistance: -1, solid: false, canBePhased: true,
+        drops: [], explodeMaxDistance: -1, liquid: true, canBePhased: true, replaceableBy: "*",
         metas: [
             {identifier: "lava", name: "Lava", texture: "assets/textures/blocks/lava_8.png"},
             {identifier: "lava7", name: "Lava", texture: "assets/textures/blocks/lava_7.png"},
@@ -636,5 +651,15 @@ export function initItems() {
     registerItem("crafting_table", I.CRAFTING_TABLE, {
         name: "Crafting Table", hardness: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
         intendedToolType: ["axe"], fuel: 1.25, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL) // why not
+    });
+
+    registerItem("sand", I.SAND, {
+        step: S.stepSand, dig: S.stepSand, break: S.digSand, place: S.digSand, name: "Sand", hardness: 0.75,
+        intendedToolType: ["shovel"], canFall: true
+    });
+
+    registerItem("gravel", I.GRAVEL, {
+        step: S.stepGravel, dig: S.stepGravel, break: S.digGravel, place: S.digGravel, name: "Gravel", hardness: 0.75,
+        intendedToolType: ["shovel"], canFall: true
     });
 }

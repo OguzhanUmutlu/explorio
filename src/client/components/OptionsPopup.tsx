@@ -2,6 +2,7 @@ import {MainMenuPopup} from "@dom/components/MainMenuPopup";
 import React, {useState} from "react";
 import {loadOptions, Options, ReactState, saveOptions} from "@c/utils/Utils";
 import {terminateClient} from "@dom/Client";
+import {UsernameRegex} from "@/utils/Utils";
 
 export function OptionsPopup(O: {
     opt: ReactState<boolean>,
@@ -22,8 +23,9 @@ export function OptionsPopup(O: {
         <div className="option-list">
             <div className="option-key">Username</div>
             <div className="option-value">
-                <input value={username[0]} maxLength={20}
+                <input value={username[0]}
                        onChange={e => {
+                           if (!UsernameRegex.test(e.target.value)) return;
                            username[1](Options.username = e.target.value);
                            saveOptions();
                        }}/>

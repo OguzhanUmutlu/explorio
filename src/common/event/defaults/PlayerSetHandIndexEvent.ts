@@ -1,7 +1,7 @@
 import PluginEvent from "@/event/PluginEvent";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 
-export class PlayerSetHandIndexEvent extends PluginEvent {
+export default class PlayerSetHandIndexEvent extends PluginEvent {
     constructor(
         public readonly player: Player,
         public handIndex: number

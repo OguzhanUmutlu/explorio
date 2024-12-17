@@ -1,10 +1,10 @@
-import {ShapelessCrafting} from "@/crafting/ShapelessCrafting";
+import ShapelessCrafting from "@/crafting/ShapelessCrafting";
 import {default as ID} from "@/item/ItemDescriptor";
 import {I} from "@/meta/ItemIds";
 import Item from "@/item/Item";
 import Inventory from "@/item/Inventory";
 import {Crafting} from "@/crafting/Crafting";
-import {ShapedCrafting} from "@/crafting/ShapedCrafting";
+import ShapedCrafting from "@/crafting/ShapedCrafting";
 
 export const CraftingList: Crafting[] = [];
 

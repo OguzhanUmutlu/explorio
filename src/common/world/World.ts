@@ -6,22 +6,24 @@ import FlatGenerator from "@/world/generators/FlatGenerator";
 import DefaultGenerator from "@/world/generators/DefaultGenerator";
 import FlowerLandGenerator from "@/world/generators/FlowerLandGenerator";
 import CustomGenerator from "@/world/generators/CustomGenerator";
-import {rotateMeta, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
-import Player from "@/entity/types/Player";
+import {rotateMeta, x2cx, x2rx, xy2ci, zstdOptionalDecode} from "@/utils/Utils";
+import Player from "@/entity/defaults/Player";
 import Packet from "@/network/Packet";
 import Entity from "@/entity/Entity";
 import Server from "@/Server";
 import {Packets} from "@/network/Packets";
 import ChunkStruct from "@/structs/world/ChunkStruct";
 import {z} from "zod";
-import {ChunkLength, ChunkLengthBits, ChunkLengthN, WorldHeight} from "@/meta/WorldConstants";
-import {BlockPlaceEvent} from "@/event/defaults/BlockPlaceEvent";
-import {BlockBreakEvent} from "@/event/defaults/BlockBreakEvent";
-import ItemEntity from "@/entity/types/ItemEntity";
+import {WorldHeight} from "@/meta/WorldConstants";
+import BlockPlaceEvent from "@/event/defaults/BlockPlaceEvent";
+import BlockBreakEvent from "@/event/defaults/BlockBreakEvent";
+import ItemEntity from "@/entity/defaults/ItemEntity";
 import Item from "@/item/Item";
 import {Entities, EntityClasses} from "@/meta/Entities";
 import {Containers} from "@/meta/Inventories";
-import {InteractBlockEvent} from "@/event/defaults/InteractBlockEvent";
+import InteractBlockEvent from "@/event/defaults/InteractBlockEvent";
+import Chunk from "@/world/Chunk";
+import {Version, Versions, VersionString} from "@/Versions";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -40,8 +42,6 @@ export const Ring3 = [
 ];
 
 export const All3Rings = [...Ring1, ...Ring2, ...Ring3];
-
-export type ChunkData = Uint16Array;
 
 export const Generators = {
     flat: FlatGenerator,
@@ -71,6 +71,7 @@ export const DefaultWorldMetadata: WorldMetaData = {
 export type Collision = { x: number, y: number, meta: ItemMetadata, bb: BoundingBox };
 
 export const InteractableBlocks = [I.CRAFTING_TABLE];
+export const SpawnChunkDistance = 2;
 
 // Variable meanings:
 // x = World X
@@ -78,15 +79,12 @@ export const InteractableBlocks = [I.CRAFTING_TABLE];
 // chunkX = A chunk's X position
 // chunkX = A sub-chunk's Y position
 // relX = The chunk-relative x position that goes from 0 to CHUNK_LENGTH-1
-// relY = The chunk-relative y position that goes from 0 to CHUNK_LENGTH-1
+// relY = The sub-chunk-relative y position that goes from 0 to CHUNK_LENGTH-1
 
 export default class World {
     path: string;
-    chunks: Record<number, ChunkData> = {};
-    chunkEntities: Record<number, Set<Entity>> = {};
-    chunkReferees: Record<number, number> = {};
+    chunks: Record<number, Chunk> = {};
     entities: Record<number, Entity> = {};
-    dirtyChunks = new Set<number>;
 
     constructor(
         public server: Server,
@@ -101,7 +99,7 @@ export default class World {
     };
 
     ensureSpawnChunks() {
-        for (let x = -2; x <= 2; x++) {
+        for (let x = -SpawnChunkDistance; x <= SpawnChunkDistance; x++) {
             this.ensureChunk(x);
         }
     };
@@ -112,32 +110,35 @@ export default class World {
 
     // Finds the first air block from bottom
     getLowHeight(x: number) {
-        x = Math.round(x);
-        const chunk = this.getFullChunkAt(x);
-        const xs = x & 0b1111;
-        let i = xs;
-        while (!BM[chunk[i]].canBePhased) i += ChunkLength;
-        return (i - xs) / ChunkLength;
+        return this.getChunkAt(x, true).getLowHeight(x2rx(x));
     };
 
     // Finds the last air block from top
     getHighHeight(x: number) {
+        return this.getChunkAt(x, true).getHighHeight(x2rx(x));
+    };
+
+    getLightLevelAt(x: number, y: number) {
         x = Math.round(x);
-        const chunk = this.getFullChunkAt(x);
-        const xs = x & ChunkLengthN; // chunk length - 1
-        let i = xs | ((WorldHeight - 1) << ChunkLengthBits);
-        while (BM[chunk[i]].canBePhased && i > 0) i -= ChunkLength;
-        return (i - xs) / ChunkLength + 1;
+        y = Math.round(y);
+        return this.getChunkAt(x, false).lightLevels[xy2ci(x, y)];
     };
 
-    getFullChunkAt(x: number, generate = true) {
-        x = x >> ChunkLengthBits;
-        this.ensureChunk(x, generate);
-        return this.chunks[x];
+    getChunkEntitiesAt(x: number) {
+        return this.getChunkAt(x, false).entities;
     };
 
-    getChunkEntitiesAt(x: number): Set<Entity> {
-        return this.chunkEntities[x >> ChunkLengthBits] ??= new Set;
+    getChunkEntities(chunkX: number) {
+        return this.getChunk(chunkX, false).entities;
+    };
+
+    getChunkAt(x: number, generate: boolean) {
+        return this.getChunk(x2cx(x), generate);
+    };
+
+    getChunk(chunkX: number, generate: boolean) {
+        this.ensureChunk(chunkX, generate);
+        return this.chunks[chunkX];
     };
 
     getBlock(x: number, y: number) {
@@ -148,47 +149,54 @@ export default class World {
         x = Math.round(x);
         y = Math.round(y);
         if (!this.inWorld(y)) return 0;
-        return this.getFullChunkAt(x, true)[(x & ChunkLengthN) | (y << ChunkLengthBits)];
+        return this.getChunkAt(x, false).blocks[xy2ci(x, y)];
     };
 
     inWorld(y: number) {
         return y < WorldHeight && y >= 0;
     };
 
-    _setBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true) {
+    recalculateLights(chunkX: number, generate = false) {
+        this.getChunk(chunkX, generate).recalculateLights();
+    };
+
+    updateLightAt(x: number, y: number, generate = false) {
+        this.getChunkAt(x, generate).updateLight(x2rx(x), y);
+    };
+
+    _setBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true, light = true) {
         // WARNING: This assumes x and y are integers, and y is a bounded valid height.
-        const chunk = this.getFullChunkAt(x, generate);
-        const i = (x & ChunkLengthN) | (y << ChunkLengthBits);
+        const chunk = this.getChunkAt(x, generate).blocks;
+        const i = xy2ci(x, y);
         if (chunk[i] === fullId) return false;
         chunk[i] = fullId;
         if (polluteBlock) this._polluteBlockAt(x, y);
         if (broadcast) this.broadcastBlockAt(x, y, fullId); // the promise doesn't matter.
+        if (light) this.updateLightAt(x, y);
         return true;
     };
 
-    setFullBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true) {
+    setFullBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true, light = true) {
         x = Math.round(x);
         y = Math.round(y);
         if (!this.inWorld(y)) return;
-        this._setBlock(x, y, fullId, generate, polluteBlock, broadcast);
+        this._setBlock(x, y, fullId, generate, polluteBlock, broadcast, light);
     };
 
-    setBlock(x: number, y: number, id: number, meta: number, generate = true, polluteBlock = true, broadcast = true) {
+    setBlock(x: number, y: number, id: number, meta: number, generate = true, polluteBlock = true, broadcast = true, light = true) {
         x = Math.round(x);
         y = Math.round(y);
         if (!this.inWorld(y)) return;
-        this._setBlock(x, y, im2f(id, meta), generate, polluteBlock, broadcast);
+        this._setBlock(x, y, im2f(id, meta), generate, polluteBlock, broadcast, light);
     };
 
 
     /**
      * Ensures that the chunk exists. If it exists as a file it will be loaded, otherwise it will be generated.
      */
-    ensureChunk(chunkX: number, generate = true) {
+    protected ensureChunk(chunkX: number, generate = true) {
         if (this.loadChunk(chunkX)) return;
-        this.chunks[chunkX] ??= new Uint16Array(ChunkLength * WorldHeight);
-
-        this.chunkEntities[chunkX] ??= new Set;
+        this.chunks[chunkX] ??= new Chunk(this, chunkX);
 
         if (generate && this.generator && !this.chunksGenerated.has(chunkX)) {
             this.chunksGenerated.add(chunkX);
@@ -197,83 +205,76 @@ export default class World {
         }
     };
 
-    loadChunk(x: number) {
-        if (x in this.chunks) return false;
-        let buffer = this.getChunkBuffer(x);
+    loadChunk(chunkX: number) {
+        if (chunkX in this.chunks) return false;
+        let buffer = this.getChunkBuffer(chunkX);
         if (!buffer) return false;
         try {
+            const version = buffer.readUint16LE(0);
+            if (version !== Version) throw version;
+
+            buffer = buffer.slice(2);
+
             buffer = zstdOptionalDecode(buffer);
-            const chunk = ChunkStruct.deserialize(buffer);
-            this.chunks[x] = chunk.data;
+            const chunkData = ChunkStruct.deserialize(buffer);
+            const chunk = this.chunks[chunkX] = new Chunk(this, chunkX);
+            chunk.blocks.set(chunkData.blocks);
+            chunk.recalculateLights();
 
-            const entities = this.chunkEntities[x] ??= new Set;
-            const players = Array.from(entities).filter(i => i instanceof Player);
-
-            entities.clear();
-
-            for (const entity of chunk.entities) {
+            for (const entity of chunkData.entities) {
                 entity.world = this;
                 entity.init();
             }
 
-            for (const player of players) this.chunkEntities[x].add(player);
-
-            this.chunksGenerated.add(x);
-            for (const viewer of this.getChunkViewers(x)) {
-                this.sendChunk(viewer, x);
+            this.chunksGenerated.add(chunkX);
+            for (const viewer of this.getChunkViewers(chunkX)) {
+                this.sendChunk(viewer, chunkX);
             }
         } catch (e) {
-            printer.warn(`Chunk ${x} is corrupted, regenerating...`, e);
-            this.chunksGenerated.delete(x);
-            this.removeChunkBuffer(x);
+            if (typeof e === "number") {
+                printer.error(`Chunk ${chunkX} was generated by ${e > Version ? "a newer" : "an older"} version of `
+                    + `the server(${e > Version ? "" : `Version: ${Versions[e]}`}Version ID: ${e}).\n`
+                    + `You can either delete the chunk for it to regenerate or you can replace it with another chunk that `
+                    + `was generated by the same version of the server(Version: ${VersionString}, Version ID: ${Version}).`);
+                this.server.close();
+                throw "";
+            }
+            printer.warn(`Chunk ${chunkX} is corrupted, regenerating...`, e);
+            this.chunksGenerated.delete(chunkX);
+            this.removeChunkBuffer(chunkX);
             return false;
         }
         return true;
     };
 
-    saveChunk(x: number) {
-        if (!this.chunksGenerated.has(x) || !this.chunks[x]) return;
-        const buffer = ChunkStruct.serialize({
-            data: this.chunks[x],
-            entities: Array.from(this.chunkEntities[x]).filter(i => !(i instanceof Player))
-        });
-        this.setChunkBuffer(x, zstdOptionalEncode(buffer));
-    };
-
     serverUpdate(dt: number): void {
-        for (const x in this.chunkEntities) {
-            for (const e of this.chunkEntities[x]) {
-                e.serverUpdate(dt);
-            }
+        for (const x in this.chunks) {
+            this.chunks[x].serverUpdate(dt);
         }
     };
 
     save() {
-        for (const x of this.dirtyChunks) {
-            this.saveChunk(x);
+        for (const x in this.chunks) {
+            const chunk = this.chunks[x];
+            if (chunk.dirty) chunk.save();
         }
-
-        this.dirtyChunks.clear();
     };
 
     unload() {
         for (const x in this.chunks) {
-            this.unloadChunk(parseInt(x));
+            this.chunks[x].unload();
         }
     };
 
-    unloadChunk(x: number) {
-        this.saveChunk(x);
-        delete this.chunks[x];
-        delete this.chunkEntities[x];
-    };
-
     _polluteChunk(chunkX: number) {
-        this.dirtyChunks.add(chunkX);
+        this.getChunk(chunkX, true).pollute();
     };
 
     _polluteBlockAt(x: number, _y: number) {
-        this._polluteChunk(x >> ChunkLengthBits);
+        this._polluteChunk(x2cx(x));
+    };
+
+    onUpdateLight(_x: number, _y: number) {
     };
 
     canPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, rotation = 0) {
@@ -296,14 +297,14 @@ export default class World {
         if (canBePlacedOn !== "*" && !canBePlacedOn.includes(id)) return false;
         if (target.cannotBePlacedOn.includes(id)) return false;
 
-        this._setBlock(x, y, fullId, true, false, false);
+        this._setBlock(x, y, fullId, true, false, false, false);
         const touchingBlock = this.anyEntityTouchBlock(x, y);
-        this._setBlock(x, y, target.fullId, true, false, false);
+        this._setBlock(x, y, target.fullId, true, false, false, false);
 
         return !touchingBlock;
     };
 
-    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, rotation = 0, polluteBlock = true, broadcast = true) {
+    tryToPlaceBlockAt(entity: Entity, x: number, y: number, id: number, meta: number, rotation = 0, polluteBlock = true, broadcast = true, light = true) {
         x = Math.round(x);
         y = Math.round(y);
         meta = rotateMeta(id, meta, rotation);
@@ -312,12 +313,12 @@ export default class World {
         const fullId = im2f(id, meta);
         const block = BM[fullId];
         const target = this.getBlock(x, y);
-        this._setBlock(x, y, fullId, true, false, false);
+        this._setBlock(x, y, fullId, true, false, false, false);
 
         const cancelled = new BlockPlaceEvent(entity, x, y, block).callGetCancel();
 
         if (cancelled) {
-            this._setBlock(x, y, target.fullId, true, false, false);
+            this._setBlock(x, y, target.fullId, true, false, false, false);
             return false;
         }
 
@@ -326,6 +327,8 @@ export default class World {
             this.broadcastBlockAt(x, y, fullId);
             this.broadcastPacketAt(x, new Packets.SPlaceBlock({x, y, fullId}));
         }
+
+        if (light) this.updateLightAt(x, y);
         return true;
     };
 
@@ -335,12 +338,12 @@ export default class World {
         const target = this.getBlock(x, y);
         return this.inWorld(y)
             && entity.distance(x, y) <= entity.getBlockReach()
-            && this.getBlockDepth(x, y) >= 3
+            && this.getBlockDepth(x, y) <= 1
             && target.getHardness() !== -1
-            && target.solid;
+            && !target.liquid;
     };
 
-    tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true) {
+    tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true, light = true) {
         if (!this.canBreakBlockAt(entity, x, y)) return false;
 
         const block = this.getBlock(x, y);
@@ -358,6 +361,8 @@ export default class World {
         }
 
         if (broadcast) this.broadcastPacketAt(x, new Packets.SBreakBlock({x, y, fullId: block.fullId}));
+
+        if (light) this.updateLightAt(x, y);
         return true;
     };
 
@@ -367,7 +372,7 @@ export default class World {
         const target = this.getBlock(x, y);
         return this.inWorld(y)
             && entity.distance(x, y) <= entity.getBlockReach()
-            && this.getBlockDepth(x, y) >= 3
+            && this.getBlockDepth(x, y) <= 1
             && InteractableBlocks.includes(target.id);
     };
 
@@ -389,9 +394,9 @@ export default class World {
     };
 
     anyEntityTouchBlock(x: number, y: number) {
-        const chunkXMiddle = x >> ChunkLengthBits;
+        const chunkXMiddle = x2cx(x);
         for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
-            for (const e of this.chunkEntities[chunkX]) {
+            for (const e of this.getChunkEntities(chunkX)) {
                 if (!(e instanceof ItemEntity) && !e.canPhase && e.getBlockCollisionAt(x, y)) return true;
             }
         }
@@ -442,32 +447,58 @@ export default class World {
         return collisions;
     };
 
+    __canPlaceBlockAroundSimple(x: number, y: number) {
+        const block = this.getBlock(x, y);
+        return block.id !== I.AIR && !block.liquid;
+    };
+
     hasSurroundingBlock(x: number, y: number) {
-        return this.getFullBlockAt(x - 1, y) !== B.AIR ||
-            this.getFullBlockAt(x + 1, y) !== B.AIR ||
-            this.getFullBlockAt(x, y - 1) !== B.AIR ||
-            this.getFullBlockAt(x, y + 1) !== B.AIR;
+        return this.__canPlaceBlockAroundSimple(x - 1, y) ||
+            this.__canPlaceBlockAroundSimple(x + 1, y) ||
+            this.__canPlaceBlockAroundSimple(x, y - 1) ||
+            this.__canPlaceBlockAroundSimple(x, y + 1);
     };
 
     getBlockDepth(x: number, y: number, careOpaque = false) {
         const target = this.getBlock(x, y);
+
         if (careOpaque) {
-            if (!target.isOpaque) return 4;
-        } else if (target.id === I.AIR) return 4;
+            if (!this.getBlock(x, y).isOpaque) return 0;
+        } else if (target.id === I.AIR) return 0;
+
         for (const [dx, dy] of Ring1) {
-            if (!this.getBlock(x + dx, y + dy).isOpaque) return 3;
+            if (!this.getBlock(x + dx, y + dy).isOpaque) return 1;
         }
+
         for (const [dx, dy] of Ring2) {
             if (!this.getBlock(x + dx, y + dy).isOpaque) return 2;
         }
+
         for (const [dx, dy] of Ring3) {
-            if (!this.getBlock(x + dx, y + dy).isOpaque) return 1;
+            if (!this.getBlock(x + dx, y + dy).isOpaque) return 3;
         }
-        return 0;
+
+        return 4;
+    };
+
+    isBlockOpaqueWithLight(x: number, y: number) {
+        return this.getBlock(x, y).isOpaque || this.getLightLevelAt(x, y) === 0;
+    };
+
+    getShadowOpacity(x: number, y: number) {
+        return [0, 0, 0.25, 0.5, 1][this.getBlockDepth(x, y)];
+        /*const normalDepth = this.getBlockDepth(x, y);
+        const light = this.getLightLevelAt(x, y);
+
+        if (normalDepth === 4) return 1;
+        if (normalDepth >= 2 && light === 0) return 1;
+        if (normalDepth === 1 && light > 7) return Math.max(0, (10 - light) / 15);
+
+        return (15 - light) / 17;*/
     };
 
     playSound(path: string, x: number, y: number, volume = 1) {
-        for (const player of this.getChunkViewers(x >> ChunkLengthBits)) {
+        for (const player of this.getChunkViewers(x2cx(x))) {
             player.playSoundAt(path, x, y, volume);
         }
     };
@@ -489,17 +520,20 @@ export default class World {
 
     getChunkViewers(chunkXMiddle: number) {
         const players: Player[] = [];
+
         for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
-            const entities = this.chunkEntities[chunkX] ??= new Set;
+            const entities = this.getChunkEntities(chunkX);
+
             for (const entity of entities) {
                 if (entity instanceof Player) players.push(entity);
             }
         }
+
         return players;
     };
 
     broadcastPacketAt(x: number, pk: Packet, exclude: Entity[] = [], immediate = false) {
-        const chunkX = x >> ChunkLengthBits;
+        const chunkX = x2cx(x);
         for (const player of this.getChunkViewers(chunkX)) {
             if (!exclude.includes(player)) {
                 player.sendPacket(pk, immediate);
@@ -509,7 +543,7 @@ export default class World {
 
     broadcastBlockAt(x: number, y: number, fullId = null, exclude: Entity[] = [], immediate = false) {
         if (this.server.isClientSide()) return;
-        const chunkX = x >> ChunkLengthBits;
+        const chunkX = x2cx(x);
         fullId ??= this.getFullBlockAt(x, y);
         for (const player of this.getChunkViewers(chunkX)) {
             if (!exclude.includes(player)) player.network.sendBlock(x, y, fullId, immediate);
@@ -517,7 +551,7 @@ export default class World {
     };
 
     sendChunk(player: Player, chunkX: number) {
-        this.ensureChunk(chunkX);
-        player.network?.sendChunk(chunkX, this.chunks[chunkX], Array.from(this.chunkEntities[chunkX]), true, true);
+        const chunk = this.getChunk(chunkX, true);
+        player.network?.sendChunk(chunkX, chunk.blocks, Array.from(chunk.entities), true);
     };
 }

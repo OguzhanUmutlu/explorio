@@ -88,7 +88,7 @@ export default abstract class DefinitiveCommand extends Command {
             if (maxPassArg && maxPassToken) {
                 sender.sendMessage(`§c${maxPassArg.name} argument failed at ${maxPassToken.start + 1}th character. `
                     + `Preview of 10 characters after the error: ${
-                        maxPassToken.text.substring(maxPassToken.start, maxPassToken.start + 10)
+                        maxPassToken.originalText.substring(maxPassToken.start, maxPassToken.start + 10)
                     }`);
             } else {
                 sender.sendMessage(

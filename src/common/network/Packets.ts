@@ -9,7 +9,7 @@ import {InventoryNameBin} from "@/structs/item/InventoryNameBin";
 import ItemStruct, {InventoryContentStruct} from "@/structs/item/ItemStruct";
 import {ContainerIDBin} from "@/meta/Inventories";
 
-const EntityUpdateStruct = X.object.struct({
+export const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
     entityId: X.u32,
     props: X.object
@@ -80,9 +80,11 @@ export const PacketStructs = {
     }),
     [PacketIds.SChunk]: X.object.struct({
         x: X.i32,
-        data: ChunkBlocksBin,
-        entities: X.array.typed(EntityUpdateStruct),
-        resetEntities: X.bool
+        data: ChunkBlocksBin
+    }),
+    [PacketIds.SSetChunkEntities]: X.object.struct({
+        x: X.i32,
+        entities: X.array.typed(EntityUpdateStruct)
     }),
     [PacketIds.SEntityUpdate]: EntityUpdateStruct,
     [PacketIds.SEntityRemove]: X.u32,
@@ -141,7 +143,8 @@ export const PacketStructs = {
         maxFood: X.f32,
         placeCooldown: X.f32,
         instantBreak: X.bool,
-        infiniteResource: X.bool
+        infiniteResource: X.bool,
+        seeShadows: X.bool
     }),
     [PacketIds.SSetInventory]: X.object.struct({
         name: InventoryNameBin,

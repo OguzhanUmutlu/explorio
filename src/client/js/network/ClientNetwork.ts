@@ -1,20 +1,19 @@
 import Packet from "@/network/Packet";
 import {ClientEntityClasses, getWSUrls, Options, setServerOptions} from "@c/utils/Utils";
-import {PacketByName, Packets, readPacket} from "@/network/Packets";
+import {EntityUpdateStruct, PacketByName, Packets, readPacket} from "@/network/Packets";
 import PacketError from "@/network/PacketError";
 import CPlayer from "@c/entity/types/CPlayer";
 import CWorld from "@c/world/CWorld";
 import {PacketIds} from "@/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, particleManager, ServerInfo} from "@dom/Client";
+import {clientPlayer, isMultiPlayer, particleManager, ServerInfo, setConnectionText} from "@dom/Client";
 import SocketWorker from "@c/worker/SocketWorker?worker";
 import {Version} from "@/Versions";
 import {BM} from "@/meta/ItemIds";
 import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
-import {ChunkLengthBits} from "@/meta/WorldConstants";
 import {DefaultGravity} from "@/entity/Entity";
 import {Containers, InventoryName} from "@/meta/Inventories";
 import Item from "@/item/Item";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 import {Entities} from "@/meta/Entities";
 
 export default class ClientNetwork {
@@ -26,6 +25,7 @@ export default class ClientNetwork {
     immediate: Packet[] = [];
     handshake = false;
     ping = 0;
+    kickReason = "";
 
     whenConnect() {
         return this.connectPromise;
@@ -45,12 +45,14 @@ export default class ClientNetwork {
     async _connect() {
         const urls = getWSUrls(ServerInfo.ip, ServerInfo.port);
         if (!ServerInfo.preferSecure) urls.reverse();
+        this.kickReason = "";
         const worker = this.worker = new SocketWorker();
         worker.onmessage = async (e: MessageEvent) => {
             if (e.data.event === "message") {
                 const buf = await e.data.message.arrayBuffer();
                 this.processPacketBuffer(buf);
             } else if (e.data.event === "connect") {
+                setConnectionText("Joining the world...");
                 this.connected = true;
                 this.connectCb();
                 if (e.data.url === urls[1]) setServerOptions(ServerInfo.uuid, {preferSecure: !ServerInfo.preferSecure});
@@ -62,9 +64,11 @@ export default class ClientNetwork {
                 this.releaseBatch();
                 this.sendAuth(true);
             } else if (e.data.event === "disconnect") {
+                setConnectionText(this.kickReason || "Disconnected from the server");
                 this.connected = false;
                 printer.info("Disconnected from the server");
             } else if (e.data.event === "fail") {
+                setConnectionText("Failed to connect to server");
                 printer.fail("Failed to connect to server");
             }
         };
@@ -89,6 +93,7 @@ export default class ClientNetwork {
     };
 
     processSHandshake({data}: PacketByName<"SHandshake">) {
+        setConnectionText("");
         this.handshake = true;
         clientPlayer.immobile = false;
         clientPlayer.id = data.entityId;
@@ -98,7 +103,7 @@ export default class ClientNetwork {
         clientPlayer.init();
     };
 
-    spawnEntityFromData(data: PacketByName<"SChunk">["data"]["entities"][number]) {
+    spawnEntityFromData(data: typeof EntityUpdateStruct["__TYPE__"]) {
         const entity = new ClientEntityClasses[data.typeId](clientPlayer.world);
         entity.id = data.entityId;
 
@@ -117,18 +122,29 @@ export default class ClientNetwork {
         return entity;
     };
 
-    processSChunk({data}: PacketByName<"SChunk">) {
+    processSChunk({data: {x, data}}: PacketByName<"SChunk">) {
         const world = <CWorld>clientPlayer.world;
-        world.chunks[data.x] = new Uint16Array(data.data);
-        if (data.resetEntities) clientPlayer.world.chunkEntities[data.x] = new Set;
-        world.prepareChunkRenders(data.x - 1, false, true);
-        world.prepareChunkRenders(data.x);
-        world.prepareChunkRenders(data.x + 1, false, true);
-        for (const entity of data.entities) {
+        const chunk = world.getChunk(x, false);
+        chunk.blocks = data;
+        world.chunksGenerated.add(x);
+        chunk.recalculateLights();
+
+        world.prepareChunkRenders(x - 1, false, true);
+        world.prepareChunkRenders(x);
+        world.prepareChunkRenders(x + 1, false, true);
+    };
+
+    processSSetChunkEntities({data: {x, entities}}: PacketByName<"SSetChunkEntities">) {
+        const world = <CWorld>clientPlayer.world;
+        const chunk = world.getChunk(x, false);
+
+        chunk.entities.clear();
+
+        for (const entity of entities) {
             this.spawnEntityFromData(entity);
         }
 
-        if (clientPlayer.x >> ChunkLengthBits === data.x && data.resetEntities) {
+        if (clientPlayer.chunkX === x) {
             clientPlayer._chunkX = NaN;
             clientPlayer.onMovement();
         }
@@ -157,10 +173,10 @@ export default class ClientNetwork {
         entity.despawn();
     };
 
-    processSBlockUpdate({data}: PacketByName<"SBlockUpdate">) {
-        clientPlayer.world.setFullBlock(data.x, data.y, data.fullId);
+    processSBlockUpdate({data: {x, y, fullId}}: PacketByName<"SBlockUpdate">) {
+        clientPlayer.world.setFullBlock(x, y, fullId);
         for (const player of clientPlayer.world.getPlayers()) {
-            if (player.breaking && player.breaking[0] === data.x && player.breaking[1] === data.y) {
+            if (player.breaking && player.breaking[0] === x && player.breaking[1] === y) {
                 player.breaking = null;
                 player.breakingTime = 0;
             }
@@ -182,7 +198,8 @@ export default class ClientNetwork {
     };
 
     processSDisconnect({data: reason}: PacketByName<"SDisconnect">) {
-        printer.warn("Got kicked: ", reason);
+        this.kickReason = reason;
+        printer.warn("Got kicked:", reason);
     };
 
     processSPlaySound({data: {x, y, path, volume}}: PacketByName<"SPlaySound">) {
@@ -205,6 +222,7 @@ export default class ClientNetwork {
 
     processSSetAttributes({data}: PacketByName<"SSetAttributes">) {
         for (const k in data) {
+            if (k === "seeShadows" && data[k] !== clientPlayer[k]) (<CWorld>clientPlayer.world).subChunkRenders = {};
             if (k in clientPlayer) clientPlayer[k] = data[k];
         }
         clientPlayer.gravity = clientPlayer.isFlying ? 0 : DefaultGravity;

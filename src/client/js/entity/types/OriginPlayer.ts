@@ -172,4 +172,8 @@ export default class OriginPlayer extends CPlayer {
         if (!item) return false;
         return this.world.canPlaceBlockAt(this, x, y, item.id, item.meta, rotation)
     };
+
+    canInteractBlock(x = Mouse.rx, y = Mouse.ry) {
+        return this.world.canInteractBlockAt(this, x, y);
+    };
 }

@@ -6,8 +6,8 @@ export default class Token<T extends TokenType = TokenType> {
     rawText: string;
     yes = 1;
 
-    constructor(public text: string, public start: number, public end: number, public type: T, public value: TokenValue<T>) {
-        this.raw = text.substring(start, end);
+    constructor(public originalText: string, public start: number, public end: number, public type: T, public value: TokenValue<T>) {
+        this.raw = originalText.substring(start, end);
         this.rawText = this.raw;
         if (this.type === "text") this.rawText = <string>this.value;
     };

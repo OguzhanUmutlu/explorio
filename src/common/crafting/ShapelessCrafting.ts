@@ -3,7 +3,7 @@ import Item from "@/item/Item";
 import {default as ID} from "@/item/ItemDescriptor";
 import Inventory from "@/item/Inventory";
 
-export class ShapelessCrafting extends Crafting {
+export default class ShapelessCrafting extends Crafting {
     constructor(public items: ID[], public result: ID) {
         super();
     };

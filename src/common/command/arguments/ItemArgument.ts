@@ -3,10 +3,10 @@ import {CommandAs} from "@/command/CommandSender";
 import Location from "@/utils/Location";
 import {AnyToken} from "@/command/CommandProcessor";
 import {ItemMetadata} from "@/meta/Items";
-import {IS, ItemsByIdentifier} from "@/meta/ItemIds";
+import {I, IM, ItemsByIdentifier} from "@/meta/ItemIds";
 
 export default class ItemArgument extends CommandArgument<ItemMetadata> {
-    default = IS.AIR;
+    default = IM[I.AIR];
 
     read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
         return ItemsByIdentifier[args[index].rawText];

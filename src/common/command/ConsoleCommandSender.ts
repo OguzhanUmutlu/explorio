@@ -36,6 +36,10 @@ export default class ConsoleCommandSender implements CommandSender {
         printer.info(message);
     };
 
+    chat(message: string) {
+        this.sendMessage(message); // I guess?
+    };
+
     hasPermission(): boolean {
         return true;
     };

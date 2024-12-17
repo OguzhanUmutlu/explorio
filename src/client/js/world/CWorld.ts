@@ -1,8 +1,9 @@
 import World, {All3Rings, Ring3} from "@/world/World";
 import CSubChunk from "@c/world/CSubChunk";
 import Packet from "@/network/Packet";
-import Player from "@/entity/types/Player";
-import {ChunkLengthBits, ChunkLengthN, SubChunkAmount} from "@/meta/WorldConstants";
+import Player from "@/entity/defaults/Player";
+import {SubChunkAmount} from "@/meta/WorldConstants";
+import {x2cx, x2rx, y2cy, y2ry} from "@/utils/Utils";
 
 export default class CWorld extends World {
     subChunkRenders: Record<number, CSubChunk[]> = {};
@@ -28,18 +29,18 @@ export default class CWorld extends World {
     _polluteBlockAt(x: number, y: number) {
         super._polluteBlockAt(x, y);
 
-        this.renderBlockAt(x, y);
-        this.renderShadowAt(x, y);
+        this.prepareBlockRenderAt(x, y);
 
         const block = this.getBlock(x, y);
+
         if (!block.isOpaque) {
             for (const [dx, dy] of Ring3) {
-                this.renderBlockAt(x + dx, y + dy);
+                this.prepareBlockRenderAt(x + dx, y + dy, true, false);
             }
         }
 
         for (const [dx, dy] of All3Rings) {
-            this.renderShadowAt(x + dx, y + dy);
+            this.prepareBlockRenderAt(x + dx, y + dy, false, true);
         }
     };
 
@@ -48,7 +49,7 @@ export default class CWorld extends World {
     };
 
     getSubChunkAt(x: number, y: number) {
-        return this.getSubChunk(x >> ChunkLengthBits, y >> ChunkLengthBits);
+        return this.getSubChunk(x2cx(x), y2cy(y));
     };
 
     prepareChunkRenders(chunkX: number, blocks = true, shadows = true) {
@@ -61,6 +62,10 @@ export default class CWorld extends World {
 
     prepareSubChunkRenders(chunkX: number, chunkY: number, blocks = true, shadows = true) {
         this.subChunkRenders[chunkX]?.[chunkY]?.prepare(blocks, shadows);
+    };
+
+    prepareBlockRenderAt(x: number, y: number, blocks = true, shadows = true) {
+        this.getSubChunkAt(x, y)?.prepareBlock(x2rx(x), y2ry(y), blocks, shadows);
     };
 
     prepareSubChunkUpDownRenders(chunkX: number, chunkY: number, blocks = true, shadows = true) {
@@ -76,12 +81,8 @@ export default class CWorld extends World {
         this.prepareSubChunkUpDownRenders(chunkX + 1, chunkY, blocks, shadows);
     };
 
-    renderBlockAt(x: number, y: number) {
-        this.getSubChunkAt(x, y)?.renderBlock(x & ChunkLengthN, y & ChunkLengthN);
-    };
-
-    renderShadowAt(x: number, y: number) {
-        this.getSubChunkAt(x, y)?.renderShadow(x & ChunkLengthN, y & ChunkLengthN);
+    onUpdateLight(x: number, y: number) {
+        this.prepareBlockRenderAt(x, y);
     };
 
     setChunkBuffer(_: number, __: Buffer) {

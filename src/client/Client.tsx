@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import "./css/client.css";
 import {
     Div,
+    drawShadow,
     getClientPosition,
     getServerList,
     getWorldList,
@@ -12,6 +13,7 @@ import {
     renderBoundingBox,
     saveOptions,
     ServerData,
+    TileSize,
     WorldData
 } from "@c/utils/Utils";
 import CServer from "@c/CServer";
@@ -22,14 +24,14 @@ import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
 import {Containers, Inventories, InventorySizes} from "@/meta/Inventories";
-import {BM, I} from "@/meta/ItemIds";
+import {BM} from "@/meta/ItemIds";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
 import ParticleManager from "@c/particle/ParticleManager";
 import Packet from "@/network/Packet";
-import {ChunkLength, ChunkLengthBits, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
+import {ChunkLength, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import {im2f} from "@/meta/Items";
-import {rotateMeta} from "@/utils/Utils";
+import {cx2x, cy2y, rotateMeta, x2cx, y2cy} from "@/utils/Utils";
 
 declare global {
     interface Window {
@@ -44,12 +46,14 @@ let chatContainer: ReactState<boolean>;
 export let clientUUID: ReactState<string>;
 let optionPopup: ReactState<boolean>;
 let saveScreen: ReactState<boolean>;
+let connectionText: ReactState<string>;
 export let canvas: HTMLCanvasElement;
 export let chatBox: Div;
 export let chatInput: Input;
 export let ctx: CanvasRenderingContext2D;
-export let f3On: ReactState<boolean>;
-export const f3 = {
+let f3On: ReactState<boolean>;
+let f1On: ReactState<boolean>;
+const f3 = {
     fps: null as ReactState<number>,
     x: null as ReactState<number>,
     y: null as ReactState<number>,
@@ -79,7 +83,11 @@ export function resetKeyboard() {
 }
 
 function updateTileSize() {
-    Options.tileSize = Math.round(innerWidth / 21) * cameraZoomRender;
+    TileSize.value = Math.round(innerWidth / 21) * cameraZoomRender;
+}
+
+export function setConnectionText(text: string) {
+    connectionText[1](text);
 }
 
 function onResize() {
@@ -96,8 +104,8 @@ function onResize() {
 export function updateCamera() {
     const cameraPan = 1;
 
-    camera.x = clientPlayer.x + (Mouse._xSmooth / innerWidth * 2 - 1) * 45 * cameraPan / Options.tileSize;
-    camera.y = clientPlayer.y + clientPlayer.bb.height - 1 - (Mouse._ySmooth / innerHeight * 2 - 1) * 45 * cameraPan / Options.tileSize;
+    camera.x = clientPlayer.x + (Mouse._xSmooth / innerWidth * 2 - 1) * 45 * cameraPan / TileSize.value;
+    camera.y = clientPlayer.y + clientPlayer.bb.height - 1 - (Mouse._ySmooth / innerHeight * 2 - 1) * 45 * cameraPan / TileSize.value;
     /*
     // camera shake support no one asked for:
     camera.x += Math.sin(Date.now() * 1000) / TILE_SIZE * 6;
@@ -126,8 +134,8 @@ export let Mouse = {...DefaultMouse};
 
 export function updateMouse() {
     if (!canvas) return;
-    Mouse.x = (Mouse._x - canvas.width / 2 + camera.x * Options.tileSize) / Options.tileSize;
-    Mouse.y = (-Mouse._y + canvas.height / 2 + camera.y * Options.tileSize) / Options.tileSize;
+    Mouse.x = (Mouse._x - canvas.width / 2 + camera.x * TileSize.value) / TileSize.value;
+    Mouse.y = (-Mouse._y + canvas.height / 2 + camera.y * TileSize.value) / TileSize.value;
     Mouse.rx = Math.round(Mouse.x);
     Mouse.ry = Math.round(Mouse.y);
     const mdx = Mouse.x - Mouse.rx;
@@ -175,16 +183,16 @@ function animate() {
     updateCamera();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const minX = Math.floor(camera.x - innerWidth / Options.tileSize / 2);
-    const minY = Math.max(0, Math.floor(camera.y - innerHeight / Options.tileSize / 2));
-    const maxX = Math.ceil(camera.x + innerWidth / Options.tileSize / 2);
-    const maxY = Math.min(WorldHeight - 1, Math.ceil(camera.y + innerHeight / Options.tileSize / 2));
+    const minX = Math.floor(camera.x - innerWidth / TileSize.value / 2);
+    const minY = Math.max(0, Math.floor(camera.y - innerHeight / TileSize.value / 2));
+    const maxX = Math.ceil(camera.x + innerWidth / TileSize.value / 2);
+    const maxY = Math.min(WorldHeight - 1, Math.ceil(camera.y + innerHeight / TileSize.value / 2));
 
-    const minSubX = (minX >> ChunkLengthBits) - 1;
-    const minSubY = Math.max(0, (minY >> ChunkLengthBits) - 1);
-    const maxSubX = (maxX >> ChunkLengthBits) + 1;
-    const maxSubY = Math.min(SubChunkAmount - 1, (maxY >> ChunkLengthBits) + 1);
-    const subLength = Options.tileSize * ChunkLength;
+    const minSubX = x2cx(minX) - 1;
+    const minSubY = Math.max(0, y2cy(minY) - 1);
+    const maxSubX = x2cx(maxX) + 1;
+    const maxSubY = Math.min(SubChunkAmount - 1, y2cy(maxY) + 1);
+    const subLength = TileSize.value * ChunkLength;
 
     const world = clientPlayer.world as CWorld;
 
@@ -192,35 +200,31 @@ function animate() {
         for (let chunkY = minSubY; chunkY <= maxSubY; chunkY++) {
             world.renderSubChunk(chunkX, chunkY);
             const render = world.subChunkRenders[chunkX][chunkY];
-            const x = chunkX << ChunkLengthBits;
-            const y = chunkY << ChunkLengthBits;
-            const pos = getClientPosition(x - 0.5, y - 0.5);
+            const pos = getClientPosition(cx2x(chunkX) - 0.5, cy2y(chunkY) - 0.5);
             ctx.drawImage(render.bCanvas, pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
-            ctx.drawImage(render.sCanvas, pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
+            if (clientPlayer.seeShadows) ctx.drawImage(render.sCanvas, pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
         }
     }
 
     if (showChunkBorders) {
         for (let chunkX = minSubX; chunkX <= maxSubX; chunkX++) {
             for (let chunkY = minSubY; chunkY <= maxSubY; chunkY++) {
-                const x = chunkX << ChunkLengthBits;
-                const y = chunkY << ChunkLengthBits;
-                const pos = getClientPosition(x - 0.5, y - 0.5);
+                const pos = getClientPosition(cx2x(chunkX) - 0.5, cy2y(chunkY) - 0.5);
                 ctx.strokeStyle = "#ff0000";
                 ctx.strokeRect(pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
                 // ctx.strokeStyle = "#00ff00";
-                // ctx.strokeRect(pos.x + Options.tileSize / 2, pos.y - Options.tileSize / 2, subLength + 0.5, -subLength - 0.5);
+                // ctx.strokeRect(pos.x + TileSize.value / 2, pos.y - TileSize.value / 2, subLength + 0.5, -subLength - 0.5);
                 ctx.fillStyle = "#0000ff";
-                ctx.fillRect(pos.x - Options.tileSize / 2, 0, 1, canvas.height);
+                ctx.fillRect(pos.x - TileSize.value / 2, 0, 1, canvas.height);
             }
         }
     }
 
     particleManager.render(ctx, dt);
 
-    const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
+    const chunkXMiddle = clientPlayer.chunkX;
     for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
-        const entities = world.chunkEntities[chunkX] ??= new Set;
+        const entities = world.getChunkEntities(chunkX);
         for (const entity of entities) {
             entity.render(ctx, dt);
 
@@ -237,17 +241,10 @@ function animate() {
     Mouse._xSmooth += (Mouse._x - Mouse._xSmooth) * smoothDt;
     Mouse._ySmooth += (Mouse._y - Mouse._ySmooth) * smoothDt;
 
-    const mouseBlock = world.getBlock(Mouse.rx, Mouse.ry);
     const item = clientPlayer.handItem;
-    if (
-        Mouse.ry >= 0
-        && Mouse.ry < WorldHeight
-        && (mouseBlock.id !== I.AIR || world.hasSurroundingBlock(Mouse.rx, Mouse.ry))
-        && world.getBlockDepth(Mouse.rx, Mouse.ry) >= 3
-        && clientPlayer.distance(Mouse.rx, Mouse.ry) <= clientPlayer.blockReach
-        && (clientPlayer.canBreakBlock() || (item && item.toMetadata().isBlock))
-    ) {
+    if (clientPlayer.canBreakBlock() || clientPlayer.canPlaceBlock() || clientPlayer.canInteractBlock()) {
         ctx.save();
+        const shadow = world.getShadowOpacity(Mouse.rx, Mouse.ry);
         const p = 1200;
         ctx.globalAlpha = (1 - 2 / p * Math.abs((Date.now() % p) - p / 2)) * 0.3 + 0.2;
         ctx.strokeStyle = "#ffff00";
@@ -256,10 +253,11 @@ function animate() {
         if (item) {
             const block = BM[im2f(item.id, rotateMeta(item.id, item.meta, Mouse.rotation))];
             if (block && clientPlayer.canPlaceBlock()) {
-                block.render(ctx, blockPos.x - Options.tileSize / 2, blockPos.y - Options.tileSize / 2, Options.tileSize, Options.tileSize, false);
+                block.render(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false);
+                drawShadow(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, shadow / 2);
             }
         }
-        ctx.strokeRect(blockPos.x - Options.tileSize / 2, blockPos.y - Options.tileSize / 2, Options.tileSize, Options.tileSize);
+        ctx.strokeRect(blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value);
         ctx.restore();
     }
 
@@ -276,9 +274,9 @@ function update(dt: number) {
     if (singlePlayerServer && singlePlayerServer.pausedUpdates) return;
     const world = clientPlayer.world;
 
-    const chunkXMiddle = clientPlayer.x >> ChunkLengthBits;
+    const chunkXMiddle = clientPlayer.chunkX;
     for (let chunkX = chunkXMiddle - 1; chunkX <= chunkXMiddle + 1; chunkX++) {
-        const entities = Array.from(world.chunkEntities[chunkX] ??= new Set);
+        const entities = Array.from(world.getChunkEntities(chunkX));
         for (let i = 0; i < entities.length; i++) {
             const entity = entities[i];
             entity.update(dt);
@@ -288,7 +286,7 @@ function update(dt: number) {
     clientNetwork.releaseBatch();
 
     if (
-        world.chunks[clientPlayer.x >> ChunkLengthBits]
+        world.chunks[clientPlayer.chunkX]
         && clientNetwork.handshake
         && clientPlayer.cacheState !== clientPlayer.calcCacheState()
     ) {
@@ -363,6 +361,11 @@ function onPressKey(e: KeyboardEvent) {
 
         if (e.key === "F3") {
             executedF3 = false;
+            e.preventDefault();
+        }
+
+        if (e.key === "F1") {
+            f1On[1](!f1On[0]);
             e.preventDefault();
         }
 
@@ -518,6 +521,7 @@ function onChatKeyPress(e: KeyboardEvent) {
 }
 
 export function initClient() {
+    connectionText[1]("");
     saveScreen[1](false);
     Mouse = {...DefaultMouse};
     resetKeyboard();
@@ -561,8 +565,10 @@ export function initClient() {
 
     clientPlayer.immobile = true;
     clientNetwork = new ClientNetwork;
-    if (isMultiPlayer) clientNetwork._connect().then(r => r); // not waiting for it to connect
-    else {
+    if (isMultiPlayer) {
+        connectionText[1]("Connecting...");
+        clientNetwork._connect().then(r => r); // not waiting for it to connect
+    } else {
         singlePlayerServer = new Server(bfs, `singleplayer/${WorldInfo.uuid}`);
         Error.stackTraceLimit = 50;
 
@@ -570,6 +576,7 @@ export function initClient() {
         singlePlayerServer.config = DefaultServerConfig;
 
         singlePlayerServer.init();
+        singlePlayerServer.bans = [];
 
         const serverNetwork = new PlayerNetwork({
             send(data: Buffer) {
@@ -656,10 +663,14 @@ export function terminateClient() {
 // todo: handle tool logic
 // todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 // todo: render health/food/armor/breathe points
-// todo: lake generation
+// todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does?
 // todo: falling blocks (sand/gravel)
 // todo: flowing blocks (water/lava)
-// todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does?
+// todo: zombies and cows
+// todo: when the client gets a chunk and client leaves & gets back to that chunk, it shouldn't send the chunk data
+//  again unless it's dirty have an object like Record<PlayerName, TimeOfLoad> in Chunk class, and
+//  also have the lastDirty: number to check if the chunk was cleaned while the player was away
+// todo: bug: at the end of every chunk, if the surface is let's say flat, the last block in that chunk will produce more light to bottom
 
 function isInChat() {
     return chatContainer[0];
@@ -681,26 +692,28 @@ function toggleChat() {
 }
 
 function isAnyUIOpen() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || optionPopup[0] || isInChat();
+    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0] || isInChat();
 }
 
 function hasBlur() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || optionPopup[0];
+    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0];
 }
 
 export function Client(O: {
     clientUUID: ReactState<string>,
     favicon: ReactState<string>
 }) {
-    // @ts-ignore
+    // @ts-expect-error This is for debugging purposes.
     window.dbg = {s: singlePlayerServer, p: clientPlayer};
     optionPopup = useState(false);
     saveScreen = useState(false);
+    connectionText = useState("");
     containerState = useState(Containers.Closed);
     chatContainer = useState(false);
     handIndexState = useState(0);
     clientUUID = O.clientUUID;
     f3On = useState(false);
+    f1On = useState(false);
     const mouseX = useState(0);
     const mouseY = useState(0);
     if (singlePlayerServer) singlePlayerServer.pausedUpdates = optionPopup[0];
@@ -745,7 +758,8 @@ export function Client(O: {
 
 
         {/* Chat Container */}
-        <div className={chatContainer[0] ? "full-chat-container" : "chat-container"}>
+        <div className={chatContainer[0] ? "full-chat-container" : "chat-container"}
+             style={f1On[0] && !chatContainer[0] ? {opacity: "0"} : {}}>
             <div className="chat-messages" ref={el => chatBox = el}>
             </div>
             <input className="chat-input" ref={el => chatInput = el}/>
@@ -784,7 +798,8 @@ export function Client(O: {
 
 
         {/* Hotbar */}
-        <InventoryDiv className="hotbar-inventory inventory" style={isMobile ? {width: "50%"} : {}}
+        <InventoryDiv className="hotbar-inventory inventory"
+                      style={isMobile ? {width: "50%"} : (f1On[0] ? {"opacity": "0"} : {})}
                       inventoryType={Inventories.Hotbar} ikey="hi" handindex={handIndexState}></InventoryDiv>
 
         {/* Player Inventory */}
@@ -847,5 +862,13 @@ export function Client(O: {
         }>
             Saving the world...
         </div>
+
+        {/* The screen used to display the connection or disconnection text */}
+        <div className="connection-text" style={
+            connectionText[0] ? {
+                opacity: "1",
+                pointerEvents: "auto"
+            } : {}
+        }>{connectionText[0]}</div>
     </>;
 }

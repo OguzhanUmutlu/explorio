@@ -5,6 +5,7 @@ export enum PacketIds {
 
     SHandshake,
     SChunk,
+    SSetChunkEntities,
     SEntityUpdate,
     SEntityRemove,
     SBlockUpdate,

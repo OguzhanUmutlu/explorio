@@ -1,5 +1,5 @@
 import World, {Generators, getRandomSeed, WorldMetaData, ZWorldMetaData} from "@/world/World";
-import Player from "@/entity/types/Player";
+import Player from "@/entity/defaults/Player";
 import Command from "@/command/Command";
 import CommandError from "@/command/CommandError";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
@@ -23,10 +23,17 @@ import ClearCommand from "@/command/defaults/ClearCommand";
 import EventManager from "@/event/EventManager";
 import PluginEvent from "@/event/PluginEvent";
 import GiveCommand from "@/command/defaults/GiveCommand";
-import {PlayerSpamKickEvent} from "@/event/defaults/PlayerSpamKickEvent";
-import {CommandPreProcessEvent} from "@/event/defaults/CommandPreProcessEvent";
-import {PlayerMessagePreProcessEvent} from "@/event/defaults/PlayerMessagePreProcessEvent";
-import {PlayerChatEvent} from "@/event/defaults/PlayerChatEvent";
+import PlayerSpamKickEvent from "@/event/defaults/PlayerSpamKickEvent";
+import CommandPreProcessEvent from "@/event/defaults/CommandPreProcessEvent";
+import PlayerMessagePreProcessEvent from "@/event/defaults/PlayerMessagePreProcessEvent";
+import PlayerChatEvent from "@/event/defaults/PlayerChatEvent";
+import BanEntry from "@/utils/BanEntry";
+import KickCommand from "@/command/defaults/KickCommand";
+import BanCommand from "@/command/defaults/BanCommand";
+import BanIPCommand from "@/command/defaults/BanIPCommand";
+import OperatorCommand from "@/command/defaults/OperatorCommand";
+import DeOperatorCommand from "@/command/defaults/DeOperatorCommand";
+import SayCommand from "@/command/defaults/SayCommand";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -69,6 +76,13 @@ export const DefaultServerConfig: ServerConfig = {
     saveIntervalSeconds: 45
 };
 
+const banEntryType = z.object({
+    name: z.string(),
+    ip: z.nullable(z.string().ip()),
+    timestamp: z.number(),
+    reason: z.string()
+});
+
 export default class Server {
     worlds: Record<string, World> = {};
     defaultWorld: World;
@@ -80,10 +94,11 @@ export default class Server {
     config: ServerConfig;
     pluginMetas: Record<string, PluginMetadata> = {};
     plugins: Record<string, Plugin> = {};
-    pluginPromise: Promise<void> | null;
+    pluginsReady = false;
     intervalId: NodeJS.Timeout | number = 0;
     terminated = false;
     pausedUpdates = false;
+    bans: BanEntry[] = [];
 
     constructor(public fs: typeof import("fs"), public path: string) {
         setServer(this);
@@ -135,7 +150,13 @@ export default class Server {
             GameModeCommand,
             EffectCommand,
             ClearCommand,
-            GiveCommand
+            GiveCommand,
+            KickCommand,
+            BanCommand,
+            BanIPCommand,
+            OperatorCommand,
+            DeOperatorCommand,
+            SayCommand
         ]) this.registerCommand(new clazz());
 
         this.createDirectory(this.path);
@@ -146,22 +167,55 @@ export default class Server {
         this.createDirectory("worlds");
         this.createDirectory("plugins");
 
-        if (this.fileExists("bans.txt")) this.writeFile("bans.txt", "");
+        if (!this.fileExists("bans.txt")) this.writeFile("bans.txt", "[]");
 
-        this.pluginPromise = this.loadPlugins();
+        try {
+            for (const ban of JSON.parse(this.readFile("bans.txt").toString())) {
+                if (!banEntryType.safeParse(ban).success) {
+                    printer.error("Couldn't parse ban entry. Closing server... Please fix the ban entry or remove it. Entry: " + JSON.stringify(ban));
+                    return this.close();
+                }
+
+                this.bans.push(new BanEntry(ban.name, ban.ip, ban.timestamp, ban.reason));
+            }
+        } catch (e) {
+            printer.error("Couldn't parse ban file. Closing server... Please fix the JSON or remove the file.");
+            return this.close();
+        }
+
+        this.loadPlugins().then(() => this.pluginsReady = true);
 
         for (const folder in this.config.defaultWorlds) {
             this.createWorld(folder, this.config.defaultWorlds[folder]);
         }
+
         for (const folder of this.readDirectory("worlds")) {
             if (this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
             else printer.fail("Failed to load world %c" + folder, "color: yellow");
         }
+
         if (!(this.config.defaultWorld in this.worlds)) {
             printer.error("Default world couldn't be found. Please create the world named '" + this.config.defaultWorld + "'");
-            this.close();
+            return this.close();
         }
+
         this.defaultWorld = this.worlds[this.config.defaultWorld];
+    };
+
+    addBan(name: string, reason: string) {
+        this.bans.push(new BanEntry(name, null, Date.now(), reason));
+    };
+
+    addIPBan(name: string, ip: string, reason: string) {
+        this.bans.push(new BanEntry(name, ip, Date.now(), reason));
+    };
+
+    removeBan(name: string) {
+        this.bans = this.bans.filter(b => b.name !== name);
+    };
+
+    removeIPBan(ip: string) {
+        this.bans = this.bans.filter(b => b.ip !== ip);
     };
 
     loadConfig() {
@@ -244,8 +298,6 @@ export default class Server {
                 this.close();
             }
         }
-
-        this.pluginPromise = null;
     };
 
     registerEvents(clazz: Plugin) {
@@ -287,8 +339,6 @@ export default class Server {
     };
 
     executeSelector(as: CommandAs, at: Location, selector: SelectorToken) {
-        if (selector.filters.__name__only__) return [this.players[selector.filters.__name__only__.raw]];
-
         let entities: Entity[];
 
         switch (selector.value) {
@@ -625,12 +675,24 @@ export default class Server {
         }
     };
 
+    saveBans() {
+        this.writeFile("bans.json", JSON.stringify(this.bans.map(i => ({
+            name: i.name,
+            ip: i.ip,
+            timestamp: i.timestamp,
+            reason: i.reason
+        })), null, 2));
+    };
+
     saveAll() {
         this.saveWorlds();
         this.savePlayers();
+        this.saveBans();
     };
 
     close() {
+        if (this.terminated) return;
+
         printer.info("Closing the server...");
 
         printer.info("Kicking players...");
@@ -642,6 +704,8 @@ export default class Server {
 
         printer.info("Saving the worlds...");
         this.saveWorlds();
+
+        this.saveBans();
 
         this.terminated = true;
         setTimeout(() => this.terminateProcess(), 1000); // making sure every player gets the kick message
