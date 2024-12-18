@@ -10,16 +10,19 @@ export default class ShapedCrafting extends Crafting {
     };
 
     validate(contents: (Item | null)[][]): boolean {
-        if (contents.length < this.items.length) return false; // needs a bigger crafting table
+        const contRows = contents.length;
+        const contCols = contents[0].length;
 
         const rows = this.items.length;
         const cols = this.items[0].length;
 
-        for (let i = 0; i < rows; i++) {
+        if (contRows < rows || contCols < cols) return false; // needs a bigger crafting table
+
+        for (let i = 0; i < contRows; i++) {
             const lineContents = contents[i];
-            const lineTarget = this.items[i];
-            for (let j = 0; j < cols; j++) {
-                const id = lineTarget[j];
+            const lineTarget = this.items[i] ?? [];
+            for (let j = 0; j < contCols; j++) {
+                const id = lineTarget[j] ?? null;
                 const item = lineContents[j];
                 if (id === null && item === null) continue;
                 if (id === null || !id.equalsItem(item)) return false;
@@ -51,7 +54,7 @@ export default class ShapedCrafting extends Crafting {
                 const row = i + deletedRows;
                 const col = j + deletedCols;
                 const actualIndexInInventory = row * invLen + col;
-                inventory.removeAt(actualIndexInInventory, id.evaluate());
+                inventory.removeDescAt(actualIndexInInventory, id);
             }
         }
 

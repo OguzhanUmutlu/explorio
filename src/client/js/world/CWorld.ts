@@ -1,4 +1,4 @@
-import World, {All3Rings, Ring3} from "@/world/World";
+import World, {Ring1} from "@/world/World";
 import CSubChunk from "@c/world/CSubChunk";
 import Packet from "@/network/Packet";
 import Player from "@/entity/defaults/Player";
@@ -33,14 +33,8 @@ export default class CWorld extends World {
 
         const block = this.getBlock(x, y);
 
-        if (!block.isOpaque) {
-            for (const [dx, dy] of Ring3) {
-                this.prepareBlockRenderAt(x + dx, y + dy, true, false);
-            }
-        }
-
-        for (const [dx, dy] of All3Rings) {
-            this.prepareBlockRenderAt(x + dx, y + dy, false, true);
+        for (const [dx, dy] of Ring1) {
+            this.prepareBlockRenderAt(x + dx, y + dy, !block.isOpaque, true);
         }
     };
 

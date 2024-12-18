@@ -1,5 +1,5 @@
 import CPlayer from "@c/entity/types/CPlayer";
-import {Containers} from "@/meta/Inventories";
+import {Containers, InventoryName} from "@/meta/Inventories";
 import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@dom/Client";
 import {Options} from "@c/utils/Utils";
 import Sound from "@/utils/Sound";
@@ -8,6 +8,8 @@ export default class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
     placeTime = 0;
     name = "";
+    hoveringIndex = 0;
+    hoveringInventory: InventoryName | null = null;
 
     teleport(x: number, y: number) {
         super.teleport(x, y, false);
@@ -76,8 +78,7 @@ export default class OriginPlayer extends CPlayer {
             } else if (this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
                 this.justBreaking = this.breaking = [Mouse.rx, Mouse.ry];
                 const block = this.world.getBlock(Mouse.rx, Mouse.ry);
-                // todo: handle tools
-                this.breakingTime = block.getHardness();
+                this.breakingTime = block.getBreakTime(this.handItem);
                 clientNetwork.sendStartBreaking(Mouse.rx, Mouse.ry);
             }
         } else {

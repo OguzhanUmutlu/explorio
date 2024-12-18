@@ -4,7 +4,7 @@ import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
 import World from "@/world/World";
 import {ChunkLength} from "@/meta/WorldConstants";
-import {im2f} from "@/meta/Items";
+import {im2f, PlankTypes} from "@/meta/Items";
 
 export const MountainHeight = 30;
 export const WaterHeight = 10;
@@ -53,9 +53,18 @@ export default class DefaultGenerator extends Generator {
     };
 
     static plantTree(world: World, chunk: Uint16Array, noi: number, chunkNoise: number, x: number, y: number, worldX: number) {
-        const treeLength = Math.floor(noi + 5);
-        chunk[x + (y - 1) * ChunkLength] = B.DIRT;
         const treeType = Math.floor(Math.abs(chunkNoise + 0.5) * 5);
+        let treeLength = Math.floor(noi + 5);
+        switch (treeType){
+            case PlankTypes.Spruce:
+            case PlankTypes.Acacia:
+                treeLength += 3;
+                break;
+            case PlankTypes.Jungle:
+                treeLength += 8;
+                break;
+        }
+        chunk[x + (y - 1) * ChunkLength] = B.DIRT;
         for (let i = 0; i < treeLength; i++) {
             chunk[x + (i + y) * ChunkLength] = im2f(I.NATURAL_LOG, treeType);
         }

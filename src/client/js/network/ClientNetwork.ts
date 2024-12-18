@@ -187,7 +187,7 @@ export default class ClientNetwork {
         const entity = clientPlayer.world.entities[data.entityId];
         if (!(entity instanceof CPlayer)) return;
         entity.breaking = [data.x, data.y];
-        entity.breakingTime = entity.world.getBlock(data.x, data.y).getHardness();
+        entity.breakingTime = entity.world.getBlock(data.x, data.y).getBreakTime(entity.handItem);
     };
 
     processSBlockBreakingStop({data}: PacketByName<"SBlockBreakingStop">) {
@@ -295,12 +295,33 @@ export default class ClientNetwork {
         this.sendPacket(new Packets.CSetHandIndex(index));
     };
 
+    makeItemTransfer(fromInventory: InventoryName, fromIndex: number, to: {
+        inventory: InventoryName,
+        index: number,
+        count: number
+    }[]) {
+        const from = clientPlayer.inventories[fromInventory];
+        for (const t of to) {
+            from.transfer(fromIndex, clientPlayer.inventories[t.inventory], t.index, t.count);
+        }
+        this.sendItemTransfer(fromInventory, fromIndex, to);
+    };
+
     sendItemTransfer(fromInventory: InventoryName, fromIndex: number, to: {
         inventory: InventoryName,
         index: number,
         count: number
     }[]) {
         this.sendPacket(new Packets.CItemTransfer({fromInventory, fromIndex, to}));
+    };
+
+    makeItemSwap(fromInventory: InventoryName, fromIndex: number, toInventory: InventoryName, toIndex: number) {
+        const from = clientPlayer.inventories[fromInventory];
+        const to = clientPlayer.inventories[toInventory];
+        const fromItem = from.get(fromIndex);
+        from.set(fromIndex, to.get(toIndex));
+        to.set(toIndex, fromItem);
+        this.sendItemSwap(fromInventory, fromIndex, toInventory, toIndex);
     };
 
     sendItemSwap(fromInventory: InventoryName, fromIndex: number, toInventory: InventoryName, toIndex: number) {

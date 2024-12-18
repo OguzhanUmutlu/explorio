@@ -5,7 +5,7 @@ import Texture, {Canvas, Image, SkinData} from "@/utils/Texture";
 import BoundingBox from "@/entity/BoundingBox";
 import {camera, canvas, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {configure, fs} from "@zenfs/core";
 import {WebStorage} from "@zenfs/dom";
 import Entity from "@/entity/Entity";
@@ -20,6 +20,13 @@ export type Input = HTMLInputElement;
 export const URLPrefix = "/explorio/";
 
 export type ReactState<T> = ReturnType<typeof useState<T>>;
+
+export function useEventListener(event: string, fn: (e: Event) => void) {
+    useEffect(() => {
+        document.addEventListener(event, fn);
+        return () => document.removeEventListener(event, fn);
+    }, []);
+}
 
 export function useGroupState<K extends string[], T>(names: K, default_: T) {
     const obj = {};
@@ -251,21 +258,22 @@ export function renderPlayerModel(
     ctx.rotate(O.leftArmRotation);
     drawShadowImage(ctx, side.back_arm, -armBody[2] / 2, 0, armBody[2], armBody[3], O.shadowOpacity);
 
-    if (O.offhandItem) {
+    /*if (O.offhandItem) {
         const metadata = O.offhandItem.toMetadata();
         const texture = metadata.getTexture();
+        const sizeMul = (metadata.isTool ? 0.5 : 1);
         if (metadata.toolType !== "none") {
             drawShadowImage(ctx,
                 O.bodyRotation ? texture.image : texture.flip(),
                 O.bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
-                O.SIZE * 0.8, O.SIZE * 0.8, O.shadowOpacity
+                O.SIZE * 0.5 * sizeMul, O.SIZE * 0.5 * sizeMul, O.shadowOpacity
             );
         } else drawShadowImage(ctx,
             texture.image,
             O.bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
-            O.SIZE * 0.4, O.SIZE * 0.4, O.shadowOpacity
+            O.SIZE * 0.4 * sizeMul, O.SIZE * 0.4 * sizeMul, O.shadowOpacity
         );
-    }
+    }*/
 
     ctx.restore();
 
@@ -295,8 +303,8 @@ export function renderPlayerModel(
         if (metadata.toolType !== "none") {
             drawShadowImage(ctx,
                 O.bodyRotation ? texture.image : texture.flip(),
-                O.bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
-                O.SIZE * 0.8, O.SIZE * 0.8, O.shadowOpacity
+                O.bodyRotation ? -armBody[2] * 0.25 : -armBody[2] * 2, armBody[3] * 0.2,
+                O.SIZE * 0.6, O.SIZE * 0.6, O.shadowOpacity
             );
         } else drawShadowImage(ctx,
             texture.image,

@@ -82,7 +82,7 @@ export default class PlayerNetwork {
         ) return this.sendBlock(data.x, data.y);
 
         this.player.breaking = [data.x, data.y];
-        this.player.breakingTime = this.player.world.getBlock(data.x, data.y).getHardness();
+        this.player.breakingTime = this.player.world.getBlock(data.x, data.y).getBreakTime(this.player.handItem);
         this.player.broadcastBlockBreaking();
     };
 
@@ -338,6 +338,7 @@ export default class PlayerNetwork {
 
         const alreadyDirty = inv.dirtyIndexes.has(index);
         this.player.dropItem(inv, index, count);
+        this.player.world.playSound("assets/sounds/random/pop.ogg", this.player.x, this.player.y);
         if (!alreadyDirty && inv.dirtyIndexes.has(index)) inv.dirtyIndexes.delete(index);
     };
 
@@ -475,6 +476,7 @@ export default class PlayerNetwork {
     };
 
     sendChunk(chunkX: number, data: Uint16Array, entities?: Entity[], immediate = false) {
+        if (this.player.world.unloaded) return;
         this.sendPacket(new Packets.SChunk({x: chunkX, data}), immediate);
         if (entities) {
             this.sendPacket(new Packets.SSetChunkEntities({

@@ -25,7 +25,7 @@ export default class GiveCommand extends DefinitiveCommand {
                     player.playSound("assets/sounds/random/pop.ogg");
                 }
 
-                sender.sendMessage(`${players.length} players have been given ${item.getName()}.`);
+                sender.sendMessage(`${players.length} players have been given ${item.name}.`);
             })
     ];
 }

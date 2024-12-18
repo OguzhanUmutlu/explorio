@@ -342,6 +342,30 @@ function onPressKey(e: KeyboardEvent) {
 
             optionPopup[1](false);
         }
+
+        const invName = clientPlayer.hoveringInventory;
+        const fromInv = clientPlayer.inventories[invName];
+        if (containerState[0] !== Containers.Closed && fromInv) {
+            const fromItem = fromInv.get(clientPlayer.hoveringIndex);
+            const num = +e.key;
+            if (num && num >= 1 && num <= 9 && clientPlayer.hoveringInventory) {
+                const fromIndex = clientPlayer.hoveringIndex;
+                const toIndex = num - 1;
+                if (fromInv === clientPlayer.hotbarInventory && toIndex === fromIndex) return;
+
+                const toItem = clientPlayer.hotbarInventory.get(toIndex);
+                if (fromItem || toItem) {
+                    fromInv.set(fromIndex, toItem);
+                    clientPlayer.hotbarInventory.set(toIndex, fromItem);
+                    clientNetwork.sendItemSwap(invName, fromIndex, "hotbar", toIndex);
+                }
+            } else if (e.key === "q") {
+                if (fromItem) {
+                    fromInv.decreaseItemAt(clientPlayer.hoveringIndex);
+                    clientNetwork.sendDropItem(invName, clientPlayer.hoveringIndex, 1);
+                }
+            }
+        }
     } else {
         Keyboard[e.key.toLowerCase()] = true;
 
@@ -671,6 +695,11 @@ export function terminateClient() {
 //  again unless it's dirty have an object like Record<PlayerName, TimeOfLoad> in Chunk class, and
 //  also have the lastDirty: number to check if the chunk was cleaned while the player was away
 // todo: bug: at the end of every chunk, if the surface is let's say flat, the last block in that chunk will produce more light to bottom
+// todo: add inventory item tooltip and add an advanced mode to it via F3+G
+// todo: when hand index changes briefly show the name of the item under the actionbar
+// todo: add title, subtitle, actionbar support with timings
+// todo: render item damage
+// todo: add back the lighting system with the new small block depth
 
 function isInChat() {
     return chatContainer[0];
@@ -800,36 +829,36 @@ export function Client(O: {
         {/* Hotbar */}
         <InventoryDiv className="hotbar-inventory inventory"
                       style={isMobile ? {width: "50%"} : (f1On[0] ? {"opacity": "0"} : {})}
-                      inventoryType={Inventories.Hotbar} ikey="hi" handindex={handIndexState}></InventoryDiv>
+                      inventoryName={Inventories.Hotbar} ikey="hi" handIndex={handIndexState}></InventoryDiv>
 
         {/* Player Inventory */}
         <div className="player-inventory-container"
              style={containerState[0] === Containers.PlayerInventory ? {scale: "1"} : {}}>
-            <InventoryDiv className="inv-pp inventory" inventoryType={Inventories.Player}
+            <InventoryDiv className="inv-pp inventory" inventoryName={Inventories.Player}
                           ikey="pp"></InventoryDiv>
-            <InventoryDiv className="inv-ph inventory" inventoryType={Inventories.Hotbar}
+            <InventoryDiv className="inv-ph inventory" inventoryName={Inventories.Hotbar}
                           ikey="ph"></InventoryDiv>
-            <InventoryDiv className="inv-pa inventory" inventoryType={Inventories.Armor} ikey="pa"></InventoryDiv>
-            <InventoryDiv className="inv-pcs inventory" inventoryType={Inventories.CraftingSmall}
+            <InventoryDiv className="inv-pa inventory" inventoryName={Inventories.Armor} ikey="pa"></InventoryDiv>
+            <InventoryDiv className="inv-pcs inventory" inventoryName={Inventories.CraftingSmall}
                           ikey="pcs"></InventoryDiv>
-            <InventoryDiv className="inv-pcr inventory" inventoryType={Inventories.CraftingSmallResult}
+            <InventoryDiv className="inv-pcr inventory" inventoryName={Inventories.CraftingSmallResult}
                           ikey="pcr"></InventoryDiv>
         </div>
 
         {/* Crafting Table Inventory */}
         <div className="crafting-table-container"
              style={containerState[0] === Containers.CraftingTable ? {scale: "1"} : {}}>
-            <InventoryDiv className="inv-cc inventory" inventoryType={Inventories.CraftingBig}
+            <InventoryDiv className="inv-cc inventory" inventoryName={Inventories.CraftingBig}
                           ikey="cc"></InventoryDiv>
-            <InventoryDiv className="inv-ccr inventory" inventoryType={Inventories.CraftingBigResult}
+            <InventoryDiv className="inv-ccr inventory" inventoryName={Inventories.CraftingBigResult}
                           ikey="ccr"></InventoryDiv>
-            <InventoryDiv className="inv-cp inventory" inventoryType={Inventories.Player} ikey="cp"></InventoryDiv>
-            <InventoryDiv className="inv-ch inventory" inventoryType={Inventories.Hotbar}
+            <InventoryDiv className="inv-cp inventory" inventoryName={Inventories.Player} ikey="cp"></InventoryDiv>
+            <InventoryDiv className="inv-ch inventory" inventoryName={Inventories.Hotbar}
                           ikey="ch"></InventoryDiv>
         </div>
 
         {/* Cursor Inventory */}
-        <InventoryDiv className="cursor-inventory inventory" inventoryType={Inventories.Cursor} style={{
+        <InventoryDiv className="cursor-inventory inventory" inventoryName={Inventories.Cursor} style={{
             left: mouseX[0] + "px",
             top: mouseY[0] + "px"
         }} ikey="cursorInv"></InventoryDiv>

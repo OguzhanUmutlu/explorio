@@ -43,8 +43,8 @@ export default class CPlayer extends Player implements CEntity {
         const breaking = this.breaking;
         if (breaking) {
             const block = this.world.getBlock(breaking[0], this.breaking[1]);
-            const hardness = block.getHardness();
-            const ratio = 1 - this.breakingTime / hardness;
+            const breakTime = block.getBreakTime(this.handItem);
+            const ratio = 1 - this.breakingTime / breakTime;
             const blockPos = getClientPosition(breaking[0], breaking[1]);
             ctx.drawImage(
                 Texture.get(`assets/textures/destroy/${Math.min(Math.floor(ratio * 10), 9)}.png`).image,

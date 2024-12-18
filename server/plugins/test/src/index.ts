@@ -10,7 +10,7 @@ export default class MyPlugin extends Plugin {
 
     @event(BlockBreakEvent)
     onBreakBlock(e: BlockBreakEvent) {
-        if (e.block.getName() === "Coal Ore") {
+        if (e.block.name === "Coal Ore") {
             e.cancel();
             if (e.entity instanceof Player) e.entity.sendMessage("Hello there! Coal Ore is not breakable! (This is a test plugin located in /plugins/test/)")
         }

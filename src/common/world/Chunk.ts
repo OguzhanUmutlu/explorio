@@ -6,7 +6,7 @@ import Player from "@/entity/defaults/Player";
 import {cx2x, rxy2ci, zstdOptionalEncode} from "@/utils/Utils";
 import {BM} from "@/meta/ItemIds";
 import {ItemMetadata} from "@/meta/Items";
-import {Version} from "@/Versions";
+import {WorldGenerationVersion} from "@/Versions";
 
 export default class Chunk {
     blocks: Uint16Array = new Uint16Array(ChunkBlockAmount);
@@ -17,6 +17,7 @@ export default class Chunk {
     playerCleanTimes: Record<string, number> = {};
     lightLevels: Uint8Array = new Uint8Array(ChunkBlockAmount);
     unloadTimer = 30;
+    unloaded = false;
 
     constructor(public world: World, public x: number) {
     };
@@ -83,7 +84,7 @@ export default class Chunk {
 
         const versionBuffer = Buffer.allocUnsafe(compressed.length + 2);
 
-        versionBuffer.writeUint16LE(Version);
+        versionBuffer.writeUint16LE(WorldGenerationVersion);
 
         compressed.copy(versionBuffer, 2);
 
@@ -91,7 +92,17 @@ export default class Chunk {
     };
 
     unload() {
+        if (this.unloaded) return;
+        this.unloaded = true;
+
         this.save();
+
+        for (const entity of this.entities) {
+            if (entity instanceof Player) {
+                entity.kick("The chunk you were in was unloaded. Please contact the server owner.");
+            }
+        }
+
         delete this.world.chunks[this.x];
     };
 

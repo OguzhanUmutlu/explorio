@@ -140,6 +140,7 @@ export default class Texture {
     static flipImage(image: Canvas | Image, way = 1) {
         const canvas = createCanvas(image.width, image.height);
         const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
         ctx.save();
         ctx.translate(canvas.width, 0);
         if (way === 1) ctx.scale(-1, 1);
@@ -150,10 +151,9 @@ export default class Texture {
     };
 
     static rotateImage(image: Canvas | Image, degrees = 90) {
-        const canvas = document.createElement("canvas");
+        const canvas = createCanvas(image.width, image.height);
         const ctx = canvas.getContext("2d");
-        canvas.width = image.width;
-        canvas.height = image.height;
+        ctx.imageSmoothingEnabled = false;
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate((degrees * Math.PI) / 180);

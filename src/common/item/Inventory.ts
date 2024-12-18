@@ -83,11 +83,13 @@ export default class Inventory {
     removeDesc(desc: ItemDescriptor) {
         if (!desc) return 0;
         let count = desc.count ?? 1;
-        if (Array.isArray(count)) throw new Error(".removeDesc() function cannot be ran with an item descriptor with multiple a bounded count.");
+        if (Array.isArray(count)) throw new Error(".removeDesc() function cannot be ran with an item descriptor with a multiple bounded count.");
+
         for (let i = 0; i < this.size; i++) {
             if (count === 0) return 0;
             count = this.removeDescAt(i, desc, count);
         }
+
         return count;
     };
 
@@ -121,12 +123,15 @@ export default class Inventory {
             this.removeIndex(index);
             return it.count;
         }
+
         it.count -= count;
         this.dirtyIndexes.add(index);
         return count;
     };
 
-    removeDescAt(index: number, desc: ItemDescriptor, count: number) {
+    removeDescAt(index: number, desc: ItemDescriptor, count = desc.count ?? 1) {
+        if (Array.isArray(count)) throw new Error(".removeDescAt() function cannot be ran with an item descriptor with a multiple bounded count.");
+
         const it = this.get(index);
         if (!it || !desc.equalsItem(it)) return count;
 
