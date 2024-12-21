@@ -8,6 +8,7 @@ import {
     getWorldList,
     Input,
     isMobileByAgent,
+    loadOptions,
     Options,
     ReactState,
     renderBoundingBox,
@@ -19,7 +20,6 @@ import {
 import CServer from "@c/CServer";
 import ClientNetwork from "@c/network/ClientNetwork";
 import OriginPlayer from "@c/entity/types/OriginPlayer";
-import {OptionsPopup} from "@dom/components/OptionsPopup";
 import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
@@ -32,6 +32,7 @@ import Packet from "@/network/Packet";
 import {ChunkLength, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import {im2f} from "@/meta/Items";
 import {cx2x, cy2y, rotateMeta, x2cx, y2cy} from "@/utils/Utils";
+import {getMenus, OptionPages} from "@dom/components/options/Menus";
 
 declare global {
     interface Window {
@@ -44,7 +45,7 @@ declare global {
 let containerState: ReactState<Containers>;
 let chatContainer: ReactState<boolean>;
 export let clientUUID: ReactState<string>;
-let optionPopup: ReactState<boolean>;
+let optionPopup: ReactState<OptionPages>;
 let saveScreen: ReactState<boolean>;
 let connectionText: ReactState<string>;
 export let canvas: HTMLCanvasElement;
@@ -169,11 +170,13 @@ function animate() {
 
     updateTileSize();
 
-    f3.fps[1](Math.floor(_fps.length));
-    f3.x[1](+clientPlayer.x.toFixed(2));
-    f3.y[1](+clientPlayer.y.toFixed(2));
-    f3.vx[1](+clientPlayer.vx.toFixed(2));
-    f3.vy[1](+clientPlayer.vy.toFixed(2));
+    if (f3On[0]) {
+        f3.fps[1](Math.floor(_fps.length));
+        f3.x[1](+clientPlayer.x.toFixed(2));
+        f3.y[1](+clientPlayer.y.toFixed(2));
+        f3.vx[1](+clientPlayer.vx.toFixed(2));
+        f3.vy[1](+clientPlayer.vy.toFixed(2));
+    }
 
     if (document.activeElement !== document.body) {
         resetKeyboard();
@@ -237,7 +240,7 @@ function animate() {
         }
     }
 
-    const smoothDt = Math.min(dt, 0.015) * Options.cameraSpeed;
+    const smoothDt = Math.min(dt, 0.015) * Options.camera_speed;
     Mouse._xSmooth += (Mouse._x - Mouse._xSmooth) * smoothDt;
     Mouse._ySmooth += (Mouse._y - Mouse._ySmooth) * smoothDt;
 
@@ -340,7 +343,7 @@ function onPressKey(e: KeyboardEvent) {
                 clientNetwork.sendCloseInventory();
             }
 
-            optionPopup[1](false);
+            optionPopup[1]("none");
         }
 
         const invName = clientPlayer.hoveringInventory;
@@ -380,7 +383,7 @@ function onPressKey(e: KeyboardEvent) {
         }
 
         if (e.key === "Escape") {
-            optionPopup[1](true);
+            optionPopup[1]("main");
         }
 
         if (e.key === "F3") {
@@ -445,7 +448,7 @@ function onLoseFocus() {
     Mouse.left = false;
     Mouse.right = false;
     Mouse.middle = false;
-    if (Options.pauseOnBlur) optionPopup[1](true);
+    if (Options.pauseOnBlur && optionPopup[0] === "none") optionPopup[1]("main");
 }
 
 function onFocus() {
@@ -598,6 +601,7 @@ export function initClient() {
 
         if (!bfs.existsSync("singleplayer")) bfs.mkdirSync("singleplayer");
         singlePlayerServer.config = DefaultServerConfig;
+        singlePlayerServer.config.saveIntervalSeconds = Options.auto_save;
 
         singlePlayerServer.init();
         singlePlayerServer.bans = [];
@@ -679,13 +683,17 @@ export function terminateClient() {
     console.clear();
 }
 
+export function saveAndQuit() {
+    terminateClient();
+    location.hash = "";
+}
+
 // todo: disconnect screen
 // todo: add fall damage
 // todo: bug: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
 // todo: custom tree lengths and shapes like jungle etc.
 // todo: i think only trees of meta 0 1 2 3 are being chosen
 // todo: handle tool logic
-// todo: calculate light levels when chunks load. when placed/broken a block check the 15 radius
 // todo: render health/food/armor/breathe points
 // todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does?
 // todo: falling blocks (sand/gravel)
@@ -700,6 +708,7 @@ export function terminateClient() {
 // todo: add title, subtitle, actionbar support with timings
 // todo: render item damage
 // todo: add back the lighting system with the new small block depth
+// todo: add usernames on top of the players
 
 function isInChat() {
     return chatContainer[0];
@@ -721,20 +730,25 @@ function toggleChat() {
 }
 
 function isAnyUIOpen() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0] || isInChat();
+    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0] !== "none" || isInChat();
 }
 
 function hasBlur() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0];
+    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0] !== "none";
 }
 
-export function Client(O: {
+function F3Component(O: { ikey: string }) {
+    f3[O.ikey] = useState(0);
+    return <span>{f3[O.ikey][0]}</span>;
+}
+
+export default function Client(O: {
     clientUUID: ReactState<string>,
     favicon: ReactState<string>
 }) {
     // @ts-expect-error This is for debugging purposes.
     window.dbg = {s: singlePlayerServer, p: clientPlayer};
-    optionPopup = useState(false);
+    optionPopup = useState<OptionPages>("none");
     saveScreen = useState(false);
     connectionText = useState("");
     containerState = useState(Containers.Closed);
@@ -745,9 +759,11 @@ export function Client(O: {
     f1On = useState(false);
     const mouseX = useState(0);
     const mouseY = useState(0);
-    if (singlePlayerServer) singlePlayerServer.pausedUpdates = optionPopup[0];
+    if (singlePlayerServer) singlePlayerServer.pausedUpdates = optionPopup[0] !== "none";
 
     useEffect(() => {
+        loadOptions();
+
         function onMouseMove(e: MouseEvent) {
             mouseX[1](e.pageX);
             mouseY[1](e.pageY);
@@ -763,22 +779,16 @@ export function Client(O: {
         };
     }, []);
 
-
-    f3.fps = useState(0);
-    f3.x = useState(0);
-    f3.y = useState(0);
-    f3.vx = useState(0);
-    f3.vy = useState(0);
     const isMobile = isMobileByAgent();
 
     return <>
         {/* F3 Menu */}
         {f3On[0] ? <div className="f3-menu">
-            FPS: <span className="f3-fps">{f3.fps[0]}</span><br/>
-            X: <span className="f3-x">{f3.x[0]}</span><br/>
-            Y: <span className="f3-y">{f3.y[0]}</span><br/>
-            VX: <span className="f3-vx">{f3.vx[0]}</span><br/>
-            VY: <span className="f3-vy">{f3.vy[0]}</span>
+            FPS: <F3Component ikey="fps"/><br/>
+            X: <F3Component ikey="x"/><br/>
+            Y: <F3Component ikey="y"/><br/>
+            VX: <F3Component ikey="vx"/><br/>
+            VY: <F3Component ikey="vy"/>
         </div> : <></>}
 
 
@@ -805,7 +815,7 @@ export function Client(O: {
         <div className="mobile-options-open" style={isMobile && !hasBlur() ? {} : {scale: "0"}}
              onClick={() => {
                  closeChat();
-                 optionPopup[1](true);
+                 optionPopup[1]("main");
              }}>
             {/* These are three dots. */}
             <div></div>
@@ -815,7 +825,10 @@ export function Client(O: {
 
 
         {/* Background Blur used in UIs */}
-        <div className="background-blur" style={hasBlur() ? {opacity: "1", pointerEvents: "auto"} : {}}
+        <div className="background-blur" style={hasBlur() ? {
+            opacity: "1", pointerEvents: "auto",
+            ...(optionPopup[0] !== "none" ? {background: "rgba(0, 0, 0, 0.5)"} : {})
+        } : {}}
              onClick={() => {
                  const cursorItem = clientPlayer.cursorItem;
                  if (containerState[0] !== Containers.Closed && cursorItem) {
@@ -865,8 +878,9 @@ export function Client(O: {
 
 
         {/* Options */}
-        <OptionsPopup showSaveAndQuit={true} opt={optionPopup} clientUUID={O.clientUUID}/>
-
+        {React.useMemo(() => {
+            return <>{...getMenus("client", optionPopup)}</>;
+        }, [optionPopup[0]])}
 
         {/* Mobile Control Buttons */}
         <div className="mobile-controls" hidden={!isMobile}>

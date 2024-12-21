@@ -67,7 +67,7 @@ export default class Sound {
     };
 
     static play(src: string, volume = 1) {
-        if (!tryCreateAudioContext()) return;
+        if (!tryCreateAudioContext() || volume <= 0) return;
         const sound = this.get(src);
         if (!sound) return;
         sound.play(volume);

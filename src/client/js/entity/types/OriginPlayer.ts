@@ -91,10 +91,9 @@ export default class OriginPlayer extends CPlayer {
     };
 
     playSoundAt(path: string, x: number, y: number, volume = 1) {
-        if (!Options.sfx) return;
-        const distance = clientPlayer.distance(x, y);
+        const distance = clientPlayer.distance(x, y); // todo: handle volume options better
         if (distance > 20) return;
-        const lastVolume = volume * (1 - (distance / 20)) * 0.18 * Options.sfx / 100;
+        const lastVolume = volume * (1 - (distance / 20)) * 0.18 * Options.master_volume / 100;
         Sound.play(path, lastVolume);
     };
 
@@ -156,7 +155,7 @@ export default class OriginPlayer extends CPlayer {
 
         chatBox.appendChild(div);
 
-        while (chatBox.children.length > Options.chatLimit) {
+        while (chatBox.children.length > Options.chatMessageLimit) {
             chatBox.children.item(0).remove();
         }
 

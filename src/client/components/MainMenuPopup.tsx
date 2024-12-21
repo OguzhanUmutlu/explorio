@@ -1,7 +1,7 @@
 import React, {ReactNode} from "react";
 import {ReactState} from "@c/utils/Utils";
 
-export function MainMenuPopup(o: {
+export default function MainMenuPopup(o: {
     state: ReactState<boolean>,
     content: ReactNode,
     className?: string,

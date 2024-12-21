@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from "react";
 import "./css/common.css";
-import {Index} from "@c/../Index";
-import {Client, terminateClient} from "@dom/Client";
+import Index from "@c/../Index";
+import {default as Client, terminateClient} from "@dom/Client";
 import {getHash, isMobileByAgent} from "@c/utils/Utils";
 
-export function Main() {
+export default function Main() {
     const clientUUID = useState(getHash);
     const favicon = useState("./assets/logo.png");
 

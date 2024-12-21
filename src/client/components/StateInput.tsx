@@ -1,7 +1,7 @@
 import React, {ChangeEvent} from "react";
 import {ReactState} from "@c/utils/Utils";
 
-export function StateInput(o: {
+export default function StateInput(o: {
     state: ReactState<string | number>,
     onChange?: (e: ChangeEvent) => void,
     [k: string]: unknown

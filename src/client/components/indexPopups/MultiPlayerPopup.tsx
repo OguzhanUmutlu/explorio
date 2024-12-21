@@ -1,9 +1,9 @@
-import {StateInput} from "@dom/components/StateInput";
+import StateInput from "@dom/components/StateInput";
 import {ReactState, removeServer, ServerData} from "@c/utils/Utils";
-import {MainMenuPopup} from "@dom/components/MainMenuPopup";
+import MainMenuPopup from "@dom/components/MainMenuPopup";
 import React, {useState} from "react";
 
-export function MultiPlayerPopup(O: {
+export default function MultiPlayerPopup(O: {
     mp: ReactState<boolean>,
     ns: ReactState<boolean>,
     servers: ReactState<ServerData[]>,

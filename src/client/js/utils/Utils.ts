@@ -12,12 +12,15 @@ import Entity from "@/entity/Entity";
 import {Buffer} from "buffer";
 import CItemEntity from "@c/entity/types/CItemEntity";
 import Item from "@/item/Item";
+import {OptionPages} from "@dom/components/options/Menus";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
 export type Input = HTMLInputElement;
 
 export const URLPrefix = "/explorio/";
+
+export type OptionPageProps = { page: ReactState<OptionPages>, back: () => void };
 
 export type ReactState<T> = ReturnType<typeof useState<T>>;
 
@@ -26,6 +29,17 @@ export function useEventListener(event: string, fn: (e: Event) => void) {
         document.addEventListener(event, fn);
         return () => document.removeEventListener(event, fn);
     }, []);
+}
+
+export function useOptionState<K extends keyof typeof Options>(key: K) {
+    if (!Options) loadOptions();
+    const [value, setValue] = useState(Options[key]);
+    const newState: ReactState<typeof Options[K]> = [value, (v: typeof Options[K]) => {
+        setValue(v);
+        Options[key] = v;
+        saveOptions();
+    }];
+    return newState;
 }
 
 export function useGroupState<K extends string[], T>(names: K, default_: T) {
@@ -119,30 +133,174 @@ export function getWSUrls(ip: string, port: number): string[] {
 
 export type OptionsType = {
     username: string;
-    music: number;
-    sfx: number;
-    cameraSpeed: number;
+
+    master_volume: number;
+    music_volume: number;
+    jukebox_volume: number;
+    weather_volume: number;
+    blocks_volume: number;
+    hostile_volume: number;
+    friendly_volume: number;
+    players_volume: number;
+    ambient_volume: number;
+    directional_audio: 0 | 1;
+
+    chat_visible: 0 | 1;
+    chat_colors: 0 | 1;
+    web_links: 0 | 1;
+    prompt_on_links: 0 | 1;
+    chat_text_opacity: number;
+    text_background_opacity: number;
+    chat_text_size: number;
+    line_spacing: number;
+    chat_delay: number;
+    chat_width: number;
+    chat_focused_height: number;
+    chat_unfocused_height: number;
+    command_suggestions: 0 | 1;
+
+    graphics: 0 | 1 | 2;
+    render_distance: number;
+    smooth_lighting: number;
+    simulation_distance: number;
+    max_fps: number;
+    gui_scale: 0 | 1 | 2 | 3; // 0 = auto
+    entity_shadows: 0 | 1;
+    brightness: number;
+    dynamic_zoom: number;
+    dynamic_lights: 0 | 1 | 2; // off, fast fancy
+
+    subtitles: 0 | 1;
+    high_contrast: 0 | 1;
+    auto_jump: 0 | 1;
+    menu_background_blur: number;
+    sneak: 0 | 1; // hold / toggle
+    sprint: 0 | 1; // hold / toggle
+    distortion_effects: number;
+    darkness_pulsing: number;
+    damage_tilt: number;
+    glint_speed: number; // item enchant
+    glint_strength: number;
+    lightning_flashes: 0 | 1;
+    splash_texts: 0 | 1,
+
+    water_animated: 0 | 1;
+    lava_animated: 0 | 1;
+    fire_animated: 0 | 1;
+    portal_animated: 0 | 1;
+    redstone_animated: 0 | 1;
+    explosion_animated: 0 | 1;
+    flame_animated: 0 | 1;
+    smoke_animated: 0 | 1;
+    void_particles: 0 | 1;
+    water_particles: 0 | 1;
+    rain_splash: 0 | 1;
+    portal_particles: 0 | 1;
+    potion_particles: 0 | 1;
+    dripping_water_particles: 0 | 1;
+    dripping_lava_particles: 0 | 1;
+    terrain_animated: 0 | 1;
+    textures_animated: 0 | 1;
+    firework_particles: 0 | 1;
+
+    auto_save: number;
+
+    camera_speed: number;
     tileSize: number;
     updatesPerSecond: number;
-    chatLimit: number;
+    chatMessageLimit: number;
     particles: number;
     pauseOnBlur: 0 | 1;
+};
+
+const DefaultOptions: OptionsType = {
+    username: "Steve",
+
+    // todo
+    master_volume: 100,
+    music_volume: 100,
+    jukebox_volume: 100,
+    weather_volume: 100,
+    blocks_volume: 100,
+    hostile_volume: 100,
+    friendly_volume: 100,
+    players_volume: 100,
+    ambient_volume: 100,
+    directional_audio: 0,
+
+    chat_visible: 1,
+    chat_colors: 1,
+    web_links: 1,
+    prompt_on_links: 1,
+    chat_text_opacity: 100,
+    text_background_opacity: 100,
+    chat_text_size: 100,
+    line_spacing: 0,
+    chat_delay: 0,
+    chat_width: 78,
+    chat_focused_height: 180,
+    chat_unfocused_height: 90,
+    command_suggestions: 1,
+
+    graphics: 0,
+    render_distance: 1,
+    smooth_lighting: 100,
+    simulation_distance: 32,
+    max_fps: 0, // VSync
+    gui_scale: 0, // auto
+    entity_shadows: 0,
+    brightness: 100,
+    dynamic_zoom: 1,
+    dynamic_lights: 0,
+
+    subtitles: 0,
+    high_contrast: 0,
+    auto_jump: 0,
+    menu_background_blur: 5,
+    sneak: 0,
+    sprint: 0,
+    distortion_effects: 20,
+    darkness_pulsing: 100,
+    damage_tilt: 100,
+    glint_speed: 50,
+    glint_strength: 100,
+    lightning_flashes: 1,
+    splash_texts: 1,
+
+    water_animated: 1,
+    lava_animated: 1,
+    fire_animated: 1,
+    portal_animated: 1,
+    redstone_animated: 1,
+    explosion_animated: 1,
+    flame_animated: 1,
+    smoke_animated: 1,
+    void_particles: 1,
+    water_particles: 1,
+    rain_splash: 1,
+    portal_particles: 1,
+    potion_particles: 1,
+    dripping_water_particles: 1,
+    dripping_lava_particles: 1,
+    terrain_animated: 1,
+    textures_animated: 1,
+    firework_particles: 1,
+
+    auto_save: 45,
+
+    camera_speed: 12,
+    tileSize: 64,
+    updatesPerSecond: 60,
+    chatMessageLimit: 100,
+    particles: 2,
+    pauseOnBlur: 1
 };
 
 export let Options: OptionsType;
 export const TileSize = {value: 64};
 
 export function loadOptions() {
-    Options = JSON.parse(localStorage.getItem("explorio.options")) || {};
-    Options.username ??= "Steve";
-    Options.music ??= 100;
-    Options.sfx ??= 100;
-    Options.cameraSpeed ??= 12;
-    Options.updatesPerSecond ??= 60;
-    Options.chatLimit ??= 100;
-    Options.particles ??= 2;
-    Options.pauseOnBlur ??= 1;
-    return Options;
+    return Options = {...DefaultOptions, ...(JSON.parse(localStorage.getItem("explorio.options")) || {})};
 }
 
 export function saveOptions() {
@@ -177,7 +335,8 @@ export function removeWorld(uuid: string) {
     const world = worlds.find(i => i.uuid === uuid);
     if (!world) return;
 
-    bfs.rmSync("./singleplayer/" + uuid, {recursive: true});
+    const pth = "./singleplayer/" + uuid;
+    if (bfs.existsSync(pth)) bfs.rmSync(pth, {recursive: true});
 
     worlds.splice(worlds.indexOf(world), 1);
     localStorage.setItem("explorio.worlds", JSON.stringify(worlds));

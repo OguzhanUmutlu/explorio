@@ -338,10 +338,6 @@ body {
     pointer-events: none;
 }
 
-.options-menu {
-    z-index: 3;
-}
-
 .mobile-options-open {
     position: absolute;
     left: calc(50% + 28px);

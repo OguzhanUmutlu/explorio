@@ -25,10 +25,6 @@ body {
     }
 }
 
-.flex {
-    display: flex;
-}
-
 .main-menu {
     position: absolute;
     left: 50%;
@@ -56,7 +52,7 @@ body {
     margin: 10px;
     background: rgba(0, 0, 0, 0.5);
     padding: 20px;
-    border-radius: 10px;
+    border-radius: 3px;
     cursor: pointer;
 }
 
@@ -96,4 +92,8 @@ body {
 
 a {
     color: #6868ff;
+}
+
+.options-menu {
+    backdrop-filter: blur(0);
 }

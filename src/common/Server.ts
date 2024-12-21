@@ -34,10 +34,12 @@ import BanIPCommand from "@/command/defaults/BanIPCommand";
 import OperatorCommand from "@/command/defaults/OperatorCommand";
 import DeOperatorCommand from "@/command/defaults/DeOperatorCommand";
 import SayCommand from "@/command/defaults/SayCommand";
+import {LanguageName, Languages} from "@/lang/Language";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
     renderDistance: z.number().min(0),
+    language: z.enum(<[LanguageName, ...LanguageName[]]>Object.keys(Languages)),
     defaultWorld: z.string().default("default"),
     defaultWorlds: z.record(z.string(), ZWorldMetaData),
     packetCompression: z.boolean(),
@@ -57,6 +59,7 @@ export type EventHandlersType = Map<ClassOf<PluginEvent>, SingleEventHandler[]>;
 export const DefaultServerConfig: ServerConfig = {
     port: 1881,
     renderDistance: 3,
+    language: "en",
     defaultWorld: "default",
     defaultWorlds: {
         default: {
@@ -178,6 +181,7 @@ export default class Server {
 
                 this.bans.push(new BanEntry(ban.name, ban.ip, ban.timestamp, ban.reason));
             }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
             printer.error("Couldn't parse ban file. Closing server... Please fix the JSON or remove the file.");
             return this.close();
@@ -224,17 +228,23 @@ export default class Server {
             this.config ??= DefaultServerConfig;
             this.writeFile("server.json", JSON.stringify(this.config, null, 2));
             printer.warn("Created server.json, please edit it and restart the server");
-            this.terminateProcess();
+            return this.terminateProcess();
         } else {
             try {
                 const got = JSON.parse(this.readFile("server.json").toString());
-                ZServerConfig.parse(got);
+                const r = ZServerConfig.safeParse(got);
+                if (!r.success) {
+                    printer.error(`Invalid server.json. Errors:\n${
+                        r.error.errors.map(e => e.path.join(" and ") + ": " + e.message).join("\n")
+                    }\nPlease edit it and restart the server.`);
+                    return this.terminateProcess();
+                }
                 this.config = got;
             } catch (e) {
                 printer.error(e);
                 printer.warn("Invalid server.json, please edit it and restart the server");
                 printer.info("Default config: ", JSON.stringify(DefaultServerConfig, null, 2));
-                this.terminateProcess();
+                return this.terminateProcess();
             }
         }
     };
@@ -565,7 +575,7 @@ export default class Server {
 
         this.saveCounter += dt;
         if (this.saveCounter > this.config.saveIntervalSeconds) {
-            this.saveWorlds();
+            this.saveAll();
             this.saveCounter = 0;
         }
 

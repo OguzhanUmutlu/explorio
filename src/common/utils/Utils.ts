@@ -208,6 +208,10 @@ export function splitByUnderscore(str: string) {
     return str.split("_").map(i => i[0] + i.slice(1).toLowerCase());
 }
 
+export function splitByUppercase(str: string) {
+    return str.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
+}
+
 /** @description World X to chunkX */
 export function x2cx(x: number) {
     return x >> ChunkLengthBits;
