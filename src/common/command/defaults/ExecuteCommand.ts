@@ -63,7 +63,7 @@ export default class ExecuteCommand extends Command {
                     for (const ent of sender.server.executeSelector(entity, locations[entity.id], selector)) {
                         if (!entities.includes(ent)) {
                             entities.push(ent);
-                            locations[ent.id] ??= oldLocations[ent.id] || ent.location.copy();
+                            locations[ent.id] ??= oldLocations[ent.id] || ent.copyLocation();
                         }
                     }
                 }
@@ -73,7 +73,7 @@ export default class ExecuteCommand extends Command {
                     for (const entity of entities) {
                         const loc = locations[entity.id];
                         const val = sender.server.executeSelector(entity, loc, token)[0];
-                        loc.copyFrom(val.location);
+                        loc.copyFrom(val);
                     }
                 } else {
                     if (!this.posArg.blindCheck(tokens, i).pass) {
@@ -121,7 +121,7 @@ export default class ExecuteCommand extends Command {
                 for (const entity of entities) {
                     const loc = locations[entity.id];
                     const pos = token instanceof SelectorToken
-                        ? sender.server.executeSelector(entity, loc, token)[0].location
+                        ? sender.server.executeSelector(entity, loc, token)[0]
                         : this.posArg.read(entity, loc, tokens, i);
                     loc.rotation = "bb" in entity
                         ? loc.getRotationTowards(pos.x, pos.y, entity.bb.width, entity.bb.height)
@@ -169,7 +169,7 @@ export default class ExecuteCommand extends Command {
                     const loc = oldLocations[entity.id];
                     const newEntity = loc.world.summonEntity(EntityNameMap[name], loc.x, loc.y);
                     entities.push(newEntity);
-                    locations[newEntity.id] = newEntity.location.copy();
+                    locations[newEntity.id] = newEntity.copyLocation();
                 }
             } else if (token.rawText === "if" || token.rawText === "unless") {
                 const b = 1 - +(token.rawText === "if");

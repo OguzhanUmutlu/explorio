@@ -1,7 +1,7 @@
 // you could technically set your time to the beginning of 1970, press E, click 1 item to trigger thrice-clicking
 // 1) why would you do this, it isn't like advantageous, completely client-sided feature
 // 2) why am I thinking of this
-import {CraftingInventoryNames, CraftingResultInventoryNames, InventoryName} from "@/meta/Inventories";
+import {CraftingMap, CraftingResultMap, InventoryName} from "@/meta/Inventories";
 import {clientNetwork, clientPlayer} from "@dom/Client";
 import {Div} from "@c/utils/Utils";
 
@@ -24,7 +24,7 @@ export default class InventoryHandler {
 
     shiftClick(index: number) {
         const source = this.inventory;
-        const clickedCraftResult = CraftingResultInventoryNames.includes(this.inventoryName);
+        const clickedCraftResult = this.inventoryName in CraftingResultMap;
         const item = source.get(index)?.clone();
         const accessible = clientPlayer.getAccessibleInventoryNames();
         const shiftables = clientPlayer.getShiftableInventoryNames();
@@ -78,9 +78,9 @@ export default class InventoryHandler {
         const source = this.inventory;
         const item = source.get(index)?.clone();
         const cursor = clientPlayer.cursorItem;
-        const clickedCraftResult = CraftingResultInventoryNames.includes(this.inventoryName);
+        const clickedResult = this.inventoryName in CraftingResultMap;
 
-        if ((!item && !cursor) || clickedCraftResult) return false;
+        if ((!item && !cursor) || clickedResult) return false;
 
         if (item && !cursor) clientNetwork.makeItemTransfer(this.inventoryName, index, [{
             inventory: "cursor",
@@ -99,14 +99,14 @@ export default class InventoryHandler {
         if (shift) return this.shiftClick(index);
 
         const source = this.inventory;
-        const clickedCraftResult = CraftingResultInventoryNames.includes(this.inventoryName);
+        const clickedResult = this.inventoryName in CraftingResultMap;
         const item = source.get(index)?.clone();
         const cursor = clientPlayer.cursorItem;
         const accessible = clientPlayer.getAccessibleInventoryNames();
 
         if (cursor) {
             // you are clicking to an item with an item in your cursor
-            if (clickedCraftResult) {
+            if (clickedResult) {
                 // you are clicking a crafting result with an item in your cursor
                 // if it's possible, get more items from the craft result to the cursor
 
@@ -114,7 +114,7 @@ export default class InventoryHandler {
                 if (!item || !item.equals(cursor, false, true)) return;
 
                 // can't get all of them, so give up
-                if (item.count + cursor.count > cursor.getMaxStack()) return;
+                if (item.count + cursor.count > cursor.maxStack) return;
 
                 clientNetwork.makeItemTransfer(this.inventoryName, 0, [{
                     inventory: "cursor",
@@ -123,7 +123,7 @@ export default class InventoryHandler {
                 }])
                 return;
             }
-            const maxStack = cursor.getMaxStack();
+            const maxStack = cursor.maxStack;
             if (!item || (item.equals(cursor, false, true) && item.count < maxStack)) {
                 const count = Math.min(maxStack - (item ? item.count : 0), cursor.count);
 
@@ -139,7 +139,7 @@ export default class InventoryHandler {
             if (Date.now() - lastTakeInv < 1000 && lastTakeInvIndex === index) {
                 // clicked thrice, collect all the items like the ones in the cursor to the cursor
                 let count = 0;
-                const maxStack = item.getMaxStack();
+                const maxStack = item.maxStack;
                 for (const invName of accessible) {
                     if (count >= maxStack) break;
                     const inv = clientPlayer.inventories[invName];
@@ -180,7 +180,11 @@ export default class InventoryHandler {
         if (button === 0 && this.leftClick(index, shift)) return;
     };
 
-    animate() {
+    hasUpdatedCrafting() {
+        return clientPlayer.inventories[this.inventoryName].dirtyIndexes.size > 0 && (this.inventoryName in CraftingMap);
+    };
+
+    render() {
         const inventory = clientPlayer.inventories[this.inventoryName];
 
         if (inventory.wholeDirty) {
@@ -215,8 +219,5 @@ export default class InventoryHandler {
 
             count.innerText = item.count <= 1 ? "" : item.count.toString();
         }
-
-        // has it caused the crafting ínventory to change and is the crafting inventory?
-        return inventory.dirtyIndexes.size > 0 && CraftingInventoryNames.includes(this.inventoryName);
     };
 }

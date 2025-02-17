@@ -1,7 +1,7 @@
 import {Bin, BufferIndex} from "stramp";
 import Effect from "@/effect/Effect";
 import {StrampProblem} from "stramp/src/StrampProblem";
-import {EffectIds, Effects} from "@/utils/Effects";
+import {EffectIds, Effects} from "@/meta/Effects";
 
 export const EffectStruct = new class extends Bin<Effect> {
     name = "Effect";

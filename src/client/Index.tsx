@@ -54,9 +54,11 @@ export default function Index(O: {
         {...getMenus("index", page)}
 
         <div className="text-left" style={isMobile ? {fontSize: "15px"} : {}}>Explorio v{VersionString}</div>
-        <div className="text-right" style={isMobile ? {fontSize: "15px"} : {}}>
-            Not affiliated with Mojang. <a href="https://github.com/OguzhanUmutlu/explorio"
-                                           target="_blank">Open source!</a>
+        <div className="text-right" style={{
+            ...(isMobile ? {fontSize: "15px"} : {}),
+            zIndex: 10
+        }}>
+            <a href="https://github.com/OguzhanUmutlu/explorio" target="_blank">Not affiliated with Mojang.</a>
         </div>
     </>;
 }

@@ -1,5 +1,5 @@
 import X, {Bin, BufferIndex, IntBaseBin} from "stramp";
-import {Entities, EntityClasses} from "@/meta/Entities";
+import {EntityIds, EntityClasses} from "@/meta/Entities";
 import Entity from "@/entity/Entity";
 
 export default new class EntitySaveStruct extends Bin<Entity> {
@@ -8,7 +8,7 @@ export default new class EntitySaveStruct extends Bin<Entity> {
 
     constructor() {
         super();
-        this.typeIdBin = <IntBaseBin>X.getNumberTypeOf(Entities.__MAX__);
+        this.typeIdBin = <IntBaseBin>X.getNumberTypeOf(EntityIds.__MAX__);
     };
 
     unsafeWrite(bind: BufferIndex, entity: Entity) {

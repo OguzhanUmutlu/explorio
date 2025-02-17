@@ -5,37 +5,23 @@ export enum Containers {
     PlayerInventory,
     Chest,
     DoubleChest,
-    CraftingTable
+    CraftingTable,
+    Furnace
 }
 
 export const ContainerIDBin = X.any.ofValues(...<Containers[]>Object.values(Containers));
 
-export type InventoryName = typeof Inventories[keyof typeof Inventories];
+export type InventoryName = keyof typeof InventorySizes;
 
-export const CraftingResultInventoryNames: ReadonlyArray<InventoryName> = ["craftingSmallResult", "craftingBigResult"];
-export const CraftingInventoryNames: ReadonlyArray<InventoryName> = ["craftingSmall", "craftingBig"];
 export const CraftingMap = <Record<InventoryName, InventoryName>>{
     "craftingSmall": "craftingSmallResult",
     "craftingBig": "craftingBigResult"
 };
-export const CraftingMapFromResult = <Record<InventoryName, InventoryName>>{
+
+export const CraftingResultMap = <Record<InventoryName, InventoryName>>{
     "craftingSmallResult": "craftingSmall",
     "craftingBigResult": "craftingBig"
 };
-
-export const Inventories = {
-    Hotbar: "hotbar",
-    Offhand: "offhand",
-    Player: "player",
-    Armor: "armor",
-    Cursor: "cursor",
-    Chest: "chest",
-    DoubleChest: "doubleChest",
-    CraftingSmall: "craftingSmall",
-    CraftingSmallResult: "craftingSmallResult",
-    CraftingBig: "craftingBig",
-    CraftingBigResult: "craftingBigResult"
-} as const;
 
 export const InventorySizes = {
     hotbar: 9,
@@ -48,5 +34,8 @@ export const InventorySizes = {
     craftingSmall: 4,
     craftingSmallResult: 1,
     craftingBig: 9,
-    craftingBigResult: 1
+    craftingBigResult: 1,
+    furnaceInput: 1,
+    furnaceFuel: 1,
+    furnaceResult: 1
 } as const;

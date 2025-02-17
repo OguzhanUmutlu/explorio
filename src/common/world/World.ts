@@ -19,11 +19,13 @@ import BlockPlaceEvent from "@/event/defaults/BlockPlaceEvent";
 import BlockBreakEvent from "@/event/defaults/BlockBreakEvent";
 import ItemEntity from "@/entity/defaults/ItemEntity";
 import Item from "@/item/Item";
-import {Entities, EntityClasses} from "@/meta/Entities";
+import {EntityClasses, EntityIds} from "@/meta/Entities";
 import {Containers} from "@/meta/Inventories";
 import InteractBlockEvent from "@/event/defaults/InteractBlockEvent";
 import Chunk from "@/world/Chunk";
 import {Version, Versions, VersionString, WorldGenerationVersion} from "@/Versions";
+import XPOrbEntity from "@/entity/defaults/XPOrbEntity";
+import Tile from "@/tile/Tile";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -68,7 +70,7 @@ export const DefaultWorldMetadata: WorldMetaData = {
 
 export type Collision = { x: number, y: number, meta: ItemMetadata, bb: BoundingBox };
 
-export const InteractableBlocks = [I.CRAFTING_TABLE];
+export const InteractableBlocks = [I.CRAFTING_TABLE, I.CHEST, I.FURNACE];
 export const SpawnChunkDistance = 2;
 
 // Variable meanings:
@@ -83,6 +85,7 @@ export default class World {
     path: string;
     chunks: Record<number, Chunk> = {};
     entities: Record<number, Entity> = {};
+    tiles: Record<number, Tile> = {};
     unloaded = false;
 
     constructor(
@@ -223,6 +226,11 @@ export default class World {
             for (const entity of chunkData.entities) {
                 entity.world = this;
                 entity.init();
+            }
+
+            for (const tile of chunkData.tiles) {
+                tile.setWorld(this);
+                tile.init();
             }
 
             this.chunksGenerated.add(chunkX);
@@ -393,14 +401,18 @@ export default class World {
 
         if (new InteractBlockEvent(player, x, y, block).callGetCancel()) return;
 
-        switch (block.id) {
-            case I.CRAFTING_TABLE:
-                player.containerId = Containers.CraftingTable;
-                player.containerX = x;
-                player.containerY = y;
-                player.network?.sendContainer();
-                break;
-        }
+        const containerId = {
+            [I.CRAFTING_TABLE]: Containers.CraftingTable,
+            [I.FURNACE]: Containers.Furnace,
+            [I.CHEST]: Containers.Chest
+        }[block.id];
+
+        if (!containerId) return;
+
+        player.containerId = containerId;
+        player.containerX = x;
+        player.containerY = y;
+        player.network?.sendContainer();
     };
 
     anyEntityTouchBlock(x: number, y: number) {
@@ -413,7 +425,7 @@ export default class World {
         return false;
     };
 
-    createEntity<T extends Entity>(id: Entities, x: number, y: number) {
+    createEntity<T extends Entity>(id: EntityIds, x: number, y: number) {
         const entity = new (EntityClasses[id])();
         entity.x = x;
         entity.y = y;
@@ -421,7 +433,7 @@ export default class World {
         return <T>entity;
     };
 
-    summonEntity<T extends Entity>(id: Entities, x: number, y: number) {
+    summonEntity<T extends Entity>(id: EntityIds, x: number, y: number) {
         const entity = this.createEntity<T>(id, x, y);
         entity.init();
         entity.broadcastSpawn();
@@ -429,7 +441,7 @@ export default class World {
     };
 
     dropItem(x: number, y: number, item: Item, vx = Math.random() - 0.5, vy = Math.random() + 0.3, delay = 0.3) {
-        const entity = this.createEntity<ItemEntity>(Entities.ITEM, x, y);
+        const entity = this.createEntity<ItemEntity>(EntityIds.ITEM, x, y);
         entity.x = x;
         entity.y = y;
         entity.vx = vx;
@@ -437,6 +449,20 @@ export default class World {
         entity.delay = delay;
         entity.world = this;
         entity.item = item;
+        entity.init();
+        entity.broadcastSpawn();
+        return entity;
+    };
+
+    dropXP(x: number, y: number, amount: number, vx = Math.random() - 0.5, vy = Math.random() + 0.3, delay = 0.3) {
+        const entity = this.createEntity<XPOrbEntity>(EntityIds.ITEM, x, y);
+        entity.x = x;
+        entity.y = y;
+        entity.vx = vx;
+        entity.vy = vy;
+        entity.delay = delay;
+        entity.world = this;
+        entity.amount = amount;
         entity.init();
         entity.broadcastSpawn();
         return entity;

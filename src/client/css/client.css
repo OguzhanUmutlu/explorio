@@ -38,6 +38,10 @@ body {
     aspect-ratio: 1 / 1;
 }
 
+.inventory-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .inventory-item > canvas {
     width: 60%;
     height: 60%;
@@ -231,7 +235,7 @@ body {
     z-index: 2;
 }
 
-.player-inventory-container, .crafting-table-container {
+.player-inventory-container, .crafting-table-container, .furnace-container {
     position: absolute;
     left: 50%;
     top: 50%;
@@ -246,7 +250,7 @@ body {
     z-index: 3;
 }
 
-.player-inventory-container > div, .crafting-table-container > div {
+.player-inventory-container > div, .crafting-table-container > div, .furnace-container > div {
     position: absolute;
     z-index: 3;
 }
@@ -255,14 +259,18 @@ body {
     background-image: url("../assets/textures/gui/inventory/crafting_table.png");
 }
 
-.inv-pp, .inv-cp {
+.furnace-container {
+    background-image: url("../assets/textures/gui/inventory/furnace_inventory.png");
+}
+
+.inv-pp, .inv-cp, .inv-fp {
     left: 4%;
     top: 50%;
     width: 92%;
     height: 32.8%;
 }
 
-.inv-ph, .inv-ch {
+.inv-ph, .inv-ch, .inv-fh {
     left: 4%;
     top: 85%;
     width: 92%;
@@ -307,7 +315,9 @@ body {
 .inv-pp > .inventory-item,
 .inv-ph > .inventory-item,
 .inv-cp > .inventory-item,
-.inv-ch > .inventory-item {
+.inv-ch > .inventory-item,
+.inv-fp > .inventory-item,
+.inv-fh > .inventory-item {
     width: calc(100% / 9);
 }
 
@@ -326,6 +336,24 @@ body {
 
 .inv-cc > .inventory-item {
     width: calc(100% / 3);
+}
+
+.inv-ffi {
+    left: 31.3%;
+    top: 10%;
+    width: 10.2%;
+}
+
+.inv-fff {
+    left: 31.3%;
+    top: 31.5%;
+    width: 10.2%;
+}
+
+.inv-ffr {
+    left: 65.45%;
+    top: 20.5%;
+    width: 10.2%;
 }
 
 .cursor-inventory {

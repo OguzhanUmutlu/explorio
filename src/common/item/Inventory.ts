@@ -163,7 +163,7 @@ export default class Inventory {
         const sameItem = fromItem.equals(toItem, false, true);
         if (toItem && !sameItem) return null; // the source item and the target item were not the same
 
-        const maxStack = fromItem.getMaxStack();
+        const maxStack = fromItem.maxStack;
         if (toItem && toItem.count + count > maxStack) return null; // count is too much and overflows
 
         const alrThis = this.dirtyIndexes.has(from);
@@ -186,7 +186,6 @@ export default class Inventory {
         }
 
         // here, target is empty.
-
 
         this.set(from, fromItem.clone(fromItem.count - count));
         target.set(to, fromItem.clone(count));
@@ -228,8 +227,8 @@ export default class Inventory {
             item.count += amount;
 
             if (item.count <= 0) return this.removeIndex(index);
-            if (item.count >= item.getMaxStack()) {
-                item.count = item.getMaxStack();
+            if (item.count >= item.maxStack) {
+                item.count = item.maxStack;
             }
 
             this.updateIndex(index);

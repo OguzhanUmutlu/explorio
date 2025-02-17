@@ -1,6 +1,6 @@
 import X, {Bin, BufferIndex} from "stramp";
 import {StrampProblem} from "stramp/src/StrampProblem";
-import {EffectIds, Effects} from "@/utils/Effects";
+import {EffectIds, Effects} from "@/meta/Effects";
 import EffectInstance from "@/effect/EffectInstance";
 
 const BaseStruct = X.object.struct({

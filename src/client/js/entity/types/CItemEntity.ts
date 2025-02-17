@@ -17,7 +17,7 @@ export default class CItemEntity extends ItemEntity implements CEntity {
 
         const bb = this.bb;
         const pos = getClientPosition(bb.x, bb.y);
-        const s = TileSize.value / 4;
-        this.getItem()?.render(ctx, pos.x, pos.y - s, s, s, false);
+        const s = bb.width * TileSize.value;
+        this.getItem()?.renderItem(ctx, pos.x, pos.y - s, s, s, false);
     };
 }

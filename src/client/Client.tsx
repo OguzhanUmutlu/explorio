@@ -23,7 +23,7 @@ import OriginPlayer from "@c/entity/types/OriginPlayer";
 import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
-import {Containers, Inventories, InventorySizes} from "@/meta/Inventories";
+import {Containers, CraftingResultMap, InventorySizes} from "@/meta/Inventories";
 import {BM} from "@/meta/ItemIds";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
@@ -33,6 +33,7 @@ import {ChunkLength, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import {im2f} from "@/meta/Items";
 import {cx2x, cy2y, rotateMeta, x2cx, y2cy} from "@/utils/Utils";
 import {getMenus, OptionPages} from "@dom/components/options/Menus";
+import Player from "@/entity/defaults/Player";
 
 declare global {
     interface Window {
@@ -65,6 +66,8 @@ export let handIndexState: ReactState<number>;
 
 export let clientServer: CServer;
 export let singlePlayerServer: Server;
+export let serverNetwork: PlayerNetwork;
+export let serverPlayer: Player;
 export let clientPlayer: OriginPlayer;
 export let clientNetwork: ClientNetwork;
 export const camera = {x: 0, y: 0};
@@ -256,7 +259,7 @@ function animate() {
         if (item) {
             const block = BM[im2f(item.id, rotateMeta(item.id, item.meta, Mouse.rotation))];
             if (block && clientPlayer.canPlaceBlock()) {
-                block.render(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false);
+                block.renderBlock(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false);
                 drawShadow(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, shadow / 2);
             }
         }
@@ -329,6 +332,10 @@ function onWheel(e: WheelEvent) {
 let executedF3 = false;
 
 function onPressKey(e: KeyboardEvent) {
+    if (Keyboard.f3 && e.key in F3Macro) {
+        return;
+    }
+
     if (isAnyUIOpen()) {
         if (!isInChat() && e.key === "e") {
             clientPlayer.containerId = Containers.Closed;
@@ -353,19 +360,38 @@ function onPressKey(e: KeyboardEvent) {
             const num = +e.key;
             if (num && num >= 1 && num <= 9 && clientPlayer.hoveringInventory) {
                 const fromIndex = clientPlayer.hoveringIndex;
+                const isFromResult = clientPlayer.hoveringInventory in CraftingResultMap;
                 const toIndex = num - 1;
                 if (fromInv === clientPlayer.hotbarInventory && toIndex === fromIndex) return;
 
+                const fromItem = fromInv.get(fromIndex);
                 const toItem = clientPlayer.hotbarInventory.get(toIndex);
+
                 if (fromItem || toItem) {
-                    fromInv.set(fromIndex, toItem);
-                    clientPlayer.hotbarInventory.set(toIndex, fromItem);
-                    clientNetwork.sendItemSwap(invName, fromIndex, "hotbar", toIndex);
+                    if (isFromResult) {
+                        if (toItem && (
+                            !toItem.equals(fromItem, false, true)
+                            || toItem.count + fromItem.count > toItem.maxStack
+                        )) return;
+
+                        clientNetwork.makeItemTransfer(invName, fromIndex, [{
+                            inventory: "hotbar",
+                            index: toIndex,
+                            count: fromItem.count
+                        }]);
+                    } else {
+                        clientNetwork.makeItemSwap(invName, fromIndex, "hotbar", toIndex);
+                    }
                 }
             } else if (e.key === "q") {
                 if (fromItem) {
                     fromInv.decreaseItemAt(clientPlayer.hoveringIndex);
                     clientNetwork.sendDropItem(invName, clientPlayer.hoveringIndex, 1);
+                }
+            } else if (e.key === "r") {
+                if (fromItem) {
+                    fromInv.removeIndex(clientPlayer.hoveringIndex);
+                    clientNetwork.sendDropItem(invName, clientPlayer.hoveringIndex, fromItem.count);
                 }
             }
         }
@@ -415,7 +441,12 @@ let lastSpace = 0;
 const F3Macro = {
     "b": () => renderCollisionBoxes = !renderCollisionBoxes,
     "g": () => showChunkBorders = !showChunkBorders,
-    "d": () => chatBox.innerText = ""
+    "d": () => chatBox.innerText = "",
+    "q": () => {
+        clientPlayer.sendMessage("F3 + B: Toggle visibility of hitboxes of visible entities.");
+        clientPlayer.sendMessage("F3 + G: Toggles visibility of the chunk borders around the player.");
+        clientPlayer.sendMessage("F3 + D: Clear chat history.");
+    }
 };
 
 function onReleaseKey(e: KeyboardEvent) {
@@ -448,7 +479,10 @@ function onLoseFocus() {
     Mouse.left = false;
     Mouse.right = false;
     Mouse.middle = false;
-    if (Options.pauseOnBlur && optionPopup[0] === "none") optionPopup[1]("main");
+    if (Options.pauseOnBlur && optionPopup[0] === "none") {
+        optionPopup[1]("main");
+        closeChat();
+    }
 }
 
 function onFocus() {
@@ -588,7 +622,7 @@ export function initClient() {
     const req = {socket: {remoteAddress: "::ffff:127.0.0.1"}};
 
     clientPlayer = OriginPlayer.spawn(clientServer.defaultWorld);
-    clientPlayer.name = isMultiPlayer ? Options.username : "Player";
+    clientPlayer.name = isMultiPlayer ? (Options.username || "Steve") : "Player";
 
     clientPlayer.immobile = true;
     clientNetwork = new ClientNetwork;
@@ -606,7 +640,7 @@ export function initClient() {
         singlePlayerServer.init();
         singlePlayerServer.bans = [];
 
-        const serverNetwork = new PlayerNetwork({
+        serverNetwork = new PlayerNetwork({
             send(data: Buffer) {
                 clientNetwork.processPacketBuffer(data);
             },
@@ -627,6 +661,7 @@ export function initClient() {
         clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPacketBuffer(pk.serialize());
 
         clientNetwork.sendAuth(true);
+        serverPlayer = serverNetwork.player;
 
         serverNetwork.player.permissions.add("*");
     }
@@ -700,7 +735,7 @@ export function saveAndQuit() {
 // todo: flowing blocks (water/lava)
 // todo: zombies and cows
 // todo: when the client gets a chunk and client leaves & gets back to that chunk, it shouldn't send the chunk data
-//  again unless it's dirty have an object like Record<PlayerName, TimeOfLoad> in Chunk class, and
+//  again unless it's dirty. should have an object like Record<PlayerName, TimeOfLoad> in Chunk class, and
 //  also have the lastDirty: number to check if the chunk was cleaned while the player was away
 // todo: bug: at the end of every chunk, if the surface is let's say flat, the last block in that chunk will produce more light to bottom
 // todo: add inventory item tooltip and add an advanced mode to it via F3+G
@@ -709,6 +744,8 @@ export function saveAndQuit() {
 // todo: render item damage
 // todo: add back the lighting system with the new small block depth
 // todo: add usernames on top of the players
+// todo: show item name etc. when hovered over in inventory
+// todo: advancement api
 
 function isInChat() {
     return chatContainer[0];
@@ -842,36 +879,54 @@ export default function Client(O: {
         {/* Hotbar */}
         <InventoryDiv className="hotbar-inventory inventory"
                       style={isMobile ? {width: "50%"} : (f1On[0] ? {"opacity": "0"} : {})}
-                      inventoryName={Inventories.Hotbar} ikey="hi" handIndex={handIndexState}></InventoryDiv>
+                      inventoryName={"hotbar"} ikey="hi" handIndex={handIndexState}></InventoryDiv>
+
 
         {/* Player Inventory */}
         <div className="player-inventory-container"
              style={containerState[0] === Containers.PlayerInventory ? {scale: "1"} : {}}>
-            <InventoryDiv className="inv-pp inventory" inventoryName={Inventories.Player}
+            <InventoryDiv className="inv-pp inventory" inventoryName={"player"}
                           ikey="pp"></InventoryDiv>
-            <InventoryDiv className="inv-ph inventory" inventoryName={Inventories.Hotbar}
+            <InventoryDiv className="inv-ph inventory" inventoryName={"hotbar"}
                           ikey="ph"></InventoryDiv>
-            <InventoryDiv className="inv-pa inventory" inventoryName={Inventories.Armor} ikey="pa"></InventoryDiv>
-            <InventoryDiv className="inv-pcs inventory" inventoryName={Inventories.CraftingSmall}
+            <InventoryDiv className="inv-pa inventory" inventoryName={"armor"} ikey="pa"></InventoryDiv>
+            <InventoryDiv className="inv-pcs inventory" inventoryName={"craftingSmall"}
                           ikey="pcs"></InventoryDiv>
-            <InventoryDiv className="inv-pcr inventory" inventoryName={Inventories.CraftingSmallResult}
+            <InventoryDiv className="inv-pcr inventory" inventoryName={"craftingSmallResult"}
                           ikey="pcr"></InventoryDiv>
         </div>
+
 
         {/* Crafting Table Inventory */}
         <div className="crafting-table-container"
              style={containerState[0] === Containers.CraftingTable ? {scale: "1"} : {}}>
-            <InventoryDiv className="inv-cc inventory" inventoryName={Inventories.CraftingBig}
+            <InventoryDiv className="inv-cc inventory" inventoryName={"craftingBig"}
                           ikey="cc"></InventoryDiv>
-            <InventoryDiv className="inv-ccr inventory" inventoryName={Inventories.CraftingBigResult}
+            <InventoryDiv className="inv-ccr inventory" inventoryName={"craftingBigResult"}
                           ikey="ccr"></InventoryDiv>
-            <InventoryDiv className="inv-cp inventory" inventoryName={Inventories.Player} ikey="cp"></InventoryDiv>
-            <InventoryDiv className="inv-ch inventory" inventoryName={Inventories.Hotbar}
+            <InventoryDiv className="inv-cp inventory" inventoryName={"player"} ikey="cp"></InventoryDiv>
+            <InventoryDiv className="inv-ch inventory" inventoryName={"hotbar"}
                           ikey="ch"></InventoryDiv>
         </div>
 
+
+        {/* Furnace Inventory */}
+        <div className="furnace-container"
+             style={containerState[0] === Containers.Furnace ? {scale: "1"} : {}}>
+            <InventoryDiv className="inv-ffi inventory" inventoryName={"furnaceInput"}
+                          ikey="ffi"></InventoryDiv>
+            <InventoryDiv className="inv-fff inventory" inventoryName={"furnaceFuel"}
+                          ikey="ff"></InventoryDiv>
+            <InventoryDiv className="inv-ffr inventory" inventoryName={"furnaceResult"}
+                          ikey="ffr"></InventoryDiv>
+            <InventoryDiv className="inv-fp inventory" inventoryName={"player"} ikey="fp"></InventoryDiv>
+            <InventoryDiv className="inv-fh inventory" inventoryName={"hotbar"}
+                          ikey="fh"></InventoryDiv>
+        </div>
+
+
         {/* Cursor Inventory */}
-        <InventoryDiv className="cursor-inventory inventory" inventoryName={Inventories.Cursor} style={{
+        <InventoryDiv className="cursor-inventory inventory" inventoryName={"cursor"} style={{
             left: mouseX[0] + "px",
             top: mouseY[0] + "px"
         }} ikey="cursorInv"></InventoryDiv>
@@ -881,6 +936,7 @@ export default function Client(O: {
         {React.useMemo(() => {
             return <>{...getMenus("client", optionPopup)}</>;
         }, [optionPopup[0]])}
+
 
         {/* Mobile Control Buttons */}
         <div className="mobile-controls" hidden={!isMobile}>
@@ -905,6 +961,7 @@ export default function Client(O: {
         }>
             Saving the world...
         </div>
+
 
         {/* The screen used to display the connection or disconnection text */}
         <div className="connection-text" style={

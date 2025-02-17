@@ -20,6 +20,7 @@ export enum PacketIds {
     SUpdateInventory,
     SSetContainer,
     SSetHandIndex,
+    SResetPlaceCooldown,
     // SEntityAnimation,
     // SPlayAmbient,
     // SStopAmbient,

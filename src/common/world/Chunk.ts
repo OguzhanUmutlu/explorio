@@ -7,10 +7,12 @@ import {cx2x, rxy2ci, zstdOptionalEncode} from "@/utils/Utils";
 import {BM} from "@/meta/ItemIds";
 import {ItemMetadata} from "@/meta/Items";
 import {WorldGenerationVersion} from "@/Versions";
+import Tile from "@/tile/Tile";
 
 export default class Chunk {
     blocks: Uint16Array = new Uint16Array(ChunkBlockAmount);
     entities = new Set<Entity>();
+    tiles = new Set<Tile>();
     referees = 0;
     dirty = false;
     dirtyTime = 0;
@@ -77,7 +79,8 @@ export default class Chunk {
 
         const buffer = ChunkStruct.serialize({
             blocks: this.blocks,
-            entities: Array.from(this.entities).filter(i => !(i instanceof Player))
+            entities: Array.from(this.entities).filter(i => !(i instanceof Player)),
+            tiles: Array.from(this.tiles)
         });
 
         const compressed = zstdOptionalEncode(buffer);
@@ -101,6 +104,8 @@ export default class Chunk {
             if (entity instanceof Player) {
                 entity.kick("The chunk you were in was unloaded. Please contact the server owner.");
             }
+
+            entity.despawn(false);
         }
 
         delete this.world.chunks[this.x];

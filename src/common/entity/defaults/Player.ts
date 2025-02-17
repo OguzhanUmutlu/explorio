@@ -1,11 +1,11 @@
-import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
+import {EntityIds, EntityBoundingBoxes} from "@/meta/Entities";
 import Inventory from "@/item/Inventory";
 import CommandSender from "@/command/CommandSender";
 import {getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
 import PlayerNetwork from "@/network/PlayerNetwork";
 import Entity from "@/entity/Entity";
 import {Packets} from "@/network/Packets";
-import {Containers, Inventories, InventoryName, InventorySizes} from "@/meta/Inventories";
+import {Containers, InventoryName, InventorySizes} from "@/meta/Inventories";
 import Item from "@/item/Item";
 import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import Packet from "@/network/Packet";
@@ -17,9 +17,10 @@ const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
     [Containers.Closed]: ["hotbar", "offhand"],
 
     [Containers.PlayerInventory]: ["hotbar", "offhand", "player", "armor", "craftingSmall", "craftingSmallResult", "cursor"],
-    [Containers.Chest]: ["chest", "hotbar", "offhand", "player", "cursor"],
-    [Containers.DoubleChest]: ["doubleChest", "hotbar", "offhand", "player", "cursor"],
-    [Containers.CraftingTable]: ["craftingBig", "craftingBigResult", "hotbar", "offhand", "player", "cursor"],
+    [Containers.Chest]: ["chest", "hotbar", "player", "cursor"],
+    [Containers.DoubleChest]: ["doubleChest", "hotbar", "player", "cursor"],
+    [Containers.CraftingTable]: ["craftingBig", "craftingBigResult", "hotbar", "player", "cursor"],
+    [Containers.Furnace]: ["furnaceInput", "furnaceFuel", "furnaceResult", "hotbar", "player", "cursor"]
 };
 
 // The ones you can shift-click to (you can shift click them, you just can't shift click any other thing to move to these)
@@ -29,14 +30,14 @@ const nonShiftables: InventoryName[] = ["cursor", "player", "offhand", "hotbar",
 const temporaryInventories: InventoryName[] = ["cursor", "craftingSmall", "craftingBig"];
 
 export default class Player extends Entity implements CommandSender {
-    typeId = Entities.PLAYER;
+    typeId = EntityIds.PLAYER;
     typeName = "player";
 
     name = "";
     skin = null;
     network: PlayerNetwork;
 
-    bb = EntityBoundingBoxes[Entities.PLAYER].copy();
+    bb = EntityBoundingBoxes[EntityIds.PLAYER].copy();
     permissions = new Set<string>;
     breaking: [number, number] | null = null;
     breakingTime = 0;
@@ -47,6 +48,7 @@ export default class Player extends Entity implements CommandSender {
     handIndex = 0;
 
     xp = 0;
+    xpLevels = 0;
     gamemode = GameMode.Survival;
     canBreak = true;
     canPlace = true;
@@ -70,9 +72,8 @@ export default class Player extends Entity implements CommandSender {
     inventories = <Record<InventoryName, Inventory>>{};
 
     init() {
-        for (const k in Inventories) {
-            const v = Inventories[<keyof typeof Inventories>k];
-            this.inventories[v] ??= new Inventory(InventorySizes[v], v);
+        for (const k in InventorySizes) {
+            this.inventories[k] ??= new Inventory(InventorySizes[k], k);
         }
 
         super.init();
@@ -533,5 +534,44 @@ export default class Player extends Entity implements CommandSender {
         this.handIndex = index;
         this.broadcastHandItem();
         this.network?.sendHandIndex();
+    };
+
+    getLevelMaxXP() {
+        return this.xpLevels * 25;
+    };
+
+    reduceXP() {
+        let max: number;
+
+        if (this.xp) return this.xp = 0;
+
+        while (this.xp >= (max = this.getLevelMaxXP())) {
+            this.xp -= max;
+            this.xpLevels++;
+        }
+    };
+
+    setXP(xp: number) {
+        this.xp = xp;
+        this.reduceXP();
+        this.network?.sendAttributes();
+    };
+
+    addXP(xp: number) {
+        this.xp += xp;
+        this.reduceXP();
+        this.network?.sendAttributes();
+    };
+
+    setXPLevels(xpLevels: number) {
+        this.xpLevels = xpLevels;
+        this.reduceXP();
+        this.network?.sendAttributes();
+    };
+
+    addXPLevels(xpLevels: number) {
+        this.xpLevels += xpLevels;
+        this.reduceXP();
+        this.network?.sendAttributes();
     };
 }

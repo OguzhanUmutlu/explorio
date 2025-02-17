@@ -342,9 +342,11 @@ export default class Server {
 
     getAllEntities() {
         const entities: Entity[] = [];
+
         for (const world in this.worlds) {
             entities.push(...Object.values(this.worlds[world].entities));
         }
+
         return entities;
     };
 
@@ -659,7 +661,7 @@ export default class Server {
             if (!new CommandPreProcessEvent(player, message).callGetCancel()) this.executeCommandLabel(
                 player,
                 player,
-                player instanceof Entity ? (<Entity>player).location : new Location(0, 0, 0, this.defaultWorld),
+                player instanceof Entity ? (<Entity>player) : new Location(0, 0, 0, this.defaultWorld),
                 message.substring(1)
             );
         } else this.processChat(player, message);

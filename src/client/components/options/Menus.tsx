@@ -10,6 +10,7 @@ import SelectOption from "@dom/components/options/classes/SelectOption";
 import OptionButtonComponent from "@dom/components/options/OptionButtonComponent";
 import JSXOption from "@dom/components/options/classes/JSXOption";
 import {saveAndQuit} from "@dom/Client";
+import InputOption from "@dom/components/options/classes/InputOption";
 
 abstract class Menu {
     protected constructor(public title: string, public back: OptionPages | null) {
@@ -48,7 +49,7 @@ class JSXMenu extends Menu {
 
 export type OptionPages = "none" | "main" | "index" | "client" | "online" | "skin_customization" | "sound"
     | "video_settings" | "controls" | "language" | "chat" | "resource_packs" | "accessibility" | "animations"
-    | "statistics" | "achievements";
+    | "statistics" | "achievements" | "mouse" | "key_binds";
 
 export const Menus: Record<OptionPages, Menu> = {
     none: null,
@@ -105,7 +106,9 @@ export const Menus: Record<OptionPages, Menu> = {
     ]),
     statistics: new NormalMenu("Statistics", "main", []),
     achievements: new NormalMenu("Achievements", "main", []),
-    online: new NormalMenu("Online Options", "main", []),
+    online: new NormalMenu("Online Options", "main", [
+        new InputOption("username", "Username", "", 5, 20)
+    ]),
     skin_customization: new NormalMenu("Skin Customization", "main", []),
     sound: new NormalMenu("Music & Sound Settings", "main", [
         new NumberOption("master_volume", "Master Volume", "", 0, 100, 1, "%"),
@@ -156,7 +159,34 @@ export const Menus: Record<OptionPages, Menu> = {
             new ButtonOption("Animations...", "animations"),
         ])
     ]),
-    controls: new NormalMenu("Controls", "main", []),
+    controls: new NormalMenu("Controls", "main", [
+        new OptionGroup([
+            new ButtonOption("Mouse Settings...", "mouse"),
+            new ButtonOption("Key Binds...", "key_binds")
+        ]),
+        new OptionGroup([
+            new SelectOption("sneak", "Sneak", "", ["Hold", "Toggle"]),
+            new SelectOption("sprint", "Sprint", "", ["Hold", "Toggle"])
+        ]),
+        new OptionGroup([
+            new ToggleOption("auto_jump", "Auto Jump")
+        ])
+    ]),
+    mouse: new NormalMenu("Mouse Settings", "controls", [
+        new OptionGroup([
+            new NumberOption("camera_speed", "Camera Speed", "", 1, 30, 1),
+            new ToggleOption("invert_mouse", "Invert Mouse")
+        ]),
+        new OptionGroup([
+            new NumberOption("scroll_sensitivity", "Scroll Sensitivity", "", 1, 200, 1),
+            new ToggleOption("pauseOnBlur", "Pause on Blur")
+        ])
+    ]),
+    key_binds: new JSXMenu("Mouse Settings", "controls", () => {
+        return <>
+            Todo
+        </>;
+    }),
     language: new NormalMenu("Language", "main", []),
     chat: new NormalMenu("Chat Settings", "main", [
         new OptionGroup([
@@ -189,10 +219,6 @@ export const Menus: Record<OptionPages, Menu> = {
     ]),
     resource_packs: new NormalMenu("Resource Packs", "main", []),
     accessibility: new NormalMenu("Accessibility Settings", "main", [
-        new OptionGroup([
-            new ToggleOption("subtitles", "Subtitles"),
-            new ToggleOption("high_contrast", "High Contrast"),
-        ]),
         new OptionGroup([
             new NumberOption("auto_save", "Auto Save", "", 10, 600, 1, " seconds")
         ])

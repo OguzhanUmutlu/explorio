@@ -1,4 +1,4 @@
-import {Entities} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
 import Entity from "@/entity/Entity";
 import {ZstdSimple} from "@oneidentity/zstd-js";
 import Server from "@/Server";
@@ -7,6 +7,10 @@ import PlayerStruct from "@/structs/entity/PlayerStruct";
 import ItemEntityStruct from "@/structs/entity/ItemEntityStruct";
 import {IM} from "@/meta/ItemIds";
 import {ChunkLengthBits, ChunkLengthN} from "@/meta/WorldConstants";
+import {TileIds} from "@/meta/Tiles";
+import ChestTileStruct from "@/structs/tile/ChestTileStruct";
+import DoubleChestTileStruct from "@/structs/tile/DoubleChestTileStruct";
+import FurnaceTileStruct from "@/structs/tile/FurnaceTileStruct";
 
 let server: Server;
 
@@ -80,8 +84,14 @@ export function deserializeUint16Array(size: number, buffer: Buffer, offset: num
 }
 
 export const EntityStructs = {
-    [Entities.PLAYER]: PlayerStruct,
-    [Entities.ITEM]: ItemEntityStruct
+    [EntityIds.PLAYER]: PlayerStruct,
+    [EntityIds.ITEM]: ItemEntityStruct
+};
+
+export const TileStructs = {
+    [TileIds.CHEST]: ChestTileStruct,
+    [TileIds.FURNACE]: FurnaceTileStruct,
+    [TileIds.DOUBLE_CHEST]: DoubleChestTileStruct
 };
 
 export function permissionCheck(permissions: Set<string>, wanted: string) {

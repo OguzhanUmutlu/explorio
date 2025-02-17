@@ -6,7 +6,9 @@ import InventoryStruct from "@/structs/item/InventoryStruct";
 import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 
 const invStructRecord = <Record<InventoryName, InventoryStruct>>{};
-for (const k in InventorySizes) invStructRecord[k] = new InventoryStruct(InventorySizes[k], k);
+for (const k of [
+    "hotbar", "offhand", "player", "armor", "cursor"
+]) invStructRecord[k] = new InventoryStruct(InventorySizes[k], k);
 
 export default EntityStruct.extend({
     world: WorldStruct, // This is sufficient because player files aren't located inside world folders

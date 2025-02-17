@@ -46,7 +46,7 @@ export default class LittleBlockParticle extends Particle {
         // console.log(this.color)
         // ctx.drawImage(this.pixel, x0, y0, r, r);
         // ctx.fillRect(x0, y0, r, r);
-        this.block.render(ctx, x0, y0, r, r);
+        this.block.renderBlock(ctx, x0, y0, r, r);
         ctx.restore();
     };
 }

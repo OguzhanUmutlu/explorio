@@ -17,15 +17,15 @@ export const GroundHeight = 0.05;
 
 let _entity_id = 0;
 
-export default abstract class Entity {
+export default abstract class Entity extends Location {
     abstract typeId: number;
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes
+
     id = _entity_id++;
     _chunkX = NaN;
     _x = 0;
     _y = 0;
-    location = new Location(0, 0, 0, null);
     renderX = 0;
     renderY = 0;
     vx = 0;
@@ -50,6 +50,14 @@ export default abstract class Entity {
     invisible = false;
 
     server = getServer();
+
+    constructor() {
+        super(0, 0, 0, null);
+    };
+
+    copyLocation() {
+        return super.copy();
+    };
 
     getBlockReach() {
         return "blockReach" in this && typeof this.blockReach === "number" ? this.blockReach : Infinity;
@@ -78,44 +86,12 @@ export default abstract class Entity {
         this.onMovement();
     };
 
-    get x() {
-        return this.location.x;
-    };
-
-    get y() {
-        return this.location.y;
-    };
-
     get chunkX() {
         return x2cx(this.x);
     };
 
     get chunk() {
         return this.world.getChunk(this.chunkX, false);
-    };
-
-    get rotation() {
-        return this.location.rotation;
-    };
-
-    get world() {
-        return this.location.world;
-    };
-
-    set x(x: number) {
-        this.location.x = x;
-    };
-
-    set y(y: number) {
-        this.location.y = y;
-    };
-
-    set rotation(rotation: number) {
-        this.location.rotation = rotation;
-    };
-
-    set world(world) {
-        this.location.world = world;
     };
 
     tryToJump() {
@@ -334,6 +310,20 @@ export default abstract class Entity {
 
     distance(x: number, y: number) {
         return Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
+    };
+
+    getDrops() {
+        return [];
+    };
+
+    getXPDrops() {
+        return 0;
+    };
+
+    kill(broadcast = true) {
+        for (const drop of this.getDrops()) this.world.dropItem(this.x, this.y, drop);
+        this.world.dropXP(this.x, this.y, this.getXPDrops());
+        this.despawn(broadcast);
     };
 
     despawn(broadcast = true) {

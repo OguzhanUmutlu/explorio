@@ -3,14 +3,18 @@ import {Packets} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
 import Packet from "@/network/Packet";
 import {ZstdInit} from "@oneidentity/zstd-js";
-import {Entities, EntityClasses} from "@/meta/Entities";
+import {EntityClasses, EntityIds, EntityNameMap} from "@/meta/Entities";
 import Player from "@/entity/defaults/Player";
-import {Effects} from "@/utils/Effects";
+import {Effects} from "@/meta/Effects";
 import Effect from "@/effect/Effect";
 import SpeedEffect from "@/effect/defaults/SpeedEffect";
 import SlownessEffect from "@/effect/defaults/SlownessEffect";
 import {Bin} from "stramp";
 import ItemEntity from "@/entity/defaults/ItemEntity";
+import XPOrbEntity from "@/entity/defaults/XPOrbEntity";
+import {TileClasses, TileIds, TileNameMap} from "@/meta/Tiles";
+import ChestTile from "@/tile/defaults/ChestTile";
+import FurnaceTile from "@/tile/defaults/FurnaceTile";
 
 export function initEffects() {
     for (const clazz of [
@@ -40,10 +44,22 @@ export async function initCommon() {
     initItems();
     initPackets();
     initBaseEntities();
+    initBaseTiles();
     await ZstdInit();
 }
 
 export function initBaseEntities() {
-    EntityClasses[Entities.PLAYER] = Player;
-    EntityClasses[Entities.ITEM] = ItemEntity;
+    EntityClasses[EntityIds.PLAYER] = Player;
+    EntityClasses[EntityIds.ITEM] = ItemEntity;
+    EntityClasses[EntityIds.XP_ORB] = XPOrbEntity;
+    EntityNameMap.player = EntityIds.PLAYER;
+    EntityNameMap.item = EntityIds.ITEM;
+    EntityNameMap.xp_orb = EntityIds.XP_ORB;
+}
+
+export function initBaseTiles() {
+    TileClasses[TileIds.CHEST] = ChestTile;
+    TileClasses[TileIds.FURNACE] = FurnaceTile;
+    TileNameMap.chest = TileIds.CHEST;
+    TileNameMap.furnace = TileIds.FURNACE;
 }

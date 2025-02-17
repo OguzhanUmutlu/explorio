@@ -4,16 +4,15 @@ import ItemStruct from "@/structs/item/ItemStruct";
 import {ItemNBT} from "@/structs/item/ItemNBTStruct";
 
 export default class Item {
+    maxStack: number;
+
     constructor(
         public id: number,
         public meta: number = 0,
         public count: number = 1,
         public nbt: ItemNBT = {}
     ) {
-    };
-
-    getMaxStack() {
-        return this.toMetadata().maxStack;
+        this.maxStack = this.toMetadata().maxStack;
     };
 
     toMetadata() {
@@ -21,11 +20,11 @@ export default class Item {
     };
 
     getTexture() {
-        return this.toMetadata().getTexture();
+        return this.toMetadata().getItemTexture();
     };
 
     render(ctx: CanvasRenderingContext2D, x = 0, y = 0, w = ctx.canvas.width, h = w, waitToLoad = true) {
-        return this.toMetadata().render(ctx, x, y, w, h, waitToLoad);
+        return this.toMetadata().renderItem(ctx, x, y, w, h, waitToLoad);
     };
 
     toBuffer() {

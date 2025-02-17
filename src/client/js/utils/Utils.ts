@@ -1,4 +1,4 @@
-import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
+import {EntityBoundingBoxes, EntityIds} from "@/meta/Entities";
 import CPlayer from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
 import Texture, {Canvas, Image, SkinData} from "@/utils/Texture";
@@ -12,15 +12,10 @@ import Entity from "@/entity/Entity";
 import {Buffer} from "buffer";
 import CItemEntity from "@c/entity/types/CItemEntity";
 import Item from "@/item/Item";
-import {OptionPages} from "@dom/components/options/Menus";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
 export type Input = HTMLInputElement;
-
-export const URLPrefix = "/explorio/";
-
-export type OptionPageProps = { page: ReactState<OptionPages>, back: () => void };
 
 export type ReactState<T> = ReturnType<typeof useState<T>>;
 
@@ -88,7 +83,7 @@ function initClientPrinter() {
     printer.tags.error.textColor = "none";
 }
 
-export const ClientEntityClasses = <Record<Entities, ClassOf<Entity>>>{};
+export const ClientEntityClasses = <Record<EntityIds, ClassOf<Entity>>>{};
 
 export async function initClientThings() {
     SoundFiles.push(...Object.keys(import.meta.glob("../../client/assets/sounds/**/*")));
@@ -114,8 +109,8 @@ export async function initBrowserFS() {
 }
 
 export function initClientEntities() {
-    ClientEntityClasses[Entities.PLAYER] = CPlayer;
-    ClientEntityClasses[Entities.ITEM] = CItemEntity;
+    ClientEntityClasses[EntityIds.PLAYER] = CPlayer;
+    ClientEntityClasses[EntityIds.ITEM] = CItemEntity;
 }
 
 export function getWSUrls(ip: string, port: number): string[] {
@@ -206,6 +201,9 @@ export type OptionsType = {
     auto_save: number;
 
     camera_speed: number;
+    invert_mouse: 0 | 1;
+    scroll_sensitivity: number;
+
     tileSize: number;
     updatesPerSecond: number;
     chatMessageLimit: number;
@@ -213,7 +211,7 @@ export type OptionsType = {
     pauseOnBlur: 0 | 1;
 };
 
-const DefaultOptions: OptionsType = {
+export const DefaultOptions: OptionsType = {
     username: "Steve",
 
     // todo
@@ -289,6 +287,9 @@ const DefaultOptions: OptionsType = {
     auto_save: 45,
 
     camera_speed: 12,
+    invert_mouse: 0,
+    scroll_sensitivity: 100,
+
     tileSize: 64,
     updatesPerSecond: 60,
     chatMessageLimit: 100,
@@ -300,7 +301,8 @@ export let Options: OptionsType;
 export const TileSize = {value: 64};
 
 export function loadOptions() {
-    return Options = {...DefaultOptions, ...(JSON.parse(localStorage.getItem("explorio.options")) || {})};
+    Options = {...DefaultOptions, ...(JSON.parse(localStorage.getItem("explorio.options")) || {})};
+    Options.username ||= "Steve";
 }
 
 export function saveOptions() {
@@ -387,6 +389,30 @@ export function drawShadowImage(ctx: CanvasRenderingContext2D, image: Image, x: 
     drawShadow(ctx, x - p, y - p, w + p * 2, h + p * 2, opacity);
 }
 
+function renderHandItem(
+    ctx: CanvasRenderingContext2D,
+    item: Item,
+    armBody: number[],
+    bodyRotation: boolean,
+    SIZE: number,
+    shadowOpacity: number
+) {
+    const metadata = item.toMetadata();
+    const texture = metadata.getItemTexture();
+
+    if (metadata.toolType !== "none") {
+        drawShadowImage(ctx,
+            bodyRotation ? texture.image : texture.flip(),
+            bodyRotation ? -armBody[2] * 0.25 : -armBody[2] * 2, armBody[3] * 0.2,
+            SIZE * 0.6, SIZE * 0.6, shadowOpacity
+        );
+    } else drawShadowImage(ctx,
+        texture.image,
+        bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
+        SIZE * 0.4, SIZE * 0.4, shadowOpacity
+    );
+}
+
 export function renderPlayerModel(
     ctx: CanvasRenderingContext2D, O: {
         SIZE: number, bbPos: { x: number, y: number }, skin: SkinData, bodyRotation: boolean,
@@ -395,7 +421,7 @@ export function renderPlayerModel(
     }
 ) {
     const side: Record<string, Canvas> = O.skin[O.bodyRotation ? 0 : 1];
-    const bb = EntityBoundingBoxes[Entities.PLAYER];
+    const bb = EntityBoundingBoxes[EntityIds.PLAYER];
 
     const head = [
         O.bbPos.x, O.bbPos.y - (bb.height + 0.21) * O.SIZE,
@@ -417,22 +443,9 @@ export function renderPlayerModel(
     ctx.rotate(O.leftArmRotation);
     drawShadowImage(ctx, side.back_arm, -armBody[2] / 2, 0, armBody[2], armBody[3], O.shadowOpacity);
 
-    /*if (O.offhandItem) {
-        const metadata = O.offhandItem.toMetadata();
-        const texture = metadata.getTexture();
-        const sizeMul = (metadata.isTool ? 0.5 : 1);
-        if (metadata.toolType !== "none") {
-            drawShadowImage(ctx,
-                O.bodyRotation ? texture.image : texture.flip(),
-                O.bodyRotation ? -armBody[2] * 0.5 : -armBody[2] * 2.5, 0,
-                O.SIZE * 0.5 * sizeMul, O.SIZE * 0.5 * sizeMul, O.shadowOpacity
-            );
-        } else drawShadowImage(ctx,
-            texture.image,
-            O.bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
-            O.SIZE * 0.4 * sizeMul, O.SIZE * 0.4 * sizeMul, O.shadowOpacity
-        );
-    }*/
+    if (O.offhandItem) {
+        renderHandItem(ctx, O.offhandItem, armBody, O.bodyRotation, O.SIZE, O.shadowOpacity);
+    }
 
     ctx.restore();
 
@@ -457,19 +470,7 @@ export function renderPlayerModel(
     drawShadowImage(ctx, side.front_arm, -armBody[2] / 2, 0, armBody[2], armBody[3], O.shadowOpacity);
 
     if (O.handItem) {
-        const metadata = O.handItem.toMetadata();
-        const texture = metadata.getTexture();
-        if (metadata.toolType !== "none") {
-            drawShadowImage(ctx,
-                O.bodyRotation ? texture.image : texture.flip(),
-                O.bodyRotation ? -armBody[2] * 0.25 : -armBody[2] * 2, armBody[3] * 0.2,
-                O.SIZE * 0.6, O.SIZE * 0.6, O.shadowOpacity
-            );
-        } else drawShadowImage(ctx,
-            texture.image,
-            O.bodyRotation ? 0 : -armBody[2] * 1.5, armBody[3] * 0.8,
-            O.SIZE * 0.4, O.SIZE * 0.4, O.shadowOpacity
-        );
+        renderHandItem(ctx, O.handItem, armBody, O.bodyRotation, O.SIZE, O.shadowOpacity);
     }
 
     ctx.restore();

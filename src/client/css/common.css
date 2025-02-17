@@ -254,7 +254,8 @@ h3 {
 }
 
 .option-btn {
-    background: rgba(107, 107, 107, 0.7);
+    background: rgba(58, 68, 83, 0.7);
+    border-color: rgba(123, 117, 109, 0.8);
     color: #ffffff;
 }
 
@@ -267,7 +268,7 @@ h3 {
 }
 
 .option-btn:hover, .option-btn:focus-within {
-    border-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(203, 203, 203, 0.8);
 }
 
 .option-btn:active {
@@ -297,16 +298,16 @@ h3 {
 
 @keyframes scroll-animation {
     0% {
-        left: 0;
+        left: 5px;
     }
 
     50% {
-        left: 100%;
+        left: calc(100% - 5px);
         transform: translateX(-100%);
     }
 
     100% {
-        left: 0;
+        left: 5px;
     }
 }
 
@@ -359,4 +360,18 @@ h3 {
     background: #4A4E69;
     height: 8px;
     border-radius: 3px;
+}
+
+.option-input > label {
+    padding-left: 10px;
+}
+
+.option-input > input[type="text"], .option-input > input[type="number"] {
+    width: 100%;
+    height: 100%;
+    color: #e8e8e8;
+    border-radius: 3px;
+    transition: 0.3s all;
+    text-shadow: 2px 2px rgba(0, 0, 0, 0.5);
+    font-size: 18px;
 }

@@ -7,6 +7,7 @@ import Sound from "@/utils/Sound";
 export default class OriginPlayer extends CPlayer {
     containerId = Containers.Closed;
     placeTime = 0;
+    interactTime = 0;
     name = "";
     hoveringIndex = 0;
     hoveringInventory: InventoryName | null = null;
@@ -17,6 +18,7 @@ export default class OriginPlayer extends CPlayer {
 
     render(ctx: CanvasRenderingContext2D, dt: number) {
         this.placeTime = Math.max(0, this.placeTime - dt);
+        this.interactTime = Math.max(0, this.interactTime - dt);
         this.renderX = this.x;
         this.renderY = this.y;
         this.renderHeadRotation = this.rotation = this.getRotationTowards(Mouse.x, Mouse.y);
@@ -33,17 +35,23 @@ export default class OriginPlayer extends CPlayer {
 
     rightClicked() {
         const handItem = this.handItem;
-        if (this.placeTime <= 0) {
-            if (handItem && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, handItem.id, handItem.meta, Mouse.rotation)) {
-                if (!this.infiniteResource) {
-                    this.hotbarInventory.decreaseItemAt(this.handIndex);
-                }
-                clientNetwork.sendPlaceBlock(Mouse.rx, Mouse.ry, Mouse.rotation);
-            } else if (this.world.canInteractBlockAt(this, Mouse.x, Mouse.y)) {
-                // interact!
-                clientNetwork.sendInteractBlock(Mouse.rx, Mouse.ry);
-            } else return;
+        if (
+            this.placeTime <= 0
+            && handItem
+            && this.world.tryToPlaceBlockAt(this, Mouse.x, Mouse.y, handItem.id, handItem.meta, Mouse.rotation)
+        ) {
+            if (!this.infiniteResource) {
+                this.hotbarInventory.decreaseItemAt(this.handIndex);
+            }
+
+            clientNetwork.sendPlaceBlock(Mouse.rx, Mouse.ry, Mouse.rotation);
+            this.interactTime = Math.max(0.3, this.interactTime);
             this.placeTime = this.placeCooldown;
+        }
+
+        if (this.interactTime <= 0 && this.world.canInteractBlockAt(this, Mouse.x, Mouse.y)) {
+            clientNetwork.sendInteractBlock(Mouse.rx, Mouse.ry);
+            this.interactTime = this.placeCooldown;
         }
     };
 
@@ -62,6 +70,7 @@ export default class OriginPlayer extends CPlayer {
         if (Keyboard.s && this.isFlying) this.tryToMove(0, -this.flySpeed * dt, dt);
         if (Keyboard.a) this.walkHorizontal(-1, dt);
         if (Keyboard.d) this.walkHorizontal(1, dt);
+
         if (this.isFlying && this.onGround && this.canToggleFly) {
             clientNetwork.sendToggleFlight();
         }
@@ -70,7 +79,8 @@ export default class OriginPlayer extends CPlayer {
             if (this.breaking) {
                 if (this.breaking[0] !== Mouse.rx
                     || this.breaking[1] !== Mouse.ry
-                    || !this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)) {
+                    || !this.world.canBreakBlockAt(this, Mouse.rx, Mouse.ry)
+                ) {
                     this.breaking = null;
                     this.breakingTime = 0;
                     clientNetwork.sendStopBreaking();

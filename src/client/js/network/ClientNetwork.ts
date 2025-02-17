@@ -14,7 +14,7 @@ import {DefaultGravity} from "@/entity/Entity";
 import {Containers, InventoryName} from "@/meta/Inventories";
 import Item from "@/item/Item";
 import Player from "@/entity/defaults/Player";
-import {Entities} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -117,7 +117,7 @@ export default class ClientNetwork {
         entity._x = entity.x;
         entity._y = entity.y;
         entity.world = clientPlayer.world;
-        if (entity.typeId === Entities.PLAYER) entity.gravity = 0;
+        if (entity.typeId === EntityIds.PLAYER) entity.gravity = 0;
         entity.init();
         return entity;
     };
@@ -241,6 +241,10 @@ export default class ClientNetwork {
         for (const d of data.indices) {
             inv.set(d.index, d.item);
         }
+    };
+
+    processSResetPlaceCooldown(_: PacketByName<"SResetPlaceCooldown">) {
+        clientPlayer.placeTime = 0;
     };
 
     processSSetContainer({data: {container, x, y}}: PacketByName<"SSetContainer">) {

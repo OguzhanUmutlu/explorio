@@ -131,6 +131,7 @@ export const PacketStructs = {
         invisible: X.bool,
 
         xp: X.u32,
+        xpLevels: X.u32,
         gamemode: GameModeStruct,
         canBreak: X.bool,
         canPlace: X.bool,
@@ -163,6 +164,7 @@ export const PacketStructs = {
         y: X.u32
     }),
     [PacketIds.SSetHandIndex]: X.u8,
+    [PacketIds.SResetPlaceCooldown]: X.null,
 
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,

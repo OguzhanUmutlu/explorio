@@ -48,7 +48,7 @@ export default class CSubChunk {
             if (block.isSlab || block.isStairs || block.liquid) {
                 ctx.clearRect(dx, dy, dw, dh);
             }
-            block.render(ctx, dx, dy, dw, dh);
+            block.renderBlock(ctx, dx, dy, dw, dh);
         } else if (clear) {
             ctx.clearRect(dx, dy, dw, dh);
         }

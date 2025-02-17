@@ -12,15 +12,16 @@ export function animateInventories() {
     checkLag("animate inventories", 10);
 
     const cursor = clientPlayer.cursorItem;
-    const s = document.documentElement.style;
-    s.setProperty("--item-empty-cursor", cursor ? "move" : "default");
-    s.setProperty("--item-cursor", cursor ? "resize" : "grab");
+    const style = document.documentElement.style;
+    style.setProperty("--item-empty-cursor", cursor ? "move" : "default");
+    style.setProperty("--item-cursor", cursor ? "resize" : "grab");
     const updatedCraftingList = new Set<InventoryName>;
 
     InventoryHandler.removed = {};
 
     for (const handler of Object.values(InventoryHandlers)) {
-        if (handler.animate()) updatedCraftingList.add(handler.inventoryName);
+        handler.render();
+        if (handler.hasUpdatedCrafting()) updatedCraftingList.add(handler.inventoryName);
     }
 
     for (const k in InventoryHandler.removed) {
@@ -35,6 +36,7 @@ export function animateInventories() {
         // update the crafting result in client-side
         const inv = clientPlayer.inventories[k];
         const result = clientPlayer.inventories[CraftingMap[k]];
+
         const grid = inventoryToGrid(inv);
         const crafting = findCrafting(grid);
 

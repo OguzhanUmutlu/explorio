@@ -80,8 +80,6 @@ const wss = new WebSocketServer({port: 1881});
 const server = new Server(fs, ".");
 server.init();
 
-// todo: desktop app support, mobile app support
-
 wss.on("connection", (ws, req) => {
     const network = new PlayerNetwork(ws, req);
     ws.on("message", data => network.processPacketBuffer(<Buffer>data));

@@ -1,11 +1,11 @@
 import Packet from "@/network/Packet";
-import {Entities} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
 import Player from "@/entity/defaults/Player";
 import {PacketByName, Packets, readPacket} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
 import {getServer, UsernameRegex} from "@/utils/Utils";
 import {Version} from "@/Versions";
-import {Containers, CraftingMapFromResult, CraftingResultInventoryNames, InventoryName} from "@/meta/Inventories";
+import {Containers, CraftingResultMap, InventoryName} from "@/meta/Inventories";
 import Entity from "@/entity/Entity";
 import ItemTransferEvent from "@/event/defaults/ItemTransferEvent";
 import ItemSwapEvent from "@/event/defaults/ItemSwapEvent";
@@ -140,7 +140,11 @@ export default class PlayerNetwork {
         const world = this.player.world;
         const handItem = this.player.handItem;
 
-        if (!handItem || !world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta, rotation)) return this.sendBlock(x, y);
+        if (!handItem || !world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta, rotation)) {
+            this.sendResetPlaceCooldown();
+            this.sendHandItem();
+            return this.sendBlock(x, y);
+        }
 
         if (!this.player.infiniteResource) {
             this.player.hotbarInventory.decreaseItemAt(this.player.handIndex);
@@ -194,14 +198,14 @@ export default class PlayerNetwork {
     processCItemTransfer({data: {fromInventory, fromIndex, to}}: PacketByName<"CItemTransfer">) {
         const inventories = this.player.inventories;
         const from = inventories[fromInventory];
-        const isCraftResult = CraftingResultInventoryNames.includes(fromInventory);
+        const isFromResult = fromInventory in CraftingResultMap;
         let crafting: Crafting;
         let craftingSource: Inventory;
 
         let cancelled = false;
 
-        if (isCraftResult) {
-            craftingSource = inventories[CraftingMapFromResult[fromInventory]];
+        if (isFromResult) {
+            craftingSource = inventories[CraftingResultMap[fromInventory]];
             const grid = inventoryToGrid(craftingSource);
             crafting = findCrafting(grid);
             const result = crafting?.getResult(grid);
@@ -223,7 +227,7 @@ export default class PlayerNetwork {
             // Need something to transfer
             || !fromItem
             // If you're getting items from a crafting result, you have to take all of them
-            || (isCraftResult && fromItem?.count !== totalCount)
+            || (isFromResult && fromItem?.count !== totalCount)
             // Just a sanity check
             || totalCount === 0
             // You can't transfer between inventories that you don't have access to
@@ -232,7 +236,7 @@ export default class PlayerNetwork {
         if (!cancelled) for (const t of to) {
             if (
                 // Target inventory cannot be a crafting result
-                CraftingResultInventoryNames.includes(t.inventory)
+                (t.inventory in CraftingResultMap)
                 // You can't transfer between the same place, just doesn't make sense
                 || (fromInventory === t.inventory && fromIndex === t.index)
                 // You can't transfer between inventories that you don't have access to
@@ -276,7 +280,7 @@ export default class PlayerNetwork {
             from.updateIndex(fromIndex);
             for (const u of undoes) u();
         } else {
-            if (isCraftResult) {
+            if (isFromResult) {
                 crafting.removeFrom(craftingSource);
             }
 
@@ -295,8 +299,8 @@ export default class PlayerNetwork {
 
         const cancelled =
             // Target or source inventory cannot be a crafting result
-            CraftingResultInventoryNames.includes(fromInventory)
-            || CraftingResultInventoryNames.includes(toInventory)
+            (fromInventory in CraftingResultMap)
+            || (toInventory in CraftingResultMap)
 
             // You can't swap between the same place, just doesn't make sense
             || (from === to && fromIndex === toIndex)
@@ -343,6 +347,8 @@ export default class PlayerNetwork {
     };
 
     processCSetItem({data: {inventory, index, item}}: PacketByName<"CSetItem">) {
+        if (!this.player.infiniteResource) return;
+
         if (!this.player.canAccessInventory(inventory)) return;
 
         const inv = this.player.inventories[inventory];
@@ -423,6 +429,14 @@ export default class PlayerNetwork {
         }), immediate);
     };
 
+    sendHandItem(immediate = false) {
+        this.sendInventoryIndices("hotbar", [this.player.handIndex], immediate);
+    };
+
+    sendResetPlaceCooldown(immediate = false) {
+        this.sendPacket(new Packets.SResetPlaceCooldown(null), immediate);
+    };
+
     syncInventory(name: InventoryName, immediate = false) {
         const inv = this.player.inventories[name];
         if (inv.wholeDirty) {
@@ -457,7 +471,7 @@ export default class PlayerNetwork {
 
     sendPosition(immediate = false) {
         this.sendPacket(new Packets.SEntityUpdate({
-            typeId: Entities.PLAYER,
+            typeId: EntityIds.PLAYER,
             entityId: this.player.id,
             props: {x: this.player.x, y: this.player.y}
         }), immediate);

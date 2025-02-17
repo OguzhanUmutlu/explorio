@@ -5,6 +5,17 @@ export default function OptionValueText(O: { children: ReactNode, style?: object
         if (!el || !el.parentElement) return;
         const parentWidth = el.parentElement.getBoundingClientRect().width;
         const selfWidth = el.getBoundingClientRect().width;
-        el.style.animation = parentWidth < selfWidth ? "scroll-animation 6s linear infinite" : "";
+
+        if (parentWidth < selfWidth) {
+            el.style.left = "5px";
+        }
+
+        el.parentElement.onmouseenter = () => {
+            el.style.animation = parentWidth < selfWidth ? "scroll-animation 2s linear infinite" : "";
+        };
+
+        el.parentElement.onmouseleave = () => {
+            el.style.animation = "";
+        };
     }}>{O.children}</div>;
 }

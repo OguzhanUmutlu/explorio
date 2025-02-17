@@ -10,7 +10,17 @@ export const CraftingList: Crafting[] = [
     ShapedCrafting.simple([
         `A`,
         `A`
-    ], {"A": new ID(I.PLANKS)}, new ID(I.STICK, 0, 4)),
+    ], {A: new ID(I.PLANKS)}, new ID(I.STICK, 0, 4)),
+    ShapedCrafting.simple([
+        `AAA`,
+        `A A`,
+        `AAA`
+    ], {A: new ID(I.PLANKS)}, new ID(I.CHEST)),
+    ShapedCrafting.simple([
+        `AAA`,
+        `A A`,
+        `AAA`
+    ], {A: new ID(I.COBBLESTONE)}, new ID(I.FURNACE)),
     ...tools(new ID(I.PLANKS), {
         sword: new ID(I.WOODEN_SWORD),
         axe: new ID(I.WOODEN_AXE),
@@ -48,12 +58,22 @@ export const CraftingList: Crafting[] = [
     })
 ];
 
+for (let meta = 0; meta < 6; meta++) {
+    CraftingList.push(
+        new ShapelessCrafting([new ID(I.LOG, meta)], new ID(I.PLANKS, meta, 4)),
+        ShapedCrafting.simple([
+            `AA`,
+            `AA`
+        ], {A: new ID(I.PLANKS, meta)}, new ID(I.CRAFTING_TABLE))
+    );
+}
+
 function sword(material: ID, result: ID) {
     return ShapedCrafting.simple([
         `A`,
         `A`,
         `B`
-    ], {"A": material, "B": new ID(I.STICK)}, result);
+    ], {A: material, B: new ID(I.STICK)}, result);
 }
 
 function axes(material: ID, result: ID) {
@@ -62,12 +82,12 @@ function axes(material: ID, result: ID) {
             `AA`,
             `AB`,
             ` B`
-        ], {"A": material, "B": new ID(I.STICK)}, result),
+        ], {A: material, B: new ID(I.STICK)}, result),
         ShapedCrafting.simple([
             `AA`,
             `BA`,
             `B `
-        ], {"A": material, "B": new ID(I.STICK)}, result)
+        ], {A: material, B: new ID(I.STICK)}, result)
     ];
 }
 
@@ -76,7 +96,7 @@ function pickaxe(material: ID, result: ID) {
         `AAA`,
         ` B `,
         ` B `
-    ], {"A": material, "B": new ID(I.STICK)}, result);
+    ], {A: material, B: new ID(I.STICK)}, result);
 }
 
 function shovel(material: ID, result: ID) {
@@ -84,7 +104,7 @@ function shovel(material: ID, result: ID) {
         `A`,
         `B`,
         `B`
-    ], {"A": material, "B": new ID(I.STICK)}, result);
+    ], {A: material, B: new ID(I.STICK)}, result);
 }
 
 function hoes(material: ID, result: ID) {
@@ -93,12 +113,12 @@ function hoes(material: ID, result: ID) {
             `AA`,
             `B `,
             `B `
-        ], {"A": material, "B": new ID(I.STICK)}, result),
+        ], {A: material, B: new ID(I.STICK)}, result),
         ShapedCrafting.simple([
             `AA `,
             ` B `,
             ` B `
-        ], {"A": material, "B": new ID(I.STICK)}, result)
+        ], {A: material, B: new ID(I.STICK)}, result)
     ];
 }
 
@@ -110,16 +130,6 @@ function tools(material: ID, results: Record<"sword" | "axe" | "pickaxe" | "shov
         shovel(material, results.shovel),
         ...hoes(material, results.hoe)
     ];
-}
-
-for (let meta = 0; meta < 6; meta++) {
-    CraftingList.push(
-        new ShapelessCrafting([new ID(I.LOG, meta)], new ID(I.PLANKS, meta, 4)),
-        ShapedCrafting.simple([
-            `AA`,
-            `AA`
-        ], {"A": new ID(I.PLANKS, meta)}, new ID(I.CRAFTING_TABLE))
-    );
 }
 
 // Assuming it's square.

@@ -52,21 +52,21 @@ export function createCanvas(width: number, height: number): Canvas {
     return canvas;
 }
 
-function cropImage(image: Canvas | Image, x: number, y: number, width: number, height: number) {
+export function cropImage(image: Canvas | Image, x: number, y: number, width: number, height: number) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
     ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
     return canvas;
 }
 
-function copyImage(image: Canvas | Image) {
+export function copyImage(image: Canvas | Image) {
     const canvas = createCanvas(image.width, image.height);
     const ctx = canvas.getContext("2d");
     ctx.drawImage(image, 0, 0);
     return canvas;
 }
 
-function eraseImage(image: Canvas | Image, x: number, y: number, width: number, height: number) {
+export function eraseImage(image: Canvas | Image, x: number, y: number, width: number, height: number) {
     const canvas = copyImage(image);
     const ctx = canvas.getContext("2d");
     ctx.clearRect(x, y, width, height);
@@ -106,7 +106,7 @@ export default class Texture {
     _pixels: Canvas[] = [];
     _pixelValues: string[] = [];
 
-    constructor(public actualSrc: string, known?: Promise<Canvas> | Canvas | null) {
+    constructor(public actualSrc: string, known?: Promise<Canvas | Image> | Canvas | Image | null) {
         if (this.actualSrc.endsWith("undefined.png")) throw new Error("sa")
         this.actualSrc = simplifyTexturePath(this.actualSrc);
 
