@@ -8,7 +8,7 @@ export default defineConfig({
     root: path.resolve(__dirname, "src/client"),
     base: "./",
     server: {
-        host: "127.0.0.1",
+        //host: "127.0.0.1",
         port: 1923
     },
     build: {

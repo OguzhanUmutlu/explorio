@@ -47,7 +47,6 @@ export enum I {
     SPONGE,
     WET_SPONGE,
     PLANKS,
-    FURNACE,
     WOODEN_SLAB,
     STONE_SLAB,
     COBBLESTONE_SLAB,
@@ -62,6 +61,9 @@ export enum I {
     DIAMOND_BLOCK,
     ANVIL,
     ENTITY_SPAWNER,
+    CRAFTING_TABLE,
+    CHEST,
+    FURNACE,
 
     CHARCOAL,
     APPLE,
@@ -75,7 +77,6 @@ export enum I {
     LAPIS,
     REDSTONE,
     DIAMOND,
-    CRAFTING_TABLE,
 
     WOODEN_SWORD,
     WOODEN_AXE,

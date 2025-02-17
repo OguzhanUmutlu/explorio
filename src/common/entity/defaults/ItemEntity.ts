@@ -1,16 +1,16 @@
 import Entity from "@/entity/Entity";
 import BoundingBox from "@/entity/BoundingBox";
-import {Entities, EntityBoundingBoxes} from "@/meta/Entities";
+import {EntityIds, EntityBoundingBoxes} from "@/meta/Entities";
 import Item from "@/item/Item";
 import Player from "@/entity/defaults/Player";
 
 const maxStack = 255;
 
 export default class ItemEntity extends Entity {
-    typeId = Entities.ITEM;
+    typeId = EntityIds.ITEM;
     typeName = "item";
     name = "Item";
-    bb: BoundingBox = EntityBoundingBoxes[Entities.ITEM].copy();
+    bb: BoundingBox = EntityBoundingBoxes[EntityIds.ITEM].copy();
     item: Item;
     wasOnGround = false;
     delay = 0;
@@ -33,6 +33,8 @@ export default class ItemEntity extends Entity {
     serverUpdate(dt: number) {
         const source = this.item;
         for (const entity of this.getChunkEntities()) {
+            if (this === entity) continue;
+
             if (this.delay <= 0 && entity instanceof Player && entity.bb.copy().expand(3, 1.2).collides(this.bb)) {
                 const rem = entity.addItem(source);
                 const alr = source.count;

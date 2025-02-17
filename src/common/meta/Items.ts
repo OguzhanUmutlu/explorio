@@ -1,4 +1,4 @@
-import Texture, {Canvas, texturePlaceholder} from "@/utils/Texture";
+import Texture, {Canvas, createCanvas, texturePlaceholder} from "@/utils/Texture";
 import Item from "@/item/Item";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
@@ -32,7 +32,12 @@ export type ArmorType = "none" | "helmet" | "chestplate" | "leggings" | "boots";
 
 export type ItemMetaDataConfig = {
     name?: string,
-    metas?: { identifier: string, name: string, texture: string | Texture | Canvas | (() => Texture) }[],
+    metas?: {
+        identifier: string,
+        name: string,
+        texture: string | Texture | Canvas | (() => Texture),
+        blockTexture?: string | Texture | Canvas | (() => Texture)
+    }[],
     isBlock?: boolean,
     replaceableBy?: number[] | "*",
     canBePlacedOn?: number[] | "*",
@@ -52,6 +57,7 @@ export type ItemMetaDataConfig = {
     break?: typeof S[keyof typeof S] | null, // null for no sound
     place?: typeof S[keyof typeof S] | null, // null for no sound
     liquid?: boolean,
+    liquidSpread?: number,
     fuel?: number, // How many items it can smelt
     smeltsTo?: ID | IPool | null, // null means it will just disappear after smelting, and possibly give XP from smeltXP property
     xpDrops?: number | number[],
@@ -140,7 +146,7 @@ export class ItemMetadata {
     constructor(
         public id: number,
         public meta: number,
-        public metas: { identifier: string, name: string, texture: string | Texture | Canvas | (() => Texture) }[],
+        public metas: ItemMetaDataConfig["metas"],
         public foodPoints: number,
         public armorType: ArmorType,
         public armorPoints: number,
@@ -250,14 +256,24 @@ export class ItemMetadata {
         return this.metas[meta % this.metas.length]?.identifier ?? "air";
     };
 
-    getTexture(meta = this.meta): Texture {
+    getTexture(meta = this.meta, block = false): Texture {
         const url = this.metas[meta % this.metas.length];
         if (!url) return texturePlaceholder;
-        const urlV = url.texture;
+        url.blockTexture ??= url.texture;
+        const key = block ? "blockTexture" : "texture";
+        const urlV = url[key];
         if (urlV instanceof Texture) return urlV;
-        if (typeof urlV === "string") return url.texture = Texture.get(urlV);
-        if (typeof urlV === "function") return url.texture = urlV();
+        if (typeof urlV === "string") return url[key] = Texture.get(urlV);
+        if (typeof urlV === "function") return url[key] = urlV();
         return new Texture("", urlV);
+    };
+
+    getItemTexture(meta = this.meta) {
+        return this.getTexture(meta, false);
+    };
+
+    getBlockTexture(meta = this.meta) {
+        return this.getTexture(meta, true);
     };
 
     getBreakTime(item: Item | null) {
@@ -285,15 +301,23 @@ export class ItemMetadata {
         return this.metas.length > 0;
     };
 
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true) {
+    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true, block = false) {
         if (!this.hasTexture()) return;
-        const texture = this.getTexture();
+        const texture = this.getTexture(this.meta, block);
         if (!texture.loaded) {
             if (waitToLoad) return texture.wait().then(() => ctx.drawImage(texture.image, x, y, w, h));
             return false;
         }
         ctx.drawImage(texture.image, x, y, w, h);
         return true;
+    };
+
+    renderItem(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true) {
+        return this.render(ctx, x, y, w, h, waitToLoad, false);
+    };
+
+    renderBlock(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true) {
+        return this.render(ctx, x, y, w, h, waitToLoad, true);
     };
 
     getDrops() {
@@ -369,6 +393,7 @@ export function registerItem(identifier: string, id: number, O: ItemMetaDataConf
     O = {...DefaultItemOptions(identifier, O.name, O.isBlock === false ? "items" : "blocks"), ...O};
     const key = Object.keys(I).find(i => I[i] === id);
     if (!key) throw new Error("First define item id: " + id + ", using introduceItemId(id, key, isBlock)");
+
     ItemsByIdentifier[identifier] = BM[im2f(id, 0)] = ItemMetadata.fromOptions(id, 0, O);
 
     for (let meta = 1; meta < O.metas.length; meta++) {
@@ -379,6 +404,31 @@ export function registerItem(identifier: string, id: number, O: ItemMetaDataConf
     }
 
     const baseMeta = IM[id] = BM[im2f(id)];
+
+    if (O.liquid) {
+        const amount = O.liquidSpread;
+
+        for (let i = 1; i < amount; i++) {
+            O.metas.push({
+                identifier: identifier + "_flowing_state_" + i,
+                name: "",
+                texture: () => new Texture("", new Promise(r => {
+                    const texture = baseMeta.getTexture();
+                    texture.wait().then(() => {
+                        const realHeight = texture.image.height;
+                        const width = texture.image.width;
+                        const height = realHeight / amount * i;
+
+                        const canvas = createCanvas(width, height);
+                        const ctx = canvas.getContext("2d");
+                        ctx.drawImage(canvas, 0, realHeight - height, width, height, 0, 0, width, height);
+
+                        r(canvas);
+                    });
+                }))
+            });
+        }
+    }
 
     function slabStairsProtocol(adder: string, oProp: string, oIsProp: string, nameAdder: string, fnMatch: string[][]) {
         if (!O[oProp]) return;
@@ -541,31 +591,13 @@ export function initItems() {
     });
 
     registerItem("water", I.WATER, {
-        drops: [], explodeMaxDistance: -1, liquid: true, canBePhased: true, isOpaque: false, replaceableBy: "*",
-        metas: [
-            {identifier: "water", name: "Water", texture: "assets/textures/blocks/water_8.png"},
-            {identifier: "water7", name: "Water", texture: "assets/textures/blocks/water_7.png"},
-            {identifier: "water6", name: "Water", texture: "assets/textures/blocks/water_6.png"},
-            {identifier: "water5", name: "Water", texture: "assets/textures/blocks/water_5.png"},
-            {identifier: "water4", name: "Water", texture: "assets/textures/blocks/water_4.png"},
-            {identifier: "water3", name: "Water", texture: "assets/textures/blocks/water_3.png"},
-            {identifier: "water2", name: "Water", texture: "assets/textures/blocks/water_2.png"},
-            {identifier: "water1", name: "Water", texture: "assets/textures/blocks/water_1.png"}
-        ]
+        drops: [], explodeMaxDistance: -1, liquid: true, liquidSpread: 8, canBePhased: true, isOpaque: false,
+        replaceableBy: "*", metas: [{identifier: "water", name: "Water", texture: "assets/textures/blocks/water.png"}]
     });
 
     registerItem("lava", I.LAVA, {
-        drops: [], explodeMaxDistance: -1, liquid: true, canBePhased: true, replaceableBy: "*",
-        metas: [
-            {identifier: "lava", name: "Lava", texture: "assets/textures/blocks/lava_8.png"},
-            {identifier: "lava7", name: "Lava", texture: "assets/textures/blocks/lava_7.png"},
-            {identifier: "lava6", name: "Lava", texture: "assets/textures/blocks/lava_6.png"},
-            {identifier: "lava5", name: "Lava", texture: "assets/textures/blocks/lava_5.png"},
-            {identifier: "lava4", name: "Lava", texture: "assets/textures/blocks/lava_4.png"},
-            {identifier: "lava3", name: "Lava", texture: "assets/textures/blocks/lava_3.png"},
-            {identifier: "lava2", name: "Lava", texture: "assets/textures/blocks/lava_2.png"},
-            {identifier: "lava1", name: "Lava", texture: "assets/textures/blocks/lava_1.png"}
-        ]
+        drops: [], explodeMaxDistance: -1, liquid: true, liquidSpread: 8, canBePhased: true, replaceableBy: "*",
+        metas: [{identifier: "lava", name: "Lava", texture: "assets/textures/blocks/lava.png"}]
     });
 
     const coalOre: ItemMetaDataConfig = {
@@ -691,7 +723,22 @@ export function initItems() {
 
     registerItem("crafting_table", I.CRAFTING_TABLE, {
         name: "Crafting Table", breakTime: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
-        intendedToolType: ["axe"], fuel: 1.25, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL) // why not
+        intendedToolType: ["axe"], fuel: 1.25, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL)
+    });
+
+    registerItem("chest", I.CHEST, {
+        name: "Chest", breakTime: 3, step: S.stepWood, dig: S.stepWood, break: S.digWood, place: S.digWood,
+        intendedToolType: ["axe"], fuel: 1.25, smeltXP: 0.15, smeltsTo: new ID(I.CHARCOAL), isOpaque: false,
+        metas: [
+            {name: "Chest", identifier: "chest", texture: "assets/textures/blocks/chest.png"},
+            {name: "Chest", identifier: "chest", texture: "assets/textures/blocks/chest_left.png"},
+            {name: "Chest", identifier: "chest", texture: "assets/textures/blocks/chest_right.png"}
+        ]
+    });
+
+    registerItem("furnace", I.FURNACE, {
+        name: "Furnace", breakTime: 7.5, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
+        dropsWithToolTypes: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN, intendedToolType: ["pickaxe"]
     });
 
     registerItem("sand", I.SAND, {
@@ -706,6 +753,10 @@ export function initItems() {
 
     registerItem("stick", I.STICK, {
         name: "Stick", isBlock: false
+    });
+
+    registerItem("flint", I.FLINT, {
+        name: "Flint", isBlock: false
     });
 
     function registerToolType(name: string, durability: number) {
