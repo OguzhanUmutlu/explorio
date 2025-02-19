@@ -11,7 +11,7 @@ export default class TokenArgument extends CommandArgument<AnyToken> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: !!args[index], index: index + 1};
+        return {error: args[index] ? null : {token: null, message: "Expected any token"}, index: index + 1};
     };
 
     toString() {

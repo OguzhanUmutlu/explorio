@@ -11,7 +11,14 @@ export default class NumberArgument extends CommandArgument<number> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: args[index] && args[index].type === "number", index: index + 1};
+        const arg = args[index];
+
+        return {
+            error: arg && arg.type === "number" ? null : {
+                token: arg,
+                message: "Expected a number"
+            }, index: index + 1
+        };
     };
 
     toString() {

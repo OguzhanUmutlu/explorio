@@ -11,7 +11,14 @@ export default class LabelArgument extends CommandArgument<undefined> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: args[index] && args[index].rawText === this.name, index: index + 1};
+        const arg = args[index];
+
+        return {
+            error: arg && arg.rawText === this.name ? null : {
+                token: arg,
+                message: `Expected '${this.name}'.`
+            }, index: index + 1
+        };
     };
 
     toString() {

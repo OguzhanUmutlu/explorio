@@ -31,7 +31,7 @@ export default class TextArgument extends CommandArgument<string> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: !!args[index], index: index + 1};
+        return {error: args[index] ? null : {token: null, message: "Expected any text"}, index: index + 1};
     };
 
     toString() {

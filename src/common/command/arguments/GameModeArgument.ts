@@ -32,11 +32,22 @@ export default class GameModeArgument extends CommandArgument<GameMode> {
 
     blindCheck(args: AnyToken[], index: number) {
         const arg = args[index];
-        if (!arg) return {pass: false, index: index + 1};
+
+        if (!arg) return {
+            error: {
+                token: null,
+                message: "Expected a game mode"
+            }, index: index + 1
+        };
         const raw = arg.rawText;
         const num = +raw;
 
-        return {pass: GameModeNames.includes(raw) || !isNaN(num) && num >= 0 && num <= 3, index: index + 1};
+        return {
+            error: GameModeNames.includes(raw) || !isNaN(num) && num >= 0 && num <= 3 ? null : {
+                token: arg,
+                message: "Expected a valid game mode"
+            }, index: index + 1
+        };
     };
 
     toString() {

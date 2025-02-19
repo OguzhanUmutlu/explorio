@@ -55,7 +55,13 @@ export default class EntitiesArgument<T extends Entity[] = Entity[]> extends Com
 
     blindCheck(args: AnyToken[], index: number) {
         const arg = args[index];
-        return {pass: arg && (arg instanceof SelectorToken || UsernameRegex.test(arg.rawText)), index: index + 1};
+
+        return {
+            error: arg && (arg instanceof SelectorToken || UsernameRegex.test(arg.rawText)) ? null : {
+                token: arg,
+                message: "Expected an entity selector"
+            }, index: index + 1
+        };
     };
 
     toString() {

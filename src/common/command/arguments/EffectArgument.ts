@@ -19,10 +19,21 @@ export default class EffectArgument extends CommandArgument<Effect> {
 
     blindCheck(args: AnyToken[], index: number) {
         const arg = args[index];
-        if (!arg) return {pass: false, index: index + 1};
+
+        if (!arg) return {
+            error: {
+                token: null,
+                message: "Expected an effect name"
+            }, index: index + 1
+        };
         const raw = arg.rawText;
 
-        return {pass: raw in Effects || Object.keys(EffectIds).some(i => i.toLowerCase() === raw), index: index + 1};
+        return {
+            error: raw in Effects || Object.keys(EffectIds).some(i => i.toLowerCase() === raw) ? null : {
+                token: arg,
+                message: "Expected a valid effect name"
+            }, index: index + 1
+        };
     };
 
     toString() {

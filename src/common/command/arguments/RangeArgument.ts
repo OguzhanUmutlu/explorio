@@ -11,7 +11,14 @@ export default class RangeArgument extends CommandArgument<[number, number]> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: args[index] && args[index].type === "range", index: index + 1};
+        const arg = args[index];
+
+        return {
+            error: arg && arg.type === "range" ? null : {
+                token: arg,
+                message: "Expected a range"
+            }, index: index + 1
+        };
     };
 
     toString() {

@@ -26,15 +26,26 @@ export default class PositionArgument extends CommandArgument<Vector2> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        if (!args[index] || !args[index + 1]) return {pass: false, index: index + 2};
+        const arg0 = args[index];
+        const arg1 = args[index + 1];
 
-        const argX = args[index].rawText;
-        const argY = args[index + 1].rawText;
+        if (!arg0 || !arg1) return {
+            error: {
+                token: null,
+                message: "Expected two numbers representing the position"
+            }, index: index + 2
+        };
+
+        const argX = arg0.rawText;
+        const argY = arg1.rawText;
 
         return {
-            pass: argY
-                && (!isNaN(+argX) || !["~", "^"].includes(argX[0]) || !isNaN(+argX.substring(1)))
-                && (!isNaN(+argY) || !["~", "^"].includes(argY[0]) || !isNaN(+argY.substring(1))),
+            error: argY
+            && (!isNaN(+argX) || !["~", "^"].includes(argX[0]) || !isNaN(+argX.substring(1)))
+            && (!isNaN(+argY) || !["~", "^"].includes(argY[0]) || !isNaN(+argY.substring(1))) ? null : {
+                token: arg1,
+                message: "Expected two numbers representing the position"
+            },
             index: index + 2
         };
     };

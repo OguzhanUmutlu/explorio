@@ -33,6 +33,7 @@ export default abstract class DefinitiveCommand extends Command {
         let maxPassCmd: CommandDefinitionType | null = null;
         let maxPassArg: CommandArgument | null = null;
         let maxPassToken: AnyToken | null = null;
+        let maxPassError: { token: AnyToken, message: string } | null = null;
         let resultArgs = [];
 
         let validCmd: CommandDefinitionType | null = null;
@@ -51,7 +52,7 @@ export default abstract class DefinitiveCommand extends Command {
                 }
                 const cmdArg = cmdArgs[cmdInd];
                 const passes = cmdArg.blindCheck(args, i);
-                if (passes.pass) {
+                if (!passes.error) {
                     const v = cmdArg.read(as, at, args, i);
                     if (v !== undefined) resultArgs.push(v);
                     i = passes.index;
@@ -65,6 +66,7 @@ export default abstract class DefinitiveCommand extends Command {
                     if (maxPassCmd === cmd) {
                         maxPassArg = cmdArgs[cmdInd];
                         maxPassToken = args[i];
+                        maxPassError = passes.error;
                     }
                     break;
                 }
@@ -85,11 +87,13 @@ export default abstract class DefinitiveCommand extends Command {
         }
 
         if (!validCmd) {
-            if (maxPassArg && maxPassToken) {
-                sender.sendMessage(`§c${maxPassArg.name} argument failed at ${maxPassToken.start + 1}th character. `
-                    + `Preview of 10 characters after the error: ${
-                        maxPassToken.originalText.substring(maxPassToken.start, maxPassToken.start + 10)
-                    }`);
+            if (maxPassArg && maxPassToken && maxPassError) {
+                const original = maxPassToken.originalText;
+                const word = maxPassToken.raw;
+                const before = original.slice(0, maxPassToken.start);
+                const after = original.slice(maxPassToken.end);
+
+                sender.sendMessage(`§c${maxPassError.message}: /${labelCmd} ${before} >>${word}<< ${after}`);
             } else {
                 sender.sendMessage(
                     `§c${this.definitions.length === 1 ? "Usage: " : "Usages:\n"}`

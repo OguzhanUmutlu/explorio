@@ -11,7 +11,14 @@ export default class ArrayArgument extends CommandArgument<TokenValue[]> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: args[index] && args[index].type === "array", index: index + 1};
+        const arg = args[index];
+
+        return {
+            error: arg && arg.type === "array" ? null : {
+                token: arg,
+                message: "Expected an array"
+            }, index: index + 1
+        };
     };
 
     toString() {

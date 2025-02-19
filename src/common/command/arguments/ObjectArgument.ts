@@ -11,7 +11,13 @@ export default class ObjectArgument extends CommandArgument<Record<string, Token
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: args[index] && args[index].type === "object", index: index + 1};
+        const arg = args[index];
+        return {
+            error: arg && arg.type === "object" ? null : {
+                token: arg,
+                message: "Expected an object"
+            }, index: index + 1
+        };
     };
 
     toString() {

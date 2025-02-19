@@ -30,7 +30,7 @@ export default class EntityArgument<T extends Entity = Entity> extends CommandAr
         return <T>r[0];
     };
 
-    blindCheck(args: AnyToken[], index: number): { pass: boolean; index: number } {
+    blindCheck(args: AnyToken[], index: number) {
         return this.base.blindCheck(args, index);
     };
 

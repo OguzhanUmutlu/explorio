@@ -11,7 +11,14 @@ export default class BoolArgument extends CommandArgument<boolean> {
     };
 
     blindCheck(args: AnyToken[], index: number) {
-        return {pass: args[index] && args[index].type === "bool", index: index + 1};
+        const arg = args[index];
+
+        return {
+            error: arg && arg.type === "bool" ? null : {
+                token: arg,
+                message: "Expected a boolean"
+            }, index: index + 1
+        };
     };
 
     toString() {

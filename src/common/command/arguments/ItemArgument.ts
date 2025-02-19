@@ -15,9 +15,12 @@ export default class ItemArgument extends CommandArgument<ItemMetadata> {
     blindCheck(args: AnyToken[], index: number) {
         const arg = args[index];
 
-        if (!arg) return {pass: false, index: index + 1};
-
-        return {pass: arg && ItemsByIdentifier[arg.rawText], index: index + 1};
+        return {
+            error: arg && ItemsByIdentifier[arg.rawText] ? null : {
+                token: arg,
+                message: "Expected a valid item name"
+            }, index: index + 1
+        };
     };
 
     toString() {
