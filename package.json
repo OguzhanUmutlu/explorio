@@ -18,8 +18,8 @@
   "license": "MIT",
   "dependencies": {
     "@oneidentity/zstd-js": "^1.0.3",
-    "@zenfs/core": "^1.4.3",
-    "@zenfs/dom": "^1.0.6",
+    "@zenfs/core": "^2.2.0",
+    "@zenfs/dom": "^1.1.7",
     "alea": "^1.0.1",
     "buffer": "^6.0.3",
     "express": "^4.21.1",
