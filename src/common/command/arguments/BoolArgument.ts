@@ -1,12 +1,12 @@
 import CommandArgument from "@/command/CommandArgument";
 import {AnyToken} from "@/command/CommandProcessor";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 
 export default class BoolArgument extends CommandArgument<boolean> {
     default = false;
 
-    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
+    read(_: CommandAs, __: Position, args: AnyToken[], index: number) {
         return <boolean>args[index].value;
     };
 

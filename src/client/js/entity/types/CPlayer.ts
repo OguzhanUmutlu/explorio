@@ -2,6 +2,7 @@ import Texture from "@/utils/Texture";
 import {getClientPosition, renderPlayerModel, TileSize} from "@c/utils/Utils";
 import CEntity from "@c/entity/CEntity";
 import Player from "@/entity/defaults/Player";
+import {SteveImage} from "@dom/assets/Steve";
 
 export function getCurrentSwing() {
     const p = 400;
@@ -10,7 +11,8 @@ export function getCurrentSwing() {
 }
 
 export default class CPlayer extends Player implements CEntity {
-    skin = Texture.get("assets/steve.png");
+    isClient = true;
+    skin = new Texture("", SteveImage);
     name = "";
     ws = <unknown>null;
     breakingSoundTime = 0;
@@ -43,17 +45,6 @@ export default class CPlayer extends Player implements CEntity {
         const breaking = this.breaking;
         if (breaking) {
             const block = this.world.getBlock(breaking[0], this.breaking[1]);
-            const breakTime = block.getBreakTime(this.handItem);
-            const ratio = 1 - this.breakingTime / breakTime;
-            const blockPos = getClientPosition(breaking[0], breaking[1]);
-            ctx.drawImage(
-                Texture.get(`assets/textures/destroy/${Math.min(Math.floor(ratio * 10), 9)}.png`).image,
-                blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2,
-                TileSize.value, TileSize.value
-            );
-            // todo: haven't tested but totally existing bug: when a player is breaking and if another entity is before
-            //       the player, the entity would be behind the breaking animation.
-
             const bst = this.breakingSoundTime = Math.max(0, this.breakingSoundTime - dt);
             if (bst === 0) {
                 this.world.playSound(block.randomDig(), this.breaking[0], this.breaking[1]);
@@ -89,9 +80,9 @@ export default class CPlayer extends Player implements CEntity {
         if (isWalking && this.onGround) {
             this.walkSoundTime = Math.max(0, this.walkSoundTime - dt);
             if (this.walkSoundTime === 0) {
-                const block = this.getGroundBlock();
-                if (block) {
-                    this.world.playSound(block.meta.randomStep(), block.x, block.y - 1);
+                const collision = this.getGroundBlock();
+                if (collision) {
+                    this.world.playSound(collision.block.randomStep(), collision.x, collision.y - 1);
                     this.walkSoundTime = 0.3;
                 }
             }
@@ -128,6 +119,7 @@ export default class CPlayer extends Player implements CEntity {
         renderPlayerModel(ctx, {
             SIZE: TileSize.value,
             bbPos: getClientPosition(this.renderX - 0.25, this.renderY - 0.5),
+            bb: this.bb,
             skin: baseSkin,
             bodyRotation,
             leftArmRotation: this.renderLeftArmRotation,

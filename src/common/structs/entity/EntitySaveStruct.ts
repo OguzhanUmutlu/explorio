@@ -2,6 +2,7 @@ import X, {Bin, BufferIndex, IntBaseBin} from "stramp";
 import {EntityIds, EntityClasses} from "@/meta/Entities";
 import Entity from "@/entity/Entity";
 
+
 export default new class EntitySaveStruct extends Bin<Entity> {
     name = "Entity";
     typeIdBin: IntBaseBin;
@@ -13,14 +14,14 @@ export default new class EntitySaveStruct extends Bin<Entity> {
 
     unsafeWrite(bind: BufferIndex, entity: Entity) {
         this.typeIdBin.unsafeWrite(bind, entity.typeId);
-        const struct = entity.struct;
+        const struct = entity.saveStruct;
         struct.unsafeWrite(bind, entity);
     };
 
     read(bind: BufferIndex): Entity {
         const typeId = this.typeIdBin.read(bind);
-        const entity = new (EntityClasses[typeId])(null);
-        const obj = entity.struct.read(bind, entity);
+        const entity = new (EntityClasses[typeId])();
+        const obj = entity.saveStruct.read(bind, entity);
 
         for (const k in obj) {
             entity[k] = obj[k];
@@ -30,12 +31,12 @@ export default new class EntitySaveStruct extends Bin<Entity> {
     };
 
     unsafeSize(value: Entity): number {
-        return this.typeIdBin.bytes + value.struct.unsafeSize(value);
+        return this.typeIdBin.bytes + value.saveStruct.unsafeSize(value);
     };
 
     findProblem(value: Entity, strict = false) {
         if (!(value instanceof Entity)) return this.makeProblem("Expected an entity");
-        return value.struct.findProblem(value, strict);
+        return value.saveStruct.findProblem(value, strict);
     };
 
     get sample() {

@@ -6,7 +6,7 @@ import {PacketIds} from "@/meta/PacketIds";
 import {getServer, UsernameRegex} from "@/utils/Utils";
 import {Version} from "@/Versions";
 import {Containers, CraftingResultMap, InventoryName} from "@/meta/Inventories";
-import Entity from "@/entity/Entity";
+
 import ItemTransferEvent from "@/event/defaults/ItemTransferEvent";
 import ItemSwapEvent from "@/event/defaults/ItemSwapEvent";
 import {findCrafting, inventoryToGrid} from "@/crafting/CraftingUtils";
@@ -23,6 +23,9 @@ import PlayerStartBreakingEvent from "@/event/defaults/PlayerStartBreakingEvent"
 import PlayerStopBreakingEvent from "@/event/defaults/PlayerStopBreakingEvent";
 import PlayerDropItemEvent from "@/event/defaults/PlayerDropItemEvent";
 import PlayerCreativeItemAccessEvent from "@/event/defaults/PlayerCreativeItemAccessEvent";
+import Entity from "@/entity/Entity";
+import {ItemIds} from "@/meta/ItemIds";
+import Item from "@/item/Item";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -50,7 +53,7 @@ export default class PlayerNetwork {
     };
 
     processPacket(pk: Packet) {
-        if (!this.server.pluginsReady || this.server.terminated) return;
+        if (!this.server.pluginsReady || this.server.closed) return;
         const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
         if (key in this) this[key](pk);
         else printer.warn("Unhandled packet: ", pk);
@@ -66,20 +69,22 @@ export default class PlayerNetwork {
         if (
             Math.abs(this.player.x - x) > 1.5
             || Math.abs(this.player.y - y) > 5
-            || new PlayerMoveEvent(this.player, x, y, rotation).callGetCancel()
-        ) return this.sendPosition();
+        ) return this.sendPosition(); // UNEXPECTED
+        if (new PlayerMoveEvent(this.player, x, y, rotation).callGetCancel()) return this.sendPosition();
 
         this.player.x = x;
         this.player.y = y;
         this.player.rotation = rotation;
+        // @ts-expect-error Low level access needed.
         this.player.onMovement();
     };
 
     processCStartBreaking({data}: PacketByName<"CStartBreaking">) {
-        if (
-            !this.player.world.canBreakBlockAt(this.player, data.x, data.y)
-            || new PlayerStartBreakingEvent(this.player).callGetCancel()
-        ) return this.sendBlock(data.x, data.y);
+        if (!this.player.world.canBreakBlockAt(this.player, data.x, data.y)) {
+            return this.sendBlock(data.x, data.y); // UNEXPECTED
+        }
+
+        if (new PlayerStartBreakingEvent(this.player).callGetCancel()) this.sendBlock(data.x, data.y);
 
         this.player.breaking = [data.x, data.y];
         this.player.breakingTime = this.player.world.getBlock(data.x, data.y).getBreakTime(this.player.handItem);
@@ -96,7 +101,7 @@ export default class PlayerNetwork {
         this.player.broadcastBlockBreaking();
     };
 
-    processCAuth({data: {name, skin, version}}: PacketByName<"CAuth">) {
+    async processCAuth({data: {name, skin, version, secret}}: PacketByName<"CAuth">) {
         if (version !== Version) {
             return this.kick(version > Version ? "Client is outdated" : "Server is outdated");
         }
@@ -109,6 +114,32 @@ export default class PlayerNetwork {
             return this.kick("You are already in game");
         }
 
+        let serv = this.server.config.auth;
+
+        if (secret && !serv) {
+            return this.kick("Invalid authorization");
+        }
+
+        if (serv && !serv.startsWith("http://") && !serv.startsWith("https://")) serv = "http://" + serv;
+
+        if (secret) {
+            const response = await fetch(serv + "/use-key", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({key: secret.toString()})
+            }).catch(e => e);
+
+            if (response instanceof Error) {
+                return this.kick("Couldn't connect to authorization server");
+            }
+
+            if (response.statusText !== "OK") {
+                return this.kick("Invalid authorization (" + response.statusText + ")");
+            }
+        }
+
         const loginEvent = new PlayerLoginEvent(name, this.ip);
         loginEvent.call();
 
@@ -119,11 +150,14 @@ export default class PlayerNetwork {
         const player = this.player = Player.loadPlayer(name);
         player.network = this;
         player.skin = skin;
-        player.init();
+
+        if (!player.init()) return this.kick("Failed to load player data");
+
         this.server.players[player.name] = player;
-        player.broadcastSpawn();
+
         printer.info(`${this.player.name}(${this.ip}) connected`);
         this.server.broadcastMessage(`§e${this.player.name} joined the server`);
+
         this.sendPacket(new Packets.SHandshake({
             entityId: this.player.id,
             x: player.x,
@@ -152,7 +186,7 @@ export default class PlayerNetwork {
     };
 
     processCInteractBlock({data: {x, y}}: PacketByName<"CInteractBlock">) {
-        this.player.world.tryAndInteractBlockAt(this.player, x, y);
+        this.player.world.tryToInteractBlockAt(this.player, x, y);
     };
 
     processCToggleFlight() {
@@ -222,10 +256,9 @@ export default class PlayerNetwork {
         const alreadyFrom = from.dirtyIndexes.has(fromIndex);
         const accessibleInventories = this.player.getAccessibleInventoryNames();
 
-        cancelled =
-            cancelled
+        cancelled ||=
             // Need something to transfer
-            || !fromItem
+            !fromItem
             // If you're getting items from a crafting result, you have to take all of them
             || (isFromResult && fromItem?.count !== totalCount)
             // Just a sanity check
@@ -241,6 +274,8 @@ export default class PlayerNetwork {
                 || (fromInventory === t.inventory && fromIndex === t.index)
                 // You can't transfer between inventories that you don't have access to
                 || !accessibleInventories.includes(t.inventory)
+                // You have to put an armor to the armor slot
+                || (t.inventory === "armor" && fromItem && fromItem.toMetadata().armorType !== t.index)
             ) {
                 cancelled = true;
                 break;
@@ -293,9 +328,9 @@ export default class PlayerNetwork {
         const from = this.player.inventories[fromInventory];
         const to = this.player.inventories[toInventory];
 
-        const alreadyFrom = from.dirtyIndexes.has(fromIndex);
-        const alreadyTo = to.dirtyIndexes.has(toIndex);
         const accessibleInventories = this.player.getAccessibleInventoryNames();
+        const fromItem = from.get(fromIndex);
+        const toItem = to.get(toIndex);
 
         const cancelled =
             // Target or source inventory cannot be a crafting result
@@ -309,6 +344,10 @@ export default class PlayerNetwork {
             || !accessibleInventories.includes(fromInventory)
             || !accessibleInventories.includes(toInventory)
 
+            // You have to put an armor to the armor slot
+            || (toInventory === "armor" && fromItem && fromItem.toMetadata().armorType !== toIndex)
+            || (fromInventory === "armor" && toItem && toItem.toMetadata().armorType !== toIndex)
+
             // Check if plugins want to cancel
             || new ItemSwapEvent(this.player, from, fromIndex, to, toIndex).callGetCancel();
 
@@ -316,8 +355,9 @@ export default class PlayerNetwork {
             from.updateIndex(fromIndex);
             to.updateIndex(toIndex);
         } else {
-            const fromItem = from.get(fromIndex);
-            const toItem = to.get(toIndex);
+            const alreadyFrom = from.dirtyIndexes.has(fromIndex);
+            const alreadyTo = to.dirtyIndexes.has(toIndex);
+
             from.set(fromIndex, toItem);
             to.set(toIndex, fromItem);
 
@@ -353,6 +393,10 @@ export default class PlayerNetwork {
 
         const inv = this.player.inventories[inventory];
 
+        if (!item || item.count === 0) return;
+
+        if (item.id === ItemIds.NATURAL_LOG) item = new Item(ItemIds.LOG, item.meta, item.count, item.components);
+
         if (new PlayerCreativeItemAccessEvent(this.player, inv, index, item).callGetCancel()) {
             // let the client know
             return inv.dirtyIndexes.add(index);
@@ -378,23 +422,13 @@ export default class PlayerNetwork {
         }
     };
 
-    processPacketBuffer(data: Buffer) {
-        if (this.server.terminated) return;
-        let pk: Packet;
-        try {
-            pk = readPacket(data);
-        } catch (e) {
-            printer.error(data);
-            printer.error(e);
-            return this.kick("Invalid packet");
-        }
-
+    async processPrePacket(pk: Packet) {
         if (!this.player) {
             if (!(pk instanceof Packets.CAuth)) {
                 return this.kick("Invalid authentication");
             }
 
-            this.processCAuth(<PacketByName<"CAuth">>pk);
+            await this.processCAuth(<PacketByName<"CAuth">>pk);
         } else {
             try {
                 this.processPacket(pk);
@@ -404,6 +438,20 @@ export default class PlayerNetwork {
                 return;
             }
         }
+    };
+
+    async processPacketBuffer(data: Buffer) {
+        if (this.server.closed) return;
+        let pk: Packet;
+        try {
+            pk = readPacket(data);
+        } catch (e) {
+            printer.error(data);
+            printer.error(e);
+            return this.kick("Invalid packet");
+        }
+
+        await this.processPrePacket(pk);
     };
 
     sendInventories(immediate = false) {
@@ -491,7 +539,9 @@ export default class PlayerNetwork {
 
     sendChunk(chunkX: number, data: Uint16Array, entities?: Entity[], immediate = false) {
         if (this.player.world.unloaded) return;
-        this.sendPacket(new Packets.SChunk({x: chunkX, data}), immediate);
+        this.sendPacket(new Packets.SChunk({
+            x: chunkX, biome: this.player.world.generator.getBiomeAtChunk(chunkX), data
+        }), immediate);
         if (entities) {
             this.sendPacket(new Packets.SSetChunkEntities({
                 x: chunkX, entities: entities.filter(i => i !== this.player).map(i => ({

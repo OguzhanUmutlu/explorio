@@ -3,6 +3,7 @@ import "./css/client.css";
 import {
     Div,
     drawShadow,
+    formatDivText,
     getClientPosition,
     getServerList,
     getWorldList,
@@ -24,7 +25,7 @@ import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
 import {Containers, CraftingResultMap, InventorySizes} from "@/meta/Inventories";
-import {BM} from "@/meta/ItemIds";
+import {FullId2Data} from "@/meta/ItemIds";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
 import ParticleManager from "@c/particle/ParticleManager";
@@ -33,7 +34,8 @@ import {ChunkLength, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import {im2f} from "@/meta/Items";
 import {cx2x, cy2y, rotateMeta, x2cx, y2cy} from "@/utils/Utils";
 import {getMenus, OptionPages} from "@dom/components/options/Menus";
-import Player from "@/entity/defaults/Player";
+import CPlayer from "@c/entity/types/CPlayer";
+import Texture from "@/utils/Texture";
 
 declare global {
     interface Window {
@@ -53,8 +55,11 @@ export let canvas: HTMLCanvasElement;
 export let chatBox: Div;
 export let chatInput: Input;
 export let ctx: CanvasRenderingContext2D;
-let f3On: ReactState<boolean>;
+let f3Menu: Div;
 let f1On: ReactState<boolean>;
+let titleDiv: Div;
+let subTitleDiv: Div;
+let actionbarDiv: Div;
 const f3 = {
     fps: null as ReactState<number>,
     x: null as ReactState<number>,
@@ -67,7 +72,6 @@ export let handIndexState: ReactState<number>;
 export let clientServer: CServer;
 export let singlePlayerServer: Server;
 export let serverNetwork: PlayerNetwork;
-export let serverPlayer: Player;
 export let clientPlayer: OriginPlayer;
 export let clientNetwork: ClientNetwork;
 export const camera = {x: 0, y: 0};
@@ -81,6 +85,11 @@ export let showChunkBorders = false;
 let cameraZoomMultiplier = 1;
 let cameraZoom = 1;
 let cameraZoomRender = 1;
+
+export function setTitleText(type: "title" | "subtitle" | "actionbar", text: string) {
+    const div = type === "title" ? titleDiv : type === "subtitle" ? subTitleDiv : actionbarDiv;
+    formatDivText(div, text);
+}
 
 export function resetKeyboard() {
     for (const k in Keyboard) delete Keyboard[k];
@@ -151,8 +160,8 @@ let intervalId: ReturnType<typeof setTimeout>;
 let frameId = 0;
 let _fps = [];
 
-function animate() {
-    frameId = requestAnimationFrame(animate);
+function render() {
+    frameId = requestAnimationFrame(render);
 
     if (!chatBox || !canvas) return;
 
@@ -173,7 +182,7 @@ function animate() {
 
     updateTileSize();
 
-    if (f3On[0]) {
+    if (!f3Menu.hidden) {
         f3.fps[1](Math.floor(_fps.length));
         f3.x[1](+clientPlayer.x.toFixed(2));
         f3.y[1](+clientPlayer.y.toFixed(2));
@@ -202,7 +211,10 @@ function animate() {
 
     const world = clientPlayer.world as CWorld;
 
+    particleManager.render(ctx, dt);
+
     for (let chunkX = minSubX; chunkX <= maxSubX; chunkX++) {
+        if (!world.chunksGenerated.has(chunkX)) continue;
         for (let chunkY = minSubY; chunkY <= maxSubY; chunkY++) {
             world.renderSubChunk(chunkX, chunkY);
             const render = world.subChunkRenders[chunkX][chunkY];
@@ -226,11 +238,23 @@ function animate() {
         }
     }
 
-    particleManager.render(ctx, dt);
-
     const chunkXMiddle = clientPlayer.chunkX;
     for (let chunkX = chunkXMiddle - 2; chunkX <= chunkXMiddle + 2; chunkX++) {
         const entities = world.getChunkEntities(chunkX);
+        for (const entity of entities) {
+            if (entity instanceof CPlayer && entity.breaking) {
+                const block = world.getBlock(entity.breaking[0], entity.breaking[1]);
+                const breakTime = block.getBreakTime(entity.handItem);
+                const ratio = 1 - entity.breakingTime / breakTime;
+                const blockPos = getClientPosition(entity.breaking[0], entity.breaking[1]);
+                ctx.drawImage(
+                    Texture.get(`assets/textures/destroy/${Math.max(0, Math.min(9, Math.floor(ratio * 10)))}.png`).image,
+                    blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2,
+                    TileSize.value, TileSize.value
+                );
+            }
+        }
+
         for (const entity of entities) {
             entity.render(ctx, dt);
 
@@ -257,9 +281,10 @@ function animate() {
         ctx.lineWidth = 2;
         const blockPos = getClientPosition(Mouse.rx, Mouse.ry);
         if (item) {
-            const block = BM[im2f(item.id, rotateMeta(item.id, item.meta, Mouse.rotation))];
+            const rotated = rotateMeta(item.id, item.meta, Mouse.rotation);
+            const block = FullId2Data[im2f(item.id, rotated)];
             if (block && clientPlayer.canPlaceBlock()) {
-                block.renderBlock(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false);
+                block.renderBlock(ctx, world, Mouse.rx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false);
                 drawShadow(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, shadow / 2);
             }
         }
@@ -318,12 +343,14 @@ let chatIndex = 0;
 let lastRender = Date.now() - 1;
 
 function onWheel(e: WheelEvent) {
+    if (isAnyUIOpen()) return;
+
     if (e.altKey) {
         if (e.deltaY > 0) cameraZoomMultiplier *= 0.9;
         else cameraZoomMultiplier *= 1.1;
         cameraZoomMultiplier = Math.max(0.5, Math.min(10, cameraZoomMultiplier));
         e.preventDefault();
-    } else if (!isAnyUIOpen()) {
+    } else {
         clientNetwork.sendHandIndex((clientPlayer.handIndex + (e.deltaY > 0 ? 1 : -1) + InventorySizes.hotbar) % InventorySizes.hotbar);
     }
 }
@@ -332,12 +359,12 @@ function onWheel(e: WheelEvent) {
 let executedF3 = false;
 
 function onPressKey(e: KeyboardEvent) {
-    if (Keyboard.f3 && e.key in F3Macro) {
+    if (Keyboard.f3 && e.key.toLowerCase() in F3Macro) {
         return;
     }
 
     if (isAnyUIOpen()) {
-        if (!isInChat() && e.key === "e") {
+        if (!isInChat() && e.key.toLowerCase() === "e") {
             clientPlayer.containerId = Containers.Closed;
             clientNetwork.sendCloseInventory();
         }
@@ -383,12 +410,12 @@ function onPressKey(e: KeyboardEvent) {
                         clientNetwork.makeItemSwap(invName, fromIndex, "hotbar", toIndex);
                     }
                 }
-            } else if (e.key === "q") {
+            } else if (e.key.toLowerCase() === "q") {
                 if (fromItem) {
                     fromInv.decreaseItemAt(clientPlayer.hoveringIndex);
                     clientNetwork.sendDropItem(invName, clientPlayer.hoveringIndex, 1);
                 }
-            } else if (e.key === "r") {
+            } else if (e.key.toLowerCase() === "r") {
                 if (fromItem) {
                     fromInv.removeIndex(clientPlayer.hoveringIndex);
                     clientNetwork.sendDropItem(invName, clientPlayer.hoveringIndex, fromItem.count);
@@ -398,12 +425,18 @@ function onPressKey(e: KeyboardEvent) {
     } else {
         Keyboard[e.key.toLowerCase()] = true;
 
-        if (e.key === "t") {
+        if (e.key.toLowerCase() === "t") {
             openChat();
             e.preventDefault();
         }
 
-        if (e.key === "e") {
+        if (e.key === ".") {
+            openChat();
+            putIntoChat("/");
+            e.preventDefault();
+        }
+
+        if (e.key.toLowerCase() === "e") {
             clientPlayer.containerId = Containers.PlayerInventory;
             clientNetwork.sendOpenInventory();
         }
@@ -426,7 +459,7 @@ function onPressKey(e: KeyboardEvent) {
             clientNetwork.sendHandIndex(parseInt(e.key) - 1);
         }
 
-        if (e.key === "q") {
+        if (e.key.toLowerCase() === "q") {
             const handItem = clientPlayer.handItem;
             if (handItem) {
                 clientPlayer.hotbarInventory.decreaseItemAt(clientPlayer.handIndex);
@@ -439,13 +472,19 @@ function onPressKey(e: KeyboardEvent) {
 let lastSpace = 0;
 
 const F3Macro = {
-    "b": () => renderCollisionBoxes = !renderCollisionBoxes,
-    "g": () => showChunkBorders = !showChunkBorders,
+    "b": () => {
+        renderCollisionBoxes = !renderCollisionBoxes;
+        clientPlayer.sendMessage(`§e§l[Debug] §rEntity collisions ${renderCollisionBoxes ? "enabled" : "disabled"}.`);
+    },
+    "g": () => {
+        showChunkBorders = !showChunkBorders;
+        clientPlayer.sendMessage(`§e§l[Debug] §rChunk borders ${showChunkBorders ? "enabled" : "disabled"}.`);
+    },
     "d": () => chatBox.innerText = "",
     "q": () => {
-        clientPlayer.sendMessage("F3 + B: Toggle visibility of hitboxes of visible entities.");
-        clientPlayer.sendMessage("F3 + G: Toggles visibility of the chunk borders around the player.");
-        clientPlayer.sendMessage("F3 + D: Clear chat history.");
+        clientPlayer.sendMessage("§dF3 + B: Toggle visibility of hitboxes of visible entities.");
+        clientPlayer.sendMessage("§dF3 + G: Toggles visibility of the chunk borders around the player.");
+        clientPlayer.sendMessage("§dF3 + D: Clear chat history.");
     }
 };
 
@@ -466,7 +505,7 @@ function onReleaseKey(e: KeyboardEvent) {
                 return;
             }
 
-            if (!executedF3) f3On[1](!f3On[0]);
+            if (!executedF3) f3Menu.hidden = !f3Menu.hidden;
         } else if (Keyboard.f3 && F3Macro[e.key]) {
             F3Macro[e.key]();
             executedF3 = true;
@@ -536,7 +575,7 @@ function handleMouseMovement(x: number, y: number) {
 
 function onCanvasMouseDown(e: MouseEvent) {
     if (e.button === 0) Mouse.left = true;
-    if (e.button === 1) {
+    if (e.button === 1 && clientPlayer.infiniteResource) {
         Mouse.middle = true;
         const block = clientPlayer.world.getBlock(Mouse.x, Mouse.y);
         const item = block.toItem();
@@ -553,6 +592,11 @@ function onMouseUp(e: MouseEvent) {
     if (e.button === 2) Mouse.right = false;
 }
 
+function putIntoChat(input: string) {
+    chatInput.value = input;
+    requestAnimationFrame(() => chatInput.setSelectionRange(input.length, input.length))
+}
+
 function onChatKeyPress(e: KeyboardEvent) {
     if (e.key === "ArrowUp" || e.key === "KeyUp") {
         if (chatIndex > 0) {
@@ -560,14 +604,12 @@ function onChatKeyPress(e: KeyboardEvent) {
                 chatHistory[chatIndex] = chatInput.value;
             }
             chatIndex--;
-            const v = chatInput.value = chatHistory[chatIndex];
-            chatInput.setSelectionRange(v.length, v.length);
+            putIntoChat(chatHistory[chatIndex]);
         }
     } else if (e.key === "ArrowDown" || e.key === "KeyDown") {
         if (chatIndex < chatHistory.length - 1) {
             chatIndex++;
-            const v = chatInput.value = chatHistory[chatIndex];
-            chatInput.setSelectionRange(v.length, v.length);
+            putIntoChat(chatHistory[chatIndex]);
         }
     } else if (e.key === "Enter") {
         e.preventDefault();
@@ -616,13 +658,13 @@ export function initClient() {
 
     clientServer = new CServer();
     clientServer.config = DefaultServerConfig;
-    clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set);
+    clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set, DefaultServerConfig.defaultWorlds.default);
     clientServer.defaultWorld.ensureSpawnChunks();
 
     const req = {socket: {remoteAddress: "::ffff:127.0.0.1"}};
 
     clientPlayer = OriginPlayer.spawn(clientServer.defaultWorld);
-    clientPlayer.name = isMultiPlayer ? (Options.username || "Steve") : "Player";
+    clientPlayer.name = isMultiPlayer ? (Options.fallbackUsername || "Steve") : "Player";
 
     clientPlayer.immobile = true;
     clientNetwork = new ClientNetwork;
@@ -630,12 +672,13 @@ export function initClient() {
         connectionText[1]("Connecting...");
         clientNetwork._connect().then(r => r); // not waiting for it to connect
     } else {
-        singlePlayerServer = new Server(bfs, `singleplayer/${WorldInfo.uuid}`);
+        singlePlayerServer = new Server(bfs, `singleplayer/${WorldInfo.uuid}`, {close: () => void 0});
         Error.stackTraceLimit = 50;
 
         if (!bfs.existsSync("singleplayer")) bfs.mkdirSync("singleplayer");
-        singlePlayerServer.config = DefaultServerConfig;
-        singlePlayerServer.config.saveIntervalSeconds = Options.auto_save;
+        const config = singlePlayerServer.config = DefaultServerConfig;
+        config.saveIntervalTicks = Options.auto_save * 20;
+        config.auth = null;
 
         singlePlayerServer.init();
         singlePlayerServer.bans = [];
@@ -658,12 +701,10 @@ export function initClient() {
             postMessage: (e: Buffer) => serverNetwork.processPacketBuffer(e),
             terminate: () => null
         };
+        // faster but have to serialize things like items: clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPrePacket(pk);
         clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPacketBuffer(pk.serialize());
 
-        clientNetwork.sendAuth(true);
-        serverPlayer = serverNetwork.player;
-
-        serverNetwork.player.permissions.add("*");
+        clientNetwork.sendAuth(null, true);
     }
 
     Mouse._x = innerWidth / 2;
@@ -684,7 +725,7 @@ export function initClient() {
 
     onResize();
     intervalId = setInterval(() => update(1 / Options.updatesPerSecond), 1000 / Options.updatesPerSecond);
-    frameId = requestAnimationFrame(animate);
+    frameId = requestAnimationFrame(render);
 }
 
 export function terminateClient() {
@@ -723,29 +764,32 @@ export function saveAndQuit() {
     location.hash = "";
 }
 
-// todo: disconnect screen
-// todo: add fall damage
 // todo: bug: fix non-rendering chunks in clients, i think this bug disappeared a few commits ago, question mark (?)
 // todo: custom tree lengths and shapes like jungle etc.
-// todo: i think only trees of meta 0 1 2 3 are being chosen
-// todo: handle tool logic
-// todo: render health/food/armor/breathe points
-// todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does?
-// todo: falling blocks (sand/gravel)
-// todo: flowing blocks (water/lava)
+// todo: bug: when you're falling and you hit the corner of a block, it kind of makes you faster? or it looks like it does? setup: staircase out of square stone blocks
 // todo: zombies and cows
 // todo: when the client gets a chunk and client leaves & gets back to that chunk, it shouldn't send the chunk data
-//  again unless it's dirty. should have an object like Record<PlayerName, TimeOfLoad> in Chunk class, and
-//  also have the lastDirty: number to check if the chunk was cleaned while the player was away
+//    again unless it's dirty. should have an object like Record<PlayerName, TimeOfLoad> in Chunk class, and
+//    also have the lastDirty: number to check if the chunk was cleaned while the player was away
 // todo: bug: at the end of every chunk, if the surface is let's say flat, the last block in that chunk will produce more light to bottom
-// todo: add inventory item tooltip and add an advanced mode to it via F3+G
-// todo: when hand index changes briefly show the name of the item under the actionbar
-// todo: add title, subtitle, actionbar support with timings
 // todo: render item damage
 // todo: add back the lighting system with the new small block depth
-// todo: add usernames on top of the players
-// todo: show item name etc. when hovered over in inventory
 // todo: advancement api
+// todo: liquid flowing rendering
+// todo: block animations, how would this even work? sub-chunk renders are cached? do we have multiple sub-chunk renders
+//     that include every frame of animation? this actually doesn't sound like a bad idea. it's like a buffer cache.
+
+// todo: add block details
+// todo: make biome based grass textures
+// todo: add inventory item tooltip and add an advanced mode to it via F3+G
+// todo: add usernames on top of the players
+// todo: when hand index changes briefly show the name of the item under the actionbar
+// todo: remove Items.ts as it is getting messy. define blocks and items with classes and make them extend each other. Might have to implement a way of implementing more than one, or just find a nice way of it.
+// todo: add support for using the virtual file system for assets, uploadable via a zip file (resource pack)
+// todo: add title, subtitle, actionbar support with -> timings <-
+// todo: render health/food/armor/breathe/xp
+// todo: make disconnect screen better, add a back button
+// todo: add fall damage
 
 function isInChat() {
     return chatContainer[0];
@@ -784,7 +828,7 @@ export default function Client(O: {
     favicon: ReactState<string>
 }) {
     // @ts-expect-error This is for debugging purposes.
-    window.dbg = {s: singlePlayerServer, p: clientPlayer};
+    window.dbg = {s: singlePlayerServer, p: clientPlayer, t: FullId2Data};
     optionPopup = useState<OptionPages>("none");
     saveScreen = useState(false);
     connectionText = useState("");
@@ -792,7 +836,6 @@ export default function Client(O: {
     chatContainer = useState(false);
     handIndexState = useState(0);
     clientUUID = O.clientUUID;
-    f3On = useState(false);
     f1On = useState(false);
     const mouseX = useState(0);
     const mouseY = useState(0);
@@ -806,7 +849,15 @@ export default function Client(O: {
             mouseY[1](e.pageY);
         }
 
-        initClient();
+        try {
+            initClient();
+        } catch (e) {
+            console.error(e);
+            window.alert("Couldn't load the world. " + e.message);
+            location.hash = "";
+            terminateClient();
+            return;
+        }
 
         addEventListener("mousemove", onMouseMove);
 
@@ -820,26 +871,34 @@ export default function Client(O: {
 
     return <>
         {/* F3 Menu */}
-        {f3On[0] ? <div className="f3-menu">
+        {React.useMemo(() => <div className="f3-menu" ref={el => f3Menu = el} hidden={true}>
             FPS: <F3Component ikey="fps"/><br/>
             X: <F3Component ikey="x"/><br/>
             Y: <F3Component ikey="y"/><br/>
             VX: <F3Component ikey="vx"/><br/>
             VY: <F3Component ikey="vy"/>
-        </div> : <></>}
+        </div>, [])}
 
 
         {/* The game's canvas */}
-        <canvas id="game" ref={el => canvas = el}></canvas>
+        {React.useMemo(() => <canvas id="game" ref={el => canvas = el}></canvas>, [])}
+
+
+        {/* Title text */}
+        <div className="text-section title-text-section" ref={el => titleDiv = el}></div>
+        <div className="text-section sub-title-text-section" ref={el => subTitleDiv = el}></div>
+        <div className="text-section actionbar-text-section" ref={el => actionbarDiv = el}></div>
 
 
         {/* Chat Container */}
-        <div className={chatContainer[0] ? "full-chat-container" : "chat-container"}
-             style={f1On[0] && !chatContainer[0] ? {opacity: "0"} : {}}>
-            <div className="chat-messages" ref={el => chatBox = el}>
-            </div>
-            <input className="chat-input" ref={el => chatInput = el}/>
-        </div>
+        {React.useMemo(() => {
+            return <div className={chatContainer[0] ? "full-chat-container" : "chat-container"}
+                        style={f1On[0] && !chatContainer[0] ? {opacity: "0"} : {}}>
+                <div className="chat-messages" ref={el => chatBox = el}>
+                </div>
+                <input className="chat-input" ref={el => chatInput = el}/>
+            </div>;
+        }, [chatContainer])}
 
 
         {/* Mobile Chat Toggle Button */}
@@ -890,6 +949,7 @@ export default function Client(O: {
             <InventoryDiv className="inv-ph inventory" inventoryName={"hotbar"}
                           ikey="ph"></InventoryDiv>
             <InventoryDiv className="inv-pa inventory" inventoryName={"armor"} ikey="pa"></InventoryDiv>
+            <InventoryDiv className="inv-po inventory" inventoryName={"offhand"} ikey="po"></InventoryDiv>
             <InventoryDiv className="inv-pcs inventory" inventoryName={"craftingSmall"}
                           ikey="pcs"></InventoryDiv>
             <InventoryDiv className="inv-pcr inventory" inventoryName={"craftingSmallResult"}

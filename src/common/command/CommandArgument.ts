@@ -1,6 +1,6 @@
 import {AnyToken} from "@/command/CommandProcessor";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 
 export default abstract class CommandArgument<T = unknown> {
     __TYPE__: T;
@@ -52,7 +52,7 @@ export default abstract class CommandArgument<T = unknown> {
         return this;
     };
 
-    abstract read(as: CommandAs, at: Location, args: AnyToken[], index: number): T;
+    abstract read(as: CommandAs, at: Position, args: AnyToken[], index: number): T;
     abstract blindCheck(args: AnyToken[], index: number): {
         error: { token: AnyToken | null, message: string } | null,
         index: number

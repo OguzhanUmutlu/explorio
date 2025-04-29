@@ -1,6 +1,6 @@
 import CommandArgument from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import X from "stramp";
 
@@ -19,13 +19,11 @@ export const GameModeStruct = X.any.ofValues(...GameModeValues);
 export default class GameModeArgument extends CommandArgument<GameMode> {
     default = GameMode.Survival;
 
-    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
+    read(_: CommandAs, __: Position, args: AnyToken[], index: number) {
         const arg = args[index];
         const raw = arg.rawText;
 
-        if (GameModeNames.includes(raw)) {
-            return GameModeValues[raw];
-        }
+        if (GameModeNames.includes(raw)) return GameModeNames.indexOf(raw);
 
         return +raw;
     };

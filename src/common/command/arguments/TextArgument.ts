@@ -1,7 +1,7 @@
 import CommandArgument from "@/command/CommandArgument";
 import CommandError from "@/command/CommandError";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 
 export default class TextArgument extends CommandArgument<string> {
@@ -16,7 +16,7 @@ export default class TextArgument extends CommandArgument<string> {
         return this;
     };
 
-    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
+    read(_: CommandAs, __: Position, args: AnyToken[], index: number) {
         const arg = args[index];
 
         if (this.choices.length === 0) return arg.rawText;

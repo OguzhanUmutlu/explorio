@@ -1,12 +1,12 @@
 import CommandArgument from "@/command/CommandArgument";
 import {AnyToken, TokenValue} from "@/command/CommandProcessor";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 
 export default class ObjectArgument extends CommandArgument<Record<string, TokenValue>> {
     default = {};
 
-    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
+    read(_: CommandAs, __: Position, args: AnyToken[], index: number) {
         return <Record<string, TokenValue>>args[index].value;
     };
 

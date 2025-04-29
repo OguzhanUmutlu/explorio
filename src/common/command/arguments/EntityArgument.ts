@@ -1,9 +1,9 @@
-import Entity from "@/entity/Entity";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import CommandArgument from "@/command/CommandArgument";
 import EntitiesArgument from "@/command/arguments/EntitiesArgument";
+import Entity from "@/entity/Entity";
 
 export default class EntityArgument<T extends Entity = Entity> extends CommandArgument<T> {
     default = <T>null;
@@ -25,7 +25,7 @@ export default class EntityArgument<T extends Entity = Entity> extends CommandAr
         return this.default;
     };
 
-    read(as: CommandAs, at: Location, args: AnyToken[], index: number) {
+    read(as: CommandAs, at: Position, args: AnyToken[], index: number) {
         const r = this.base.read(as, at, args, index);
         return <T>r[0];
     };

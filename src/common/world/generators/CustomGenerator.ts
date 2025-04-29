@@ -1,5 +1,5 @@
 import Generator from "@/world/generators/Generator";
-import {I} from "@/meta/ItemIds";
+import {ItemIds} from "@/meta/ItemIds";
 import World from "@/world/World";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
@@ -34,7 +34,7 @@ export default class CustomGenerator extends Generator {
                     name = name.substring(name.indexOf("*") + 1);
                 }
 
-                items.push([times, name[0] === ":" ? name : I[name.toUpperCase()]]);
+                items.push([times, name[0] === ":" ? name : ItemIds[name.toUpperCase()]]);
             }
 
             this.processedPattern.push(items);

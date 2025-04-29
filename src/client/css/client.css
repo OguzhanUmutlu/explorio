@@ -45,7 +45,7 @@ body {
 .inventory-item > canvas {
     width: 60%;
     height: 60%;
-    translate: 30% 30%;
+    translate: calc(30% + 1px) 30%;
     z-index: 1;
     pointer-events: none;
 }
@@ -69,14 +69,14 @@ body {
 }
 
 .hotbar-inventory > .inventory-item {
-    background-image: url("../assets/textures/gui/inventory/hotbar.png");
+    background-image: url("../assets/textures/gui/container/hotbar.png");
     background-size: 100% 100%;
     width: calc(100% / 9);
     aspect-ratio: 1 / 1;
 }
 
 .hotbar-inventory > .selected {
-    background-image: url("../assets/textures/gui/inventory/selected_hotbar.png");
+    background-image: url("../assets/textures/gui/container/selected_hotbar.png");
 }
 
 .hotbar-inventory > .inventory-item > canvas {
@@ -98,7 +98,7 @@ body {
     width: 30vw;
     height: 40vh;
     background: linear-gradient(to left bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.2));
-    opacity: 1;
+    opacity: 0.5;
     transition: all 0.3s;
     pointer-events: none;
 }
@@ -146,6 +146,7 @@ body {
 
 .chat-container > .chat-messages > .message {
     pointer-events: auto;
+    text-shadow: 1px 1px black;
 }
 
 .full-chat-container {
@@ -155,7 +156,7 @@ body {
     width: 100vw;
     height: 100vh;
     z-index: 4;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
     transition: all 0.3s;
 }
@@ -193,13 +194,9 @@ body {
     display: inline-block;
 }
 
-.sub-message {
-    display: contents;
-}
-
 .emote {
-    margin-left: 3px;
-    margin-right: 3px;
+    margin-left: 8px;
+    margin-right: 1px;
     height: 18px;
     aspect-ratio: 1 / 1;
     background-size: 100%;
@@ -240,9 +237,9 @@ body {
     left: 50%;
     top: 50%;
     translate: -50% -50%;
-    width: 50vw;
-    height: calc(50vw * 166 / 176);
-    background: url("../assets/textures/gui/inventory/player_inventory.png") no-repeat 50% 50%;
+    height: 70vh;
+    width: calc(70vh / 166 * 176);
+    background: url("../assets/textures/gui/container/inventory.png") no-repeat 50% 50%;
     transition: all 0.3s;
     aspect-ratio: 176 / 166;
     background-size: 100% 100%;
@@ -256,11 +253,11 @@ body {
 }
 
 .crafting-table-container {
-    background-image: url("../assets/textures/gui/inventory/crafting_table.png");
+    background-image: url("../assets/textures/gui/container/crafting_table.png");
 }
 
 .furnace-container {
-    background-image: url("../assets/textures/gui/inventory/furnace_inventory.png");
+    background-image: url("../assets/textures/gui/container/furnace.png");
 }
 
 .inv-pp, .inv-cp, .inv-fp {
@@ -284,16 +281,23 @@ body {
     height: 43.6%;
 }
 
+.inv-po {
+    left: 43%;
+    top: 37%;
+    width: 10.3%;
+    height: 10.8%;
+}
+
 .inv-pcs {
-    left: 49.5%;
-    top: 15%;
+    left: 55%;
+    top: 10%;
     width: 20.5%;
     height: 22%;
 }
 
 .inv-pcr {
-    left: 81.2%;
-    top: 21.1%;
+    left: 87%;
+    top: 16%;
     width: 10.3%;
     height: 10.8%;
 }
@@ -360,7 +364,7 @@ body {
     position: absolute;
     left: 0;
     top: 0;
-    width: 5%;
+    width: 55px;
     z-index: 3;
     translate: -50% -50%;
     pointer-events: none;
@@ -429,4 +433,35 @@ body {
 
 .item-empty {
     cursor: var(--item-empty-cursor);
+}
+
+.text-section {
+    position: absolute;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 1px 1px black;
+}
+
+.title-text-section {
+    left: 50%;
+    top: calc(50% - 50px);
+    translate: -50% -50%;
+    font-size: 90px;
+    height: 100px;
+}
+
+.sub-title-text-section {
+    left: 50%;
+    top: calc(50% + 50px);
+    translate: -50% -50%;
+    font-size: 45px;
+    height: 50px;
+}
+
+.actionbar-text-section {
+    left: 50%;
+    bottom: 50px;
+    translate: -50%;
+    font-size: 20px;
+    height: 50px;
 }

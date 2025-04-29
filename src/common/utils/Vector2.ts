@@ -1,3 +1,5 @@
+import {x2cx} from "@/utils/Utils";
+
 export default class Vector2 {
     constructor(public x: number, public y: number) {
     };
@@ -43,6 +45,14 @@ export default class Vector2 {
     normalize() {
         const len = this.length();
         return this.div(len, len);
+    };
+
+    distance(x: number, y: number) {
+        return Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
+    };
+
+    get chunkX() {
+        return x2cx(this.x);
     };
 
     copy() {

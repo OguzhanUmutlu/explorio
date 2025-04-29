@@ -6,9 +6,11 @@ export default function OptionButtonComponent(O: {
     text: string;
     description?: string;
     action?: () => unknown;
+    disabled?: boolean;
 }) {
-    return <GameOptionComponent class="option-btn" description={O.description ?? ""}
-                                action={O.action}>
+    return <GameOptionComponent class={O.disabled === true ? "option-btn disabled" : "option-btn"}
+                                description={O.description ?? ""}
+                                action={() => !O.disabled && O.action && O.action()}>
         <OptionValueText>{O.text}</OptionValueText>
     </GameOptionComponent>
 }

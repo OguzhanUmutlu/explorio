@@ -1,14 +1,8 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
-import Effect from "@/effect/Effect";
-import {EffectIds} from "@/meta/Effects";
-import {splitByUnderscore} from "@/utils/Utils";
-import Entity from "@/entity/Entity";
-import CommandSender from "@/command/CommandSender";
 
-function getEffectName(effect: Effect) {
-    return splitByUnderscore(Object.keys(EffectIds).find(i => effect.id === EffectIds[i]));
-}
+import CommandSender from "@/command/CommandSender";
+import Entity from "@/entity/Entity";
 
 function handleArgs(sender: CommandSender, duration: number, amplifier: number) {
     duration = Math.floor(duration);
@@ -46,7 +40,7 @@ export default class EffectCommand extends DefinitiveCommand {
                 if (as instanceof Entity) {
                     as.addEffect(effect, amplifier, duration);
                     sender.sendMessage(
-                        `Added the ${getEffectName(effect)} effect to ${as.name}`
+                        `Added the ${effect.name} effect to ${as.name}`
                     );
                 } else {
                     sender.sendMessage(
@@ -70,7 +64,7 @@ export default class EffectCommand extends DefinitiveCommand {
                 }
 
                 sender.sendMessage(
-                    `Added the ${getEffectName(effect)} effect to ${players.length} ${players.length === 1 ? "entity" : "entities"}.`
+                    `Added the ${effect.name} effect to ${players.length} ${players.length === 1 ? "entity" : "entities"}.`
                 );
             }),
         new CommandDefinition()
@@ -83,7 +77,7 @@ export default class EffectCommand extends DefinitiveCommand {
                 }
 
                 sender.sendMessage(
-                    `Removed the ${getEffectName(effect)} effect from ${players.length} ${players.length === 1 ? "entity" : "entities"}.`
+                    `Removed the ${effect.name} effect from ${players.length} ${players.length === 1 ? "entity" : "entities"}.`
                 );
             })
     ];

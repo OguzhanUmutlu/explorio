@@ -1,12 +1,12 @@
 import {createCanvas} from "@/utils/Texture";
 import {clientPlayer} from "@dom/Client";
-import {BM} from "@/meta/ItemIds";
+import {FullId2Data} from "@/meta/ItemIds";
 import World from "@/world/World";
 import {ChunkLength} from "@/meta/WorldConstants";
 import {cx2x, cy2y, i2rx, i2ry, rxry2ci} from "@/utils/Utils";
 import {drawShadow} from "@c/utils/Utils";
 
-const renderScale = 16; // Blocks are rendered as 16x16
+const renderScale = 32; // Blocks are rendered as 16x16
 const renderSize = renderScale * ChunkLength;
 
 export default class CSubChunk {
@@ -14,6 +14,9 @@ export default class CSubChunk {
     bCtx = this.bCanvas.getContext("2d");
     bDone = false;
     bList = new Set<number>;
+
+    dCanvas = createCanvas(renderSize, renderSize);
+    dCtx = this.dCanvas.getContext("2d");
 
     sCanvas = createCanvas(renderSize, renderSize);
     sCtx = this.sCanvas.getContext("2d");
@@ -26,6 +29,7 @@ export default class CSubChunk {
 
     constructor(public world: World, public x: number, public y: number) {
         this.bCtx.imageSmoothingEnabled = false;
+        this.dCtx.imageSmoothingEnabled = false;
         this.subIndex = y * ChunkLength * ChunkLength;
         this.xIndex = cx2x(x);
         this.yIndex = cy2y(y);
@@ -39,16 +43,18 @@ export default class CSubChunk {
         relX: number, relY: number, fullId: number, clear: boolean
     ) {
         const ctx = this.bCtx;
-        const block = BM[fullId];
+        const dCtx = this.dCtx;
+        const block = FullId2Data[fullId];
         const dx = relX * renderScale;
         const dy = renderScale * (ChunkLength - relY);
         const dw = renderScale;
         const dh = -renderScale;
         if (block && block.hasTexture()) {
-            if (block.isSlab || block.isStairs || block.liquid) {
+            if (!block.isOpaque) {
                 ctx.clearRect(dx, dy, dw, dh);
             }
-            block.renderBlock(ctx, dx, dy, dw, dh);
+            block.renderBlock(ctx, this.world, cx2x(this.x, relX), dx, dy, dw, dh);
+            // todo: block.renderBlockDetail(dCtx, dx, dy, dw, dh);
         } else if (clear) {
             ctx.clearRect(dx, dy, dw, dh);
         }

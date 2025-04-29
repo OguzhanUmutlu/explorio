@@ -3,7 +3,7 @@ import {CommandDefinitionType} from "@/command/CommandDefinition";
 import {AnyToken, splitParameters} from "@/command/CommandProcessor";
 import CommandArgument from "@/command/CommandArgument";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 
 export default abstract class DefinitiveCommand extends Command {
     abstract definitions: CommandDefinitionType[];
@@ -23,7 +23,7 @@ export default abstract class DefinitiveCommand extends Command {
             .sort((a, b) => b.arguments.length - a.arguments.length);
     };
 
-    execute(sender: CommandSender, as: CommandAs, at: Location, _: string[], label: string) {
+    execute(sender: CommandSender, as: CommandAs, at: Position, _: string[], label: string) {
         const labelSpl = label.split(" ");
         const labelCmd = labelSpl[0];
         const params = labelSpl.slice(1).join(" ");
@@ -52,7 +52,15 @@ export default abstract class DefinitiveCommand extends Command {
                 }
                 const cmdArg = cmdArgs[cmdInd];
                 const passes = cmdArg.blindCheck(args, i);
-                if (!passes.error) {
+                if (passes.error) {
+                    fail = true;
+                    if (maxPassCmd === cmd || !maxPassCmd) {
+                        maxPassArg = cmdArgs[cmdInd];
+                        maxPassToken = args[i];
+                        maxPassError = passes.error;
+                    }
+                    break;
+                } else {
                     const v = cmdArg.read(as, at, args, i);
                     if (v !== undefined) resultArgs.push(v);
                     i = passes.index;
@@ -61,14 +69,6 @@ export default abstract class DefinitiveCommand extends Command {
                     }
 
                     if (i === args.length - 1 || !cmdArg.spread) cmdInd++;
-                } else {
-                    fail = true;
-                    if (maxPassCmd === cmd) {
-                        maxPassArg = cmdArgs[cmdInd];
-                        maxPassToken = args[i];
-                        maxPassError = passes.error;
-                    }
-                    break;
                 }
             }
 
@@ -77,7 +77,7 @@ export default abstract class DefinitiveCommand extends Command {
             if (cmdInd !== cmdArgs.length) {
                 if (cmdArgs[cmdInd].required) continue;
                 for (; cmdInd < cmdArgs.length; cmdInd++) {
-                    resultArgs.push(cmdArgs[cmdInd].default);
+                    resultArgs.push(cmdArgs[cmdInd].getDefault());
                 }
             }
 
@@ -87,7 +87,7 @@ export default abstract class DefinitiveCommand extends Command {
         }
 
         if (!validCmd) {
-            if (maxPassArg && maxPassToken && maxPassError) {
+            if (maxPassArg && maxPassToken && maxPassError && args.length > 0) {
                 const original = maxPassToken.originalText;
                 const word = maxPassToken.raw;
                 const before = original.slice(0, maxPassToken.start);
@@ -95,10 +95,8 @@ export default abstract class DefinitiveCommand extends Command {
 
                 sender.sendMessage(`§c${maxPassError.message}: /${labelCmd} ${before} >>${word}<< ${after}`);
             } else {
-                sender.sendMessage(
-                    `§c${this.definitions.length === 1 ? "Usage: " : "Usages:\n"}`
-                    + this.definitions.map(i => `§c /${labelCmd} ${i.toString()}`).join("\n")
-                );
+                sender.sendMessage(`§c${this.definitions.length === 1 ? "Usage: " : "Usages:\n"}`
+                    + this.definitions.map(i => `§c /${labelCmd} ${i.toString()}`).join("\n"));
             }
             return null;
         }

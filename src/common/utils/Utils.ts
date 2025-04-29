@@ -1,20 +1,20 @@
-import {EntityIds} from "@/meta/Entities";
-import Entity from "@/entity/Entity";
 import {ZstdSimple} from "@oneidentity/zstd-js";
 import Server from "@/Server";
-import Location from "@/utils/Location";
-import PlayerStruct from "@/structs/entity/PlayerStruct";
-import ItemEntityStruct from "@/structs/entity/ItemEntityStruct";
-import {IM} from "@/meta/ItemIds";
-import {ChunkLengthBits, ChunkLengthN} from "@/meta/WorldConstants";
-import {TileIds} from "@/meta/Tiles";
-import ChestTileStruct from "@/structs/tile/ChestTileStruct";
-import DoubleChestTileStruct from "@/structs/tile/DoubleChestTileStruct";
-import FurnaceTileStruct from "@/structs/tile/FurnaceTileStruct";
+import Position from "@/utils/Position";
+import {Id2Data, ItemIdentifiers} from "@/meta/ItemIds";
+import {ChunkGroupBits, ChunkGroupLengthN, ChunkLengthBits, ChunkLengthN} from "@/meta/WorldConstants";
+import Entity from "@/entity/Entity";
+import Inventory from "@/item/Inventory";
+import Item from "@/item/Item";
+import World from "@/world/World";
+import {z} from "zod";
+import {readWordOrString} from "@/command/CommandProcessor";
+import CommandError from "@/command/CommandError";
+//import World from "@/world/World";
 
 let server: Server;
 
-export const UsernameRegex = /^[a-zA-Z\d]{5,20}$/;
+export const UsernameRegex = /^[a-zA-Z][a-zA-Z\d]{4,19}$/;
 
 export type ClassOf<T, K = unknown> = new (...args: K[]) => T;
 
@@ -28,9 +28,21 @@ export function setServer(server_: Server) {
     server = server_;
 }
 
+export function clearUndefinedValues(obj: object) {
+    for (const key in obj) if (obj[key] === undefined) delete obj[key];
+}
+
+export function randInt(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export function rand(min: number, max: number) {
+    return Math.random() * (max - min) + min;
+}
+
 export function rotateMeta(id: number, meta: number, rotation: number) {
-    const baseBlock = IM[id];
-    if (baseBlock && (baseBlock.isSlab || baseBlock.isStairs)) meta += rotation * baseBlock.metas.length / 4;
+    const baseBlock = Id2Data[id];
+    if (baseBlock && (baseBlock.isSlab || baseBlock.isStairs)) return meta % (baseBlock.metas.length / 4) + rotation * baseBlock.metas.length / 4;
     return meta;
 }
 
@@ -82,17 +94,6 @@ export function deserializeUint16Array(size: number, buffer: Buffer, offset: num
     }
     return chunk;
 }
-
-export const EntityStructs = {
-    [EntityIds.PLAYER]: PlayerStruct,
-    [EntityIds.ITEM]: ItemEntityStruct
-};
-
-export const TileStructs = {
-    [TileIds.CHEST]: ChestTileStruct,
-    [TileIds.FURNACE]: FurnaceTileStruct,
-    [TileIds.DOUBLE_CHEST]: DoubleChestTileStruct
-};
 
 export function permissionCheck(permissions: Set<string>, wanted: string) {
     const wantedSpl = wanted.split(".");
@@ -158,7 +159,7 @@ export function levelsToXP(levels: number): number {
     else return 4.5 * levels * levels - 162.5 * levels + 2220;
 }
 
-export const SelectorSorters: Record<string, (a: Entity, b: Entity, at: Location) => number> = {
+export const SelectorSorters: Record<string, (a: Entity, b: Entity, at: Position) => number> = {
     nearest: (a, b, at) => a.distance(at.x, at.y) - b.distance(at.x, at.y),
     furthest: (a, b, at) => b.distance(at.x, at.y) - a.distance(at.x, at.y),
     type: (a, b) => a.typeName.localeCompare(b.typeName),
@@ -167,26 +168,40 @@ export const SelectorSorters: Record<string, (a: Entity, b: Entity, at: Location
     id: (a, b) => a.id - b.id
 };
 
+export function allocBuffer(size: number, safe = true) {
+    const buffer = safe ? Buffer.alloc(size) : Buffer.allocUnsafe(size);
+    // @ts-expect-error Come on eslint.
+    buffer._isBuffer = true;
+    return buffer;
+}
+
+export function copyBuffer(buffer: Buffer | Uint8Array | number[]) {
+    const newBuffer = Buffer.from(buffer);
+    // @ts-expect-error Come on eslint.
+    newBuffer._isBuffer = true;
+    return newBuffer;
+}
+
 export function zstdOptionalEncode(buffer: Buffer) {
     if (buffer.length > 100) {
         const compressed = ZstdSimple.compress(buffer);
-        const buffer2 = Buffer.alloc(compressed.length + 1);
+        const buffer2 = allocBuffer(compressed.length + 1);
         buffer2[0] = 1;
         buffer2.set(compressed, 1);
         return buffer2;
     }
 
-    const buffer2 = Buffer.alloc(buffer.length + 1);
+    const buffer2 = allocBuffer(buffer.length + 1);
     buffer2[0] = 0; // just to be safe
     buffer.copy(buffer2, 1);
     return buffer2;
 }
 
 export function zstdOptionalDecode(buffer: Buffer) {
-    const sliced = Buffer.alloc(buffer.length - 1);
+    const sliced = allocBuffer(buffer.length - 1);
     buffer.copy(sliced, 0, 1);
 
-    if (buffer[0] === 1) return Buffer.from(ZstdSimple.decompress(sliced));
+    if (buffer[0] === 1) return copyBuffer(ZstdSimple.decompress(sliced));
 
     return sliced;
 }
@@ -253,8 +268,8 @@ export function cy2y(chunkY: number, relY = 0) {
 }
 
 /** @description Rel x and world y to chunk index */
-export function rxy2ci(x: number, y: number) {
-    return x + (y << ChunkLengthBits);
+export function rxy2ci(relX: number, y: number) {
+    return relX + (y << ChunkLengthBits);
 }
 
 /** @description Rel X and rel Y to chunk index */
@@ -275,4 +290,293 @@ export function i2rx(i: number) {
 /** @description Chunk index to chunk relative Y */
 export function i2ry(i: number) {
     return i >> ChunkLengthBits;
+}
+
+/** @description Chunk X to chunk group X */
+export function cx2cgx(chunkX: number) {
+    return chunkX >> ChunkGroupBits;
+}
+
+/** @description Chunk X to chunk group index */
+export function cx2cgi(chunkX: number) {
+    return chunkX & ChunkGroupLengthN;
+}
+
+/** @description Chunk group X to chunk X */
+export function cgx2cx(chunkGroupX: number) {
+    return chunkGroupX << ChunkGroupBits;
+}
+
+
+type SimpleJSON = number | string | null | boolean | undefined | { [k: string]: SimpleJSON } | SimpleJSON[];
+
+export function simpleJSONify(value: unknown): SimpleJSON {
+    switch (typeof value) {
+        case "object": {
+            if (Symbol.iterator in value) return Array.from(<Iterable<unknown>>value).map(simpleJSONify);
+
+            const obj = {};
+
+            for (const key in value) {
+                obj[key] = simpleJSONify(value[key]);
+            }
+
+            return obj;
+        }
+        case "function": {
+            return value.name;
+        }
+        case "bigint":
+        case "symbol":
+            return value.toString();
+        case "boolean":
+        case "number":
+        case "string":
+        case "undefined":
+            return value;
+    }
+}
+
+export function formatDataForChat(data: unknown) {
+    switch (typeof data) {
+        case "undefined":
+            return "§7null";
+        case "string":
+            return "§a" + JSON.stringify(data);
+        case "number":
+            return "§e" + data;
+        case "boolean":
+            return "§6" + data;
+        case "bigint":
+            return "§9" + data + "n";
+        case "function":
+            return "§c<function>";
+        case "object":
+            if (data === null) return "§7null";
+            if (data.constructor === Object) {
+                const length = Object.keys(data).length;
+                if (length === 0) return "§d{}";
+                return `§d{ ` + Object.keys(data).map(k => ` §f${k}§7: ${formatDataForChat(data[k])}`).join(`§7, `) + ` §d}`;
+            }
+
+            if (Array.isArray(data)) {
+                const length = data.length;
+                if (length === 0) return "§d[]";
+                return `§d[ ` + data.map(i => formatDataForChat(i)).join("§7, §r") + ` §d]`;
+            }
+
+            if (data instanceof Set) return formatDataForChat(Array.from(data));
+            if (data instanceof Inventory) return formatDataForChat({name: data.name, contents: data.getContents()});
+
+            if (data instanceof Item) {
+                const newObj: {
+                    identifier: string,
+                    count: number,
+                    components?: typeof data.components
+                } = {identifier: data.toMetadata().identifier, count: data.count};
+                const components = {...data.components};
+                clearUndefinedValues(components);
+                if (Object.keys(components).length) newObj.components = components;
+                return formatDataForChat(newObj);
+            }
+
+            return "§c<" + data.constructor.name + ">";
+        case "symbol":
+            return "§b" + data.toString();
+    }
+}
+
+export function getIndex(part: unknown, length: number) {
+    let index = +part;
+    if (isNaN(index) || !Number.isSafeInteger(index) || index < -length || index >= length) return null;
+    if (index < 0) index = length + index;
+    return index;
+}
+
+const itemType = z.object({
+    id: z.number(),
+    meta: z.number(),
+    count: z.number(),
+    components: z.object({
+        damage: z.number().optional()
+    })
+});
+
+const itemArrayType = z.array(itemType.or(z.null()));
+
+export function setSafely(obj: object, key: number, value: unknown) {
+    if (Array.isArray(obj)) {
+        if (key < 0 || key >= obj.length || !Number.isSafeInteger(key)) throw new CommandError("Invalid array index");
+
+        if ("__belongsTo" in obj) {
+            if (value === null) {
+                obj[key] = null;
+                return true;
+            }
+            if (typeof value !== "object" || !itemType.safeParse(value).success) throw new CommandError("Invalid item");
+            obj[key] = value;
+            return true;
+        }
+
+        if (!checkAny(obj[key], value)) throw new CommandError("Array item mismatch");
+        obj[key] = value;
+        return true;
+    }
+
+    throw new CommandError("Cannot set object item safely");
+}
+
+export function splitPathSafely(path: string): string[] {
+    const parts: string[] = [];
+
+    let index = 0;
+    while (index < path.length) {
+        const char = path[index];
+        if (char === ".") {
+            index++;
+            continue;
+        }
+
+        const th = readWordOrString(path, index, /^[a-zA-Z~_^!\d]+/);
+        index = th.end;
+        parts.push(th.value);
+    }
+
+    return parts;
+}
+
+export function accessPathSafely(data: unknown, parts: string[]) {
+    if (parts.length === 0) return data;
+    let obj = data;
+    let bef_string = false;
+
+    for (let i = 0; i < parts.length; i++) {
+        let part: string | number = parts[i];
+
+        if (obj === null) throw new CommandError("Cannot index null");
+
+        if (typeof obj === "string") {
+            if (bef_string) throw new CommandError("Cannot index char");
+            obj = [...obj];
+            bef_string = true;
+        } else bef_string = false;
+
+        if (typeof obj !== "object") throw new CommandError("Cannot index " + typeof obj);
+
+        if (obj instanceof Set) obj = [...obj];
+        if (Array.isArray(obj)) {
+            part = getIndex(part, obj.length);
+            if (part === null) throw new CommandError("Invalid array index");
+        } else if (obj instanceof Item) {
+            if (part === "identifier") {
+                obj = obj.toMetadata().identifier;
+                continue;
+            }
+            if (!["count", "components"].includes(<string>part)) throw new CommandError("Invalid item field");
+        } else if (obj instanceof Inventory) {
+            if (part === "contents") {
+                obj = obj.getContents();
+                continue;
+            }
+
+            if (part !== "name") throw new CommandError("Invalid inventory field");
+        } else if (obj.constructor !== Object) throw new CommandError("Cannot access " + typeof obj); // illegal access
+
+        obj = obj[part];
+    }
+
+    return obj;
+}
+
+function operateUnsafe(data: unknown, key: string, operator: string, value: unknown) {
+    if (operator === "=") return data[key] = value;
+
+    if (typeof data[key] !== "number" || typeof value !== "number") throw new CommandError("Cannot operate on " + typeof data[key]);
+
+    if (operator === "+") data[key] += value;
+    else if (operator === "-") data[key] -= value;
+    else if (operator === "*") data[key] *= value;
+    else if (operator === "**") data[key] **= value;
+    else if (operator === "/") data[key] /= value;
+    else if (operator === "%") data[key] %= value;
+    else if (operator === ">>") data[key] >>= value;
+    else if (operator === "<<") data[key] <<= value;
+    else if (operator === "&") data[key] &= value;
+    else if (operator === "|") data[key] |= value;
+    else if (operator === "^") data[key] ^= value;
+    else if (operator === "&&") data[key] &&= value;
+    else if (operator === "||") data[key] ||= value;
+}
+
+export function operatePathSafely(data: unknown, path: string, operator: string, value: unknown) {
+    const parts = splitPathSafely(path);
+    const bef = parts.length < 1 ? undefined : accessPathSafely(data, parts.slice(0, -2));
+    const obj = parts.length < 2 ? data : accessPathSafely(bef, [parts.at(-2)]);
+    const key = parts.at(-1)!;
+
+    if (typeof obj === "string") {
+        if (typeof bef === "string") throw new CommandError("Cannot index char");
+        if (operator === "append") {
+            obj[key] += value;
+        } else {
+            const index = getIndex(key, obj.length);
+            if (index === null) throw new CommandError("Invalid string index");
+            if (operator !== "=") throw new CommandError("Invalid operator");
+            bef[parts.at(-1)!] = obj.slice(0, index) + value + obj.slice(index + 1);
+        }
+    } else if (typeof obj === "object") {
+        if (obj === null) throw new CommandError("Cannot index null");
+
+        if (obj.constructor.name === "World") {
+            const world = (<World>obj).server.worlds[<string>value];
+            if (!world) throw new CommandError("Invalid world");
+            bef[parts.at(-1)!] = world;
+        } else if (Array.isArray(obj)) {
+            if (operator === "append") {
+                if ("__belongsTo" in obj && obj.__belongsTo instanceof Item) {
+                    if (value !== null && !itemType.safeParse(value).success) throw new CommandError("Invalid item");
+                    obj.push(value);
+                } else {
+                    // TODO: THIS MIGHT CAUSE A BUG. IF AN ENTITY OR BLOCK'S NBT HAS AN EMPTY ARRAY, IT CAN BE FILLED WITH ARBITRARY VALUES.
+                    if (obj.length > 0 && !checkAny(obj[0], value)) throw new CommandError("Invalid array value");
+                    obj.push(value);
+                }
+            } else {
+                const index = getIndex(key, obj.length);
+                if (index === null) throw new CommandError("Invalid array index");
+                if (operator === "=") setSafely(obj, index, value);
+                else operateUnsafe(obj, key, operator, value);
+            }
+        } else if (obj instanceof Set) {
+            if (operator === "append") {
+                if (obj.size > 0 && !checkAny(Array.from(obj)[0], value)) throw new CommandError("Invalid set value");
+                obj.add(value);
+            } else {
+                const index = getIndex(key, obj.size);
+                if (index === null) throw new CommandError("Invalid set index");
+                const list = [...obj];
+                if (operator === "=") setSafely(list, index, value);
+                else operateUnsafe(list, key, operator, value);
+                obj.clear();
+                list.forEach(i => obj.add(i));
+            }
+        } else if (obj instanceof Inventory) {
+            if (key !== "contents") throw new CommandError("Invalid inventory field");
+            if (!itemArrayType.safeParse(value).success) throw new CommandError("Invalid item array");
+            obj.setContents(<(Item | null)[]>value);
+        } else if (obj instanceof Item) {
+            if (key === "identifier") {
+                const item = ItemIdentifiers[<keyof typeof ItemIdentifiers>value];
+                if (!item) throw new CommandError("Invalid item identifier");
+                bef[parts.at(-1)!] = new Item(item.id, item.meta, obj.count, {...obj.components});
+                return;
+            }
+            if (!["count", "components"].includes(<string>key)) throw new CommandError("Invalid item field");
+            const item = new Item(obj.id, obj.meta, obj.count, {...obj.components});
+            operateUnsafe(item, key, operator, value);
+            bef[parts.at(-1)!] = item;
+        } else {
+            operateUnsafe(obj, key, operator, value);
+        }
+    } else throw new CommandError("Cannot index " + typeof obj);
 }

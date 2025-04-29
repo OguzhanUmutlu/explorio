@@ -5,16 +5,19 @@ import PacketError from "@/network/PacketError";
 import CPlayer from "@c/entity/types/CPlayer";
 import CWorld from "@c/world/CWorld";
 import {PacketIds} from "@/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, particleManager, ServerInfo, setConnectionText} from "@dom/Client";
+import {clientPlayer, isMultiPlayer, particleManager, ServerInfo, serverNetwork, setConnectionText} from "@dom/Client";
 import SocketWorker from "@c/worker/SocketWorker?worker";
 import {Version} from "@/Versions";
-import {BM} from "@/meta/ItemIds";
+import {FullId2Data} from "@/meta/ItemIds";
 import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
-import {DefaultGravity} from "@/entity/Entity";
 import {Containers, InventoryName} from "@/meta/Inventories";
 import Item from "@/item/Item";
 import Player from "@/entity/defaults/Player";
 import {EntityIds} from "@/meta/Entities";
+import {DefaultGravity} from "@/entity/Entity";
+import {getCookie} from "@dom/components/CookieHandler";
+import {TokenCookieName} from "@dom/components/options/Menus";
+import {copyBuffer} from "@/utils/Utils";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -26,6 +29,7 @@ export default class ClientNetwork {
     handshake = false;
     ping = 0;
     kickReason = "";
+    serverIp = "";
 
     whenConnect() {
         return this.connectPromise;
@@ -33,7 +37,7 @@ export default class ClientNetwork {
 
     processPacketBuffer(buf: Buffer) {
         try {
-            const packet = readPacket(Buffer.from(buf));
+            const packet = readPacket(copyBuffer(buf));
             this.processPacket(packet);
         } catch (err) {
             if (err instanceof PacketError) throw err;
@@ -47,22 +51,26 @@ export default class ClientNetwork {
         if (!ServerInfo.preferSecure) urls.reverse();
         this.kickReason = "";
         const worker = this.worker = new SocketWorker();
+
         worker.onmessage = async (e: MessageEvent) => {
             if (e.data.event === "message") {
                 const buf = await e.data.message.arrayBuffer();
                 this.processPacketBuffer(buf);
             } else if (e.data.event === "connect") {
+                this.serverIp = e.data.ip;
                 setConnectionText("Joining the world...");
                 this.connected = true;
                 this.connectCb();
+
                 if (e.data.url === urls[1]) setServerOptions(ServerInfo.uuid, {preferSecure: !ServerInfo.preferSecure});
                 printer.info("Connected to server");
+
                 for (const pk of this.immediate) {
                     this.sendPacket(pk, true);
                 }
+
                 this.immediate.length = 0;
                 this.releaseBatch();
-                this.sendAuth(true);
             } else if (e.data.event === "disconnect") {
                 setConnectionText(this.kickReason || "Disconnected from the server");
                 this.connected = false;
@@ -72,7 +80,8 @@ export default class ClientNetwork {
                 printer.fail("Failed to connect to server");
             }
         };
-        worker.postMessage(urls);
+
+        worker.postMessage({urls, auth: Options.auth});
     };
 
     processPacket(pk: Packet) {
@@ -92,15 +101,50 @@ export default class ClientNetwork {
         this.sendPacket(new Packets.Ping(new Date));
     };
 
-    processSHandshake({data}: PacketByName<"SHandshake">) {
+    async processSPreLoginInformation({data: {auth}}: PacketByName<"SPreLoginInformation">) {
+        if (auth && auth !== Options.auth) {
+            return this.kickSelf("Server uses an incompatible auth URL: " + auth);
+        }
+
+        if (auth) {
+            let serv = Options.auth;
+            if (!serv.startsWith("http://") && !serv.startsWith("https://")) serv = "http://" + serv;
+            const response = await fetch(serv + "/generate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    ip: this.serverIp,
+                    token: getCookie(TokenCookieName)
+                })
+            }).catch(e => e);
+
+            if (response instanceof Error) {
+                return this.kickSelf(response.message);
+            }
+
+            const authSecret = await response.text();
+
+            return this.sendAuth(authSecret, true);
+        }
+
+        this.sendAuth(null, true);
+    }
+
+    processSHandshake({data: {entityId, x, y, handIndex}}: PacketByName<"SHandshake">) {
         setConnectionText("");
         this.handshake = true;
         clientPlayer.immobile = false;
-        clientPlayer.id = data.entityId;
-        clientPlayer.x = data.x;
-        clientPlayer.y = data.y;
-        clientPlayer.handIndex = data.handIndex;
+        clientPlayer.id = entityId;
+        clientPlayer.x = x;
+        clientPlayer.y = y;
+        clientPlayer.handIndex = handIndex;
         clientPlayer.init();
+
+        if (!isMultiPlayer) {
+            serverNetwork.player.permissions.add("*");
+        }
     };
 
     spawnEntityFromData(data: typeof EntityUpdateStruct["__TYPE__"]) {
@@ -122,9 +166,10 @@ export default class ClientNetwork {
         return entity;
     };
 
-    processSChunk({data: {x, data}}: PacketByName<"SChunk">) {
+    processSChunk({data: {x, biome, data}}: PacketByName<"SChunk">) {
         const world = <CWorld>clientPlayer.world;
         const chunk = world.getChunk(x, false);
+        chunk.__setBiome(biome);
         chunk.blocks = data;
         world.chunksGenerated.add(x);
         chunk.recalculateLights();
@@ -146,6 +191,7 @@ export default class ClientNetwork {
 
         if (clientPlayer.chunkX === x) {
             clientPlayer._chunkX = NaN;
+            // @ts-expect-error Low level access.
             clientPlayer.onMovement();
         }
     };
@@ -164,13 +210,14 @@ export default class ClientNetwork {
             clientPlayer.teleport(entity.x, entity.y);
         }
 
+        // @ts-expect-error Low level access.
         if (dist > 0) entity.onMovement();
     };
 
     processSEntityRemove({data}: PacketByName<"SEntityRemove">) {
         const entity = clientPlayer.world.entities[data];
         if (!entity) return printer.error("Entity ID not found:", data);
-        entity.despawn();
+        entity.despawn(false);
     };
 
     processSBlockUpdate({data: {x, y, fullId}}: PacketByName<"SBlockUpdate">) {
@@ -200,6 +247,8 @@ export default class ClientNetwork {
     processSDisconnect({data: reason}: PacketByName<"SDisconnect">) {
         this.kickReason = reason;
         printer.warn("Got kicked:", reason);
+        setConnectionText(reason);
+        if (!isMultiPlayer) this.connected = false;
     };
 
     processSPlaySound({data: {x, y, path, volume}}: PacketByName<"SPlaySound">) {
@@ -207,12 +256,12 @@ export default class ClientNetwork {
     };
 
     processSPlaceBlock({data: {x, y, fullId}}: PacketByName<"SPlaceBlock">) {
-        const block = BM[fullId];
+        const block = FullId2Data[fullId];
         clientPlayer.playSoundAt(block.randomPlace(), x, y);
     };
 
     processSBreakBlock({data: {x, y, fullId}}: PacketByName<"SBreakBlock">) {
-        const block = BM[fullId];
+        const block = FullId2Data[fullId];
         clientPlayer.playSoundAt(block.randomBreak(), x, y);
         const particleAmount = [0, 5, 25, 100][Options.particles];
         for (let i = 0; i < particleAmount; i++) {
@@ -258,6 +307,14 @@ export default class ClientNetwork {
     };
 
 
+    kickSelf(reason: string) {
+        this.kickReason = reason;
+        printer.warn("Got kicked:", reason);
+        this.worker.terminate();
+        this.connected = false;
+        setConnectionText(reason);
+    };
+
     processSendMessage({data}: PacketByName<"SendMessage">) {
         clientPlayer.sendMessage(data);
     };
@@ -274,7 +331,7 @@ export default class ClientNetwork {
         this.sendPacket(new Packets.CStartBreaking({x, y}), immediate);
     };
 
-    sendAuth(immediate = true) {
+    sendAuth(secret: string | null, immediate = true) {
         const skin = clientPlayer.skin.image;
         const canvas = document.createElement("canvas");
         canvas.width = skin.width;
@@ -282,7 +339,7 @@ export default class ClientNetwork {
         canvas.getContext("2d").drawImage(skin, 0, 0);
 
         this.sendPacket(new Packets.CAuth({
-            name: clientPlayer.name, skin: canvas.toDataURL(), version: Version
+            name: clientPlayer.name, skin: canvas.toDataURL(), version: Version, secret: secret && Buffer.from(secret)
         }), immediate);
     };
 
@@ -305,9 +362,16 @@ export default class ClientNetwork {
         count: number
     }[]) {
         const from = clientPlayer.inventories[fromInventory];
+        const fromItem = from.get(fromIndex);
+
+        for (const t of to) {
+            if (t.inventory === "armor" && fromItem && fromItem.toMetadata().armorType !== t.index) return;
+        }
+
         for (const t of to) {
             from.transfer(fromIndex, clientPlayer.inventories[t.inventory], t.index, t.count);
         }
+
         this.sendItemTransfer(fromInventory, fromIndex, to);
     };
 
@@ -323,7 +387,12 @@ export default class ClientNetwork {
         const from = clientPlayer.inventories[fromInventory];
         const to = clientPlayer.inventories[toInventory];
         const fromItem = from.get(fromIndex);
-        from.set(fromIndex, to.get(toIndex));
+        const toItem = to.get(toIndex);
+        if (
+            (toInventory === "armor" && fromItem && fromItem.toMetadata().armorType !== toIndex)
+            || (fromInventory === "armor" && toItem && toItem.toMetadata().armorType !== toIndex)
+        ) return;
+        from.set(fromIndex, toItem);
         to.set(toIndex, fromItem);
         this.sendItemSwap(fromInventory, fromIndex, toInventory, toIndex);
     };

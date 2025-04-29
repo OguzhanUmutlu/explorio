@@ -1,17 +1,17 @@
 import X from "stramp";
-import {I, ItemMetaMax} from "@/meta/ItemIds";
+import {ItemIds, ItemMetaMax} from "@/meta/ItemIds";
 import Item from "@/item/Item";
-import {ItemNBTStruct} from "@/structs/item/ItemNBTStruct";
+import {ItemComponentsStruct} from "@/structs/item/ItemComponentsStruct";
 
-export const ItemIdBin = X.getNumberTypeOf(I.__MAX__);
+export const ItemIdBin = X.getNumberTypeOf(ItemIds.__MAX__);
 export const ItemMetaBin = X.getNumberTypeOf(ItemMetaMax);
 
 const ItemStruct = X.object.struct({
     id: ItemIdBin,
     meta: ItemMetaBin,
     count: X.u8,
-    nbt: ItemNBTStruct
-}).withConstructor(({id, meta, count, nbt}) => new Item(id, meta, count, nbt));
+    components: ItemComponentsStruct
+}).withConstructor(({id, meta, count, components}) => new Item(id, meta, count, components));
 
 export default ItemStruct;
 

@@ -6,6 +6,7 @@ import {SubChunkAmount} from "@/meta/WorldConstants";
 import {x2cx, x2rx, y2cy, y2ry} from "@/utils/Utils";
 
 export default class CWorld extends World {
+    isClient = true;
     subChunkRenders: Record<number, CSubChunk[]> = {};
 
     broadcastPacketAt(_0: number, _1: Packet, _2: Player[] = [], _3: boolean = false) {
@@ -44,6 +45,9 @@ export default class CWorld extends World {
 
     getSubChunkAt(x: number, y: number) {
         return this.getSubChunk(x2cx(x), y2cy(y));
+    };
+
+    updateBlockAt() {
     };
 
     prepareChunkRenders(chunkX: number, blocks = true, shadows = true) {

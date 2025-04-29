@@ -1,10 +1,11 @@
 import Server from "@/Server";
+
+import Position from "@/utils/Position";
 import Entity from "@/entity/Entity";
-import Location from "@/utils/Location";
 
 export type CommandAs = Entity | CommandSender;
 
-export default interface CommandSender extends Location {
+export default interface CommandSender extends Position {
     id: number
     server: Server;
     name: string;
@@ -13,6 +14,4 @@ export default interface CommandSender extends Location {
     sendMessage(message: string): void;
 
     hasPermission(permission: string): boolean; // just use common Utils function permissionCheck
-
-    chat(message: string): void;
 }

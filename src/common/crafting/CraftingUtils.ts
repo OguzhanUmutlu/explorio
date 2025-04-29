@@ -1,70 +1,71 @@
 import ShapelessCrafting from "@/crafting/ShapelessCrafting";
 import {default as ID} from "@/item/ItemDescriptor";
-import {I} from "@/meta/ItemIds";
+import {ItemIds} from "@/meta/ItemIds";
 import Item from "@/item/Item";
 import Inventory from "@/item/Inventory";
 import {Crafting} from "@/crafting/Crafting";
 import ShapedCrafting from "@/crafting/ShapedCrafting";
+import {TreeType} from "@/meta/Items";
 
 export const CraftingList: Crafting[] = [
     ShapedCrafting.simple([
         `A`,
         `A`
-    ], {A: new ID(I.PLANKS)}, new ID(I.STICK, 0, 4)),
+    ], {A: new ID(ItemIds.PLANKS)}, new ID(ItemIds.STICK, 0, 4)),
     ShapedCrafting.simple([
         `AAA`,
         `A A`,
         `AAA`
-    ], {A: new ID(I.PLANKS)}, new ID(I.CHEST)),
+    ], {A: new ID(ItemIds.PLANKS)}, new ID(ItemIds.CHEST)),
     ShapedCrafting.simple([
         `AAA`,
         `A A`,
         `AAA`
-    ], {A: new ID(I.COBBLESTONE)}, new ID(I.FURNACE)),
-    ...tools(new ID(I.PLANKS), {
-        sword: new ID(I.WOODEN_SWORD),
-        axe: new ID(I.WOODEN_AXE),
-        pickaxe: new ID(I.WOODEN_PICKAXE),
-        shovel: new ID(I.WOODEN_SHOVEL),
-        hoe: new ID(I.WOODEN_HOE)
+    ], {A: new ID(ItemIds.COBBLESTONE)}, new ID(ItemIds.FURNACE)),
+    ...tools(new ID(ItemIds.PLANKS), {
+        sword: new ID(ItemIds.WOODEN_SWORD),
+        axe: new ID(ItemIds.WOODEN_AXE),
+        pickaxe: new ID(ItemIds.WOODEN_PICKAXE),
+        shovel: new ID(ItemIds.WOODEN_SHOVEL),
+        hoe: new ID(ItemIds.WOODEN_HOE)
     }),
-    ...tools(new ID(I.COBBLESTONE), {
-        sword: new ID(I.STONE_SWORD),
-        axe: new ID(I.STONE_AXE),
-        pickaxe: new ID(I.STONE_PICKAXE),
-        shovel: new ID(I.STONE_SHOVEL),
-        hoe: new ID(I.STONE_HOE)
+    ...tools(new ID(ItemIds.COBBLESTONE), {
+        sword: new ID(ItemIds.STONE_SWORD),
+        axe: new ID(ItemIds.STONE_AXE),
+        pickaxe: new ID(ItemIds.STONE_PICKAXE),
+        shovel: new ID(ItemIds.STONE_SHOVEL),
+        hoe: new ID(ItemIds.STONE_HOE)
     }),
-    ...tools(new ID(I.IRON_INGOT), {
-        sword: new ID(I.IRON_SWORD),
-        axe: new ID(I.IRON_AXE),
-        pickaxe: new ID(I.IRON_PICKAXE),
-        shovel: new ID(I.IRON_SHOVEL),
-        hoe: new ID(I.IRON_HOE)
+    ...tools(new ID(ItemIds.IRON_INGOT), {
+        sword: new ID(ItemIds.IRON_SWORD),
+        axe: new ID(ItemIds.IRON_AXE),
+        pickaxe: new ID(ItemIds.IRON_PICKAXE),
+        shovel: new ID(ItemIds.IRON_SHOVEL),
+        hoe: new ID(ItemIds.IRON_HOE)
     }),
-    ...tools(new ID(I.GOLD_INGOT), {
-        sword: new ID(I.GOLDEN_SWORD),
-        axe: new ID(I.GOLDEN_AXE),
-        pickaxe: new ID(I.GOLDEN_PICKAXE),
-        shovel: new ID(I.GOLDEN_SHOVEL),
-        hoe: new ID(I.GOLDEN_HOE)
+    ...tools(new ID(ItemIds.GOLD_INGOT), {
+        sword: new ID(ItemIds.GOLDEN_SWORD),
+        axe: new ID(ItemIds.GOLDEN_AXE),
+        pickaxe: new ID(ItemIds.GOLDEN_PICKAXE),
+        shovel: new ID(ItemIds.GOLDEN_SHOVEL),
+        hoe: new ID(ItemIds.GOLDEN_HOE)
     }),
-    ...tools(new ID(I.DIAMOND), {
-        sword: new ID(I.DIAMOND_SWORD),
-        axe: new ID(I.DIAMOND_AXE),
-        pickaxe: new ID(I.DIAMOND_PICKAXE),
-        shovel: new ID(I.DIAMOND_SHOVEL),
-        hoe: new ID(I.DIAMOND_HOE)
+    ...tools(new ID(ItemIds.DIAMOND), {
+        sword: new ID(ItemIds.DIAMOND_SWORD),
+        axe: new ID(ItemIds.DIAMOND_AXE),
+        pickaxe: new ID(ItemIds.DIAMOND_PICKAXE),
+        shovel: new ID(ItemIds.DIAMOND_SHOVEL),
+        hoe: new ID(ItemIds.DIAMOND_HOE)
     })
 ];
 
-for (let meta = 0; meta < 6; meta++) {
+for (let meta = 0; meta < TreeType.length; meta++) {
     CraftingList.push(
-        new ShapelessCrafting([new ID(I.LOG, meta)], new ID(I.PLANKS, meta, 4)),
+        new ShapelessCrafting([new ID(ItemIds.LOG, meta)], new ID(ItemIds.PLANKS, meta, 4)),
         ShapedCrafting.simple([
             `AA`,
             `AA`
-        ], {A: new ID(I.PLANKS, meta)}, new ID(I.CRAFTING_TABLE))
+        ], {A: new ID(ItemIds.PLANKS, meta)}, new ID(ItemIds.CRAFTING_TABLE))
     );
 }
 
@@ -73,7 +74,7 @@ function sword(material: ID, result: ID) {
         `A`,
         `A`,
         `B`
-    ], {A: material, B: new ID(I.STICK)}, result);
+    ], {A: material, B: new ID(ItemIds.STICK)}, result);
 }
 
 function axes(material: ID, result: ID) {
@@ -82,12 +83,12 @@ function axes(material: ID, result: ID) {
             `AA`,
             `AB`,
             ` B`
-        ], {A: material, B: new ID(I.STICK)}, result),
+        ], {A: material, B: new ID(ItemIds.STICK)}, result),
         ShapedCrafting.simple([
             `AA`,
             `BA`,
             `B `
-        ], {A: material, B: new ID(I.STICK)}, result)
+        ], {A: material, B: new ID(ItemIds.STICK)}, result)
     ];
 }
 
@@ -96,7 +97,7 @@ function pickaxe(material: ID, result: ID) {
         `AAA`,
         ` B `,
         ` B `
-    ], {A: material, B: new ID(I.STICK)}, result);
+    ], {A: material, B: new ID(ItemIds.STICK)}, result);
 }
 
 function shovel(material: ID, result: ID) {
@@ -104,7 +105,7 @@ function shovel(material: ID, result: ID) {
         `A`,
         `B`,
         `B`
-    ], {A: material, B: new ID(I.STICK)}, result);
+    ], {A: material, B: new ID(ItemIds.STICK)}, result);
 }
 
 function hoes(material: ID, result: ID) {
@@ -113,12 +114,12 @@ function hoes(material: ID, result: ID) {
             `AA`,
             `B `,
             `B `
-        ], {A: material, B: new ID(I.STICK)}, result),
+        ], {A: material, B: new ID(ItemIds.STICK)}, result),
         ShapedCrafting.simple([
             `AA `,
             ` B `,
             ` B `
-        ], {A: material, B: new ID(I.STICK)}, result)
+        ], {A: material, B: new ID(ItemIds.STICK)}, result)
     ];
 }
 

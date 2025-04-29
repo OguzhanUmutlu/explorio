@@ -1,5 +1,6 @@
 import X, {Bin, BufferIndex} from "stramp";
 import {ChunkBlockAmount} from "@/meta/WorldConstants";
+import {copyBuffer} from "@/utils/Utils";
 
 function findSmallPatterns(array: Uint16Array, max = 255) {
     const result = [];
@@ -42,7 +43,7 @@ export default new class ChunkBlocksBin extends Bin<Uint16Array> {
     name = "Chunk";
 
     unsafeWrite(bind: BufferIndex, value: Uint16Array) {
-        const buf = Buffer.from(blocksToBuffer(value));
+        const buf = copyBuffer(blocksToBuffer(value));
         buf.copy(bind.buffer, bind.index);
         bind.index += buf.length;
         bind.push(0xff);

@@ -1,6 +1,6 @@
 import CommandArgument from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import Effect from "@/effect/Effect";
 import {EffectIds, Effects} from "@/meta/Effects";
@@ -8,7 +8,7 @@ import {EffectIds, Effects} from "@/meta/Effects";
 export default class EffectArgument extends CommandArgument<Effect> {
     default = Effects[0];
 
-    read(_: CommandAs, __: Location, args: AnyToken[], index: number) {
+    read(_: CommandAs, __: Position, args: AnyToken[], index: number) {
         const arg = args[index];
         const raw = arg.rawText;
 

@@ -107,8 +107,10 @@ export function readWordOrString(text: string, index: number, regex: RegExp = Wo
 
 export function readNumber(text: string, index: number) {
     if (isNaN(+text[index])) return null; // Only allowing X and X.X syntax for numbers.
-    const word = readWord(text, index, /^-?\d+(\.\d+)?(?=[^a-zA-Z]|$)/);
-    return Token.number(text, word.start, word.end, parseFloat(word.value));
+    const tok = readWord(text, index, /^-?\d+(\.\d+)?(?=[^a-zA-Z]|$)/);
+    const num = parseFloat(tok.value);
+    if (isNaN(num)) return null;
+    return Token.number(text, tok.start, tok.end, num);
 }
 
 export function readRange(text: string, index: number) {
@@ -119,14 +121,15 @@ export function readRange(text: string, index: number) {
             // example: ..
             return Token.range(text, index, index + 2, [-Infinity, Infinity]);
         }
+
         return Token.range(text, index, num.end, [-Infinity, num.value]);
     }
 
     const num1 = readNumber(text, index);
     if (num1 === null) return null;
     index = num1.end;
-
-    if (text[index] !== "." && text[++index] !== ".") return null;
+    if (text[index] !== "." || text[++index] !== ".") return null;
+    index++;
 
     const num2 = readNumber(text, index);
     if (num2 === null) {
@@ -228,6 +231,10 @@ export function skipWhitespace(text: string, index: number) {
 // "Hello, world!" {type: "text", value: "Hello, world!", index: 10}
 // true {type: "bool", value: true, index: 10}
 // 25 {type: "number", value: 25, index: 10}
+// 10..25 {type: "range", value: [10, 25], index: 10}
+// ..25 {type: "range", value: [-Infinity, 25], index: 10}
+// 10.. {type: "range", value: [10, Infinity], index: 10}
+// .. {type: "range", value: [-Infinity, Infinity], index: 10}
 // {x=10 y=20} {type: "object", value: {x: 10, y: 20}, index: 10}
 // [10 20] {type: "array", value: [10, 20], index: 10}
 // @a{x=20} {type: "selector", value: "a", arguments: {x: {type:"number",value:20}}, index: 10}

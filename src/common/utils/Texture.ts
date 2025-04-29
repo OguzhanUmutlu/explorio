@@ -107,7 +107,7 @@ export default class Texture {
     _pixelValues: string[] = [];
 
     constructor(public actualSrc: string, known?: Promise<Canvas | Image> | Canvas | Image | null) {
-        if (this.actualSrc.endsWith("undefined.png")) throw new Error("sa")
+        if (this.actualSrc.endsWith("undefined.png")) throw new Error("not cool, report this")
         this.actualSrc = simplifyTexturePath(this.actualSrc);
 
         if (!known || known instanceof Promise) {
@@ -223,12 +223,12 @@ export default class Texture {
 
     stairsBottomLeft() {
         if (!this.loaded) return imagePlaceholder;
-        return this._stairsBottomRight ||= eraseImage(this.image, this.image.width / 2, this.image.height / 2, this.image.width / 2, this.image.height / 2);
+        return this._stairsBottomLeft ||= eraseImage(this.image, 0, this.image.height / 2, this.image.width / 2, this.image.height / 2);
     };
 
     stairsBottomRight() {
         if (!this.loaded) return imagePlaceholder;
-        return this._stairsBottomLeft ||= eraseImage(this.image, 0, this.image.height / 2, this.image.width / 2, this.image.height / 2);
+        return this._stairsBottomRight ||= eraseImage(this.image, this.image.width / 2, this.image.height / 2, this.image.width / 2, this.image.height / 2);
     };
 
     skin() {

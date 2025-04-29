@@ -9,7 +9,8 @@ export default function OptionMenu(O: {
     name: OptionPages,
     page: ReactState<OptionPages>,
     back: () => void,
-    children: React.ReactNode
+    children: React.ReactNode,
+    backName?: string
 }) {
     return <div className="options-menu" style={O.page[0] === O.name ? {} : {pointerEvents: "none", opacity: "0"}}>
         <div className="options-container" style={isMobileByAgent() ? {width: "90%"} : {}}>
@@ -17,7 +18,7 @@ export default function OptionMenu(O: {
             {O.children}
             <OptionSpacingComponent/>
             {O.back ? <div className="option-center">
-                <OptionButtonComponent text="Done" action={O.back}/>
+                <OptionButtonComponent text={O.backName ?? "Done"} action={O.back}/>
             </div> : <></>}
         </div>
     </div>;

@@ -3,7 +3,7 @@ import CommandDefinition from "@/command/CommandDefinition";
 
 export default class ListCommand extends DefinitiveCommand {
     constructor() {
-        super("list", "Lists given selector's result.", ["list"]);
+        super("list", "Lists given selector's result.");
     };
 
     definitions = [

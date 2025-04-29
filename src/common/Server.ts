@@ -5,10 +5,10 @@ import CommandError from "@/command/CommandError";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
 import {cleanText} from "@/command/CommandProcessor";
 import SelectorToken from "@/command/token/SelectorToken";
-import Location from "@/utils/Location";
-import Entity from "@/entity/Entity";
+import Position from "@/utils/Position";
+
 import TeleportCommand from "@/command/defaults/TeleportCommand";
-import {checkLag, ClassOf, SelectorSorters, setServer} from "@/utils/Utils";
+import {checkLag, ClassOf, SelectorSorters, setServer, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
 import ListCommand from "@/command/defaults/ListCommand";
 import ConsoleCommandSender from "@/command/ConsoleCommandSender";
 import ExecuteCommand from "@/command/defaults/ExecuteCommand";
@@ -35,6 +35,13 @@ import OperatorCommand from "@/command/defaults/OperatorCommand";
 import DeOperatorCommand from "@/command/defaults/DeOperatorCommand";
 import SayCommand from "@/command/defaults/SayCommand";
 import {LanguageName, Languages} from "@/lang/Language";
+import SummonCommand from "@/command/defaults/SummonCommand";
+import Entity from "@/entity/Entity";
+import TickCommand from "@/command/defaults/TickCommand";
+import GameRuleCommand from "@/command/defaults/GameRuleCommand";
+import DataCommand from "@/command/defaults/DataCommand";
+import X from "stramp";
+import {Version, Versions, VersionString, WorldGenerationVersion} from "@/Versions";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -49,7 +56,8 @@ export const ZServerConfig = z.object({
         threshold: z.number().min(0),
         seconds: z.number().min(0)
     }),
-    saveIntervalSeconds: z.number().min(0)
+    saveIntervalTicks: z.number().min(0),
+    auth: z.string().nullable().optional()
 });
 
 export type ServerConfig = z.infer<typeof ZServerConfig>;
@@ -66,7 +74,10 @@ export const DefaultServerConfig: ServerConfig = {
             name: "default",
             generator: "default",
             generatorOptions: "",
-            seed: getRandomSeed()
+            seed: getRandomSeed(),
+            gameRules: {
+                randomTickSpeed: 3
+            }
         }
     },
     packetCompression: false,
@@ -76,7 +87,8 @@ export const DefaultServerConfig: ServerConfig = {
         threshold: 3,
         seconds: 5
     },
-    saveIntervalSeconds: 45
+    saveIntervalTicks: 900,
+    auth: null // "https://127.0.0.1/"
 };
 
 const banEntryType = z.object({
@@ -85,6 +97,9 @@ const banEntryType = z.object({
     timestamp: z.number(),
     reason: z.string()
 });
+
+export type StorageDataValue = string | number | boolean | null | { [key: string]: StorageDataValue };
+export type StorageData = { [key: string]: StorageDataValue };
 
 export default class Server {
     worlds: Record<string, World> = {};
@@ -99,11 +114,19 @@ export default class Server {
     plugins: Record<string, Plugin> = {};
     pluginsReady = false;
     intervalId: NodeJS.Timeout | number = 0;
-    terminated = false;
     pausedUpdates = false;
     bans: BanEntry[] = [];
+    targetTickRate = 20;
+    tickRate = 20;
+    tickAccumulator = 0;
+    _ticks: number[] = [];
+    tickFrozen = false;
+    tickNow = 0;
+    stepTicks = 0;
+    storage: StorageData = {};
+    closed = false;
 
-    constructor(public fs: typeof import("fs"), public path: string) {
+    constructor(public fs: typeof import("fs"), public path: string, public socketServer: { close(): void }) {
         setServer(this);
     };
 
@@ -159,21 +182,28 @@ export default class Server {
             BanIPCommand,
             OperatorCommand,
             DeOperatorCommand,
-            SayCommand
+            SayCommand,
+            SummonCommand,
+            TickCommand,
+            GameRuleCommand,
+            DataCommand
         ]) this.registerCommand(new clazz());
 
         this.createDirectory(this.path);
 
         this.loadConfig();
 
+        this.loadStorage();
+
         this.createDirectory("players");
         this.createDirectory("worlds");
         this.createDirectory("plugins");
+        this.createDirectory("crashdumps");
 
-        if (!this.fileExists("bans.txt")) this.writeFile("bans.txt", "[]");
+        if (!this.fileExists("bans.json")) this.writeFile("bans.json", "[]");
 
         try {
-            for (const ban of JSON.parse(this.readFile("bans.txt").toString())) {
+            for (const ban of JSON.parse(this.readFile("bans.json").toString())) {
                 if (!banEntryType.safeParse(ban).success) {
                     printer.error("Couldn't parse ban entry. Closing server... Please fix the ban entry or remove it. Entry: " + JSON.stringify(ban));
                     return this.close();
@@ -228,7 +258,7 @@ export default class Server {
             this.config ??= DefaultServerConfig;
             this.writeFile("server.json", JSON.stringify(this.config, null, 2));
             printer.warn("Created server.json, please edit it and restart the server");
-            return this.terminateProcess();
+            return this.close();
         } else {
             try {
                 const got = JSON.parse(this.readFile("server.json").toString());
@@ -237,17 +267,33 @@ export default class Server {
                     printer.error(`Invalid server.json. Errors:\n${
                         r.error.errors.map(e => e.path.join(" and ") + ": " + e.message).join("\n")
                     }\nPlease edit it and restart the server.`);
-                    return this.terminateProcess();
+                    return this.close();
                 }
                 this.config = got;
             } catch (e) {
                 printer.error(e);
                 printer.warn("Invalid server.json, please edit it and restart the server");
                 printer.info("Default config: ", JSON.stringify(DefaultServerConfig, null, 2));
-                return this.terminateProcess();
+                return this.close();
             }
         }
     };
+
+    loadStorage() {
+        if (this.fileExists("storage.dat")) {
+            let buffer = this.readFile("storage.dat");
+            buffer = zstdOptionalDecode(buffer);
+            this.storage = X.object.deserialize(buffer);
+        } else this.storage = {};
+    };
+
+    private throwPluginIntegrityError(folder: string, message: string | Error) {
+        if (typeof message === "string") message = new Error(message);
+        printer.error("Failed to load plugin %c" + folder, "color: yellow");
+        printer.error(message);
+        printer.error("Closing the server for plugin integrity.");
+        this.close();
+    }
 
     async loadPlugins() {
         const nonReadyPluginNames = new Set<string>;
@@ -260,20 +306,20 @@ export default class Server {
                 ZPluginMetadata.parse(meta);
 
                 if (meta.name in this.pluginMetas) {
-                    throw new Error("Duplicate plugin.");
+                    return this.throwPluginIntegrityError(folder, "Duplicate plugin.");
                 }
 
                 this.pluginMetas[meta.name] = meta;
                 const mainPath = `plugins/${folder}/${meta.main}`;
                 const exp = await import(/* @vite-ignore */ url.pathToFileURL(mainPath).toString());
                 if (!("default" in exp) || typeof exp.default !== "function") {
-                    throw new Error("Plugin main file doesn't have a default function export.");
+                    return this.throwPluginIntegrityError(folder, "Plugin main file doesn't have a default function export.");
                 }
 
                 const plugin = this.plugins[meta.name] = <Plugin>new (exp.default)(this, meta);
 
                 if (!(plugin instanceof Plugin)) {
-                    throw new Error("Plugin main file doesn't export a Plugin class.");
+                    return this.throwPluginIntegrityError(folder, "Plugin main file doesn't export a Plugin class.");
                 }
 
                 plugin.onLoad();
@@ -281,10 +327,7 @@ export default class Server {
 
                 nonReadyPluginNames.add(meta.name);
             } catch (e) {
-                printer.error("Failed to load plugin %c" + folder, "color: yellow");
-                printer.error(e);
-                printer.error("Closing the server for plugin integrity.");
-                this.close();
+                return this.throwPluginIntegrityError(folder, e);
             }
         }
 
@@ -350,7 +393,7 @@ export default class Server {
         return entities;
     };
 
-    executeSelector(as: CommandAs, at: Location, selector: SelectorToken) {
+    executeSelector(as: CommandAs, at: Position, selector: SelectorToken) {
         let entities: Entity[];
 
         switch (selector.value) {
@@ -460,7 +503,7 @@ export default class Server {
                     if (token.type !== "object") throw new CommandError(`Invalid 'nbt' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        const allow = entity.struct.keys();
+                        const allow = entity.saveStruct.keys();
                         for (const k in <object>val) {
                             if (!allow.includes(<never>k)) return false;
                             if (!val[k].equalsValue(entity[k])) return false;
@@ -548,10 +591,23 @@ export default class Server {
     loadWorld(folder: string): World | null {
         const data = this.getWorldData(folder);
         if (!data) return null;
+
+        const version = data.generationVersion;
+        if (version !== WorldGenerationVersion) {
+            printer.error(`World ${folder} was generated by ${version > Version ? "a newer" : "an older"} version of `
+                + `the server(${version > Version ? "" : `Version: ${Versions[version]}`}Version ID: ${version}).\n`
+                + `You can either delete the world for it to regenerate or you can replace it with another chunk that `
+                + `was generated by the same version of the server(Version: ${VersionString}, Version ID: ${Version}).`);
+
+            if (folder === this.config.defaultWorld) this.close();
+
+            return null;
+        }
+
         const gen = Generators[data.generator];
         const world = new World(
             this, data.name, folder, data.seed, new gen(data.generatorOptions),
-            new Set(this.getWorldChunkList(folder))
+            new Set(this.getWorldChunkList(folder)), data
         );
         this.worlds[folder] = world;
         world.ensureSpawnChunks();
@@ -562,6 +618,7 @@ export default class Server {
         if (this.worldExists(folder)) return false;
         this.createDirectory("worlds/" + folder);
         this.createDirectory("worlds/" + folder + "/chunks");
+        data.generationVersion = WorldGenerationVersion;
         this.writeFile("worlds/" + folder + "/world.json", JSON.stringify(data, null, 2));
         return true;
     };
@@ -575,13 +632,38 @@ export default class Server {
             this.worlds[folder].serverUpdate(dt);
         }
 
-        this.saveCounter += dt;
-        if (this.saveCounter > this.config.saveIntervalSeconds) {
+        for (const playerName in this.players) {
+            const player = this.players[playerName];
+            player.serverUpdate(dt);
+        }
+
+        this.tickAccumulator += dt;
+        const df = 1 / this.targetTickRate;
+        if (this.tickAccumulator > df || this.tickNow > 0) {
+            this.tickNow -= 1;
+            this.tickAccumulator %= df;
+            this.tick();
+        }
+
+        checkLag("server update");
+    };
+
+    tick() {
+        if (this.tickFrozen && this.stepTicks <= 0) return;
+        this.stepTicks = 0;
+
+        this._ticks = this._ticks.filter(i => i > Date.now() - 1000);
+        this._ticks.push(Date.now());
+        this.tickRate = this._ticks.length;
+
+        if (++this.saveCounter > this.config.saveIntervalTicks) {
             this.saveAll();
             this.saveCounter = 0;
         }
 
-        checkLag("server update");
+        for (const folder in this.worlds) {
+            this.worlds[folder].serverTick();
+        }
     };
 
     broadcastPacket(pk: Packet, exclude: Entity[] = [], immediate = false) {
@@ -610,7 +692,7 @@ export default class Server {
         this.broadcastMessage(sender.name + " > " + message);
     };
 
-    executeCommandLabel(sender: CommandSender, as: CommandAs, at: Location, label: string) {
+    executeCommandLabel(sender: CommandSender, as: CommandAs, at: Position, label: string) {
         const split = label.split(" ");
         const commandLabel = split[0].toLowerCase();
         const command = this.commands[commandLabel];
@@ -661,7 +743,7 @@ export default class Server {
             if (!new CommandPreProcessEvent(player, message).callGetCancel()) this.executeCommandLabel(
                 player,
                 player,
-                player instanceof Entity ? (<Entity>player) : new Location(0, 0, 0, this.defaultWorld),
+                player instanceof Entity ? (<Entity>player) : new Position(0, 0, 0, this.defaultWorld),
                 message.substring(1)
             );
         } else this.processChat(player, message);
@@ -696,14 +778,21 @@ export default class Server {
         })), null, 2));
     };
 
+    saveStorage() {
+        this.writeFile("storage.dat", zstdOptionalEncode(X.object.serialize(this.storage)));
+    };
+
     saveAll() {
         this.saveWorlds();
         this.savePlayers();
         this.saveBans();
+        this.saveStorage();
     };
 
     close() {
-        if (this.terminated) return;
+        if (this.closed) return;
+
+        this.closed = true;
 
         printer.info("Closing the server...");
 
@@ -716,16 +805,10 @@ export default class Server {
 
         printer.info("Saving the worlds...");
         this.saveWorlds();
-
         this.saveBans();
+        this.saveStorage();
 
-        this.terminated = true;
-        setTimeout(() => this.terminateProcess(), 1000); // making sure every player gets the kick message
-    };
-
-    terminateProcess() {
-        this.terminated = true;
+        this.socketServer.close();
         clearInterval(this.intervalId);
-        if (typeof process === "object") process.exit();
     };
 }

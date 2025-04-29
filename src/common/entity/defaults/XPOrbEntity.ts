@@ -1,29 +1,43 @@
-import Entity from "@/entity/Entity";
 import BoundingBox from "@/entity/BoundingBox";
-import {EntityIds, EntityBoundingBoxes} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
 import Player from "@/entity/defaults/Player";
+import {registerAny} from "@/utils/Inits";
+import Entity from "@/entity/Entity";
+import EntityStruct from "@/structs/entity/EntityStruct";
+import X from "stramp";
 
 const maxStack = 255;
 
 export default class XPOrbEntity extends Entity {
-    typeId = EntityIds.ITEM;
-    typeName = "item";
-    name = "Item";
-    bb: BoundingBox = EntityBoundingBoxes[EntityIds.ITEM].copy();
+    static _ = registerAny(this);
+    typeId = EntityIds.XP_ORB;
+    typeName = "xp_orb";
+    name = "XP Orb";
+    saveStruct = EntityStruct.extend({
+        amount: X.u8,
+        delay: X.f32,
+        despawnTimer: X.f32
+    });
+
+    bb = new BoundingBox(0, 0, 0.05, 0.05);
     amount: number;
     wasOnGround = false;
     delay = 0;
     despawnTimer = 5 * 60;
 
     calcCacheState(): string {
-        return "";
+        return `${this.amount}`;
     };
 
     getSpawnData() {
         return {
-            ...super.getSpawnData(),
+            ...super.getMovementData(),
             amount: this.amount
         };
+    };
+
+    getMovementData() {
+        return this.getSpawnData();
     };
 
     serverUpdate(dt: number) {
@@ -71,6 +85,7 @@ export default class XPOrbEntity extends Entity {
             if (!this.wasOnGround) {
                 this.broadcastMovement();
             }
+
             this.wasOnGround = true;
         }
     };

@@ -1,16 +1,27 @@
-import Entity from "@/entity/Entity";
 import BoundingBox from "@/entity/BoundingBox";
-import {EntityIds, EntityBoundingBoxes} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
 import Item from "@/item/Item";
 import Player from "@/entity/defaults/Player";
+import EntityStruct from "@/structs/entity/EntityStruct";
+import ItemStruct from "@/structs/item/ItemStruct";
+import X from "stramp";
+import {registerAny} from "@/utils/Inits";
+import Entity from "@/entity/Entity";
 
 const maxStack = 255;
 
 export default class ItemEntity extends Entity {
+    static _ = registerAny(this);
     typeId = EntityIds.ITEM;
     typeName = "item";
     name = "Item";
-    bb: BoundingBox = EntityBoundingBoxes[EntityIds.ITEM].copy();
+    saveStruct = EntityStruct.extend({
+        item: ItemStruct,
+        delay: X.f32,
+        despawnTimer: X.f32
+    });
+
+    bb: BoundingBox = new BoundingBox(0, 0, 0.25, 0.25);
     item: Item;
     wasOnGround = false;
     delay = 0;
@@ -25,8 +36,7 @@ export default class ItemEntity extends Entity {
             ...super.getSpawnData(),
             vx: this.vx,
             vy: this.vy,
-            itemId: this.item.id,
-            itemMeta: this.item.meta
+            itemFullId: this.item.fullId
         };
     };
 
@@ -69,20 +79,20 @@ export default class ItemEntity extends Entity {
 
         if (this.despawnTimer <= 0) return this.despawn();
 
-        super.serverUpdate(dt);
-        this.update(dt);
-    };
-
-    update(dt: number) {
-        super.update(dt);
-
         if (this.onGround) {
-            this.vx = 0;
             if (!this.wasOnGround) {
                 this.broadcastMovement();
             }
             this.wasOnGround = true;
         }
+
+        super.serverUpdate(dt);
+    };
+
+    update(dt: number) {
+        super.update(dt);
+
+        if (this.onGround) this.vx = 0;
     };
 
     updateCollisionBox() {

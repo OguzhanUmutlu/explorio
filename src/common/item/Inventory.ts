@@ -1,6 +1,6 @@
 import Item from "@/item/Item";
 import World from "@/world/World";
-import {IM} from "@/meta/ItemIds";
+import {Id2Data} from "@/meta/ItemIds";
 import ItemDescriptor from "@/item/ItemDescriptor";
 
 export default class Inventory {
@@ -11,6 +11,8 @@ export default class Inventory {
 
     constructor(public readonly size: number, public readonly name: string) {
         this.contents = new Array(this.size).fill(null);
+        // @ts-expect-error This is just a property I wanted to set.
+        this.contents.__belongsTo = this;
     };
 
     getContents() {
@@ -94,7 +96,7 @@ export default class Inventory {
     };
 
     addAt(index: number, item: Item, count = item?.count || 0) {
-        const mt = IM[item.id];
+        const mt = Id2Data[item.id];
         if (!mt) printer.error("Item not found:", item.id)
         const maxStack = mt.maxStack;
         const it = this.get(index);
@@ -163,7 +165,7 @@ export default class Inventory {
         const sameItem = fromItem.equals(toItem, false, true);
         if (toItem && !sameItem) return null; // the source item and the target item were not the same
 
-        const maxStack = fromItem.maxStack;
+        const maxStack = toItem.maxStack;
         if (toItem && toItem.count + count > maxStack) return null; // count is too much and overflows
 
         const alrThis = this.dirtyIndexes.has(from);
@@ -208,10 +210,10 @@ export default class Inventory {
     damageItemAt(index: number, amount = 1, world: World | null = null, x = 0, y = 0) {
         const item = this.get(index);
         if (item) {
-            const durability = IM[item.id].durability;
+            const durability = Id2Data[item.id].durability;
             if (durability > 0) {
-                item.nbt.damage ??= 0;
-                if ((item.nbt.damage += amount) >= durability) {
+                item.components.damage ??= 0;
+                if ((item.components.damage += amount) >= durability) {
                     this.removeIndex(index);
                     if (world) {
                         world.playSound("assets/sounds/random/break.ogg", x, y);
@@ -221,15 +223,13 @@ export default class Inventory {
         }
     };
 
-    increaseItemAt(index: number, amount = 1) {
+    private increaseItemAt(index: number, amount = 1) { // too risky, might overflow
         const item = this.get(index);
         if (item) {
             item.count += amount;
 
             if (item.count <= 0) return this.removeIndex(index);
-            if (item.count >= item.maxStack) {
-                item.count = item.maxStack;
-            }
+            if (item.count >= item.maxStack) item.count = item.maxStack;
 
             this.updateIndex(index);
         }

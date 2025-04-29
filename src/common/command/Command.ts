@@ -1,5 +1,5 @@
 import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 
 export default abstract class Command {
     usageMessage: string;
@@ -17,5 +17,5 @@ export default abstract class Command {
     init() {
     };
 
-    abstract execute(sender: CommandSender, as: CommandAs, at: Location, args: string[], label: string): unknown;
+    abstract execute(sender: CommandSender, as: CommandAs, at: Position, args: string[], label: string): unknown;
 }

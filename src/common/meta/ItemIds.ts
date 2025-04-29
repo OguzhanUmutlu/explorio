@@ -1,9 +1,10 @@
-import {ItemMetadata} from "@/meta/Items";
+import BlockData from "@/item/BlockData";
 
 export const ItemMetaBits = 5;
 export const ItemMetaMax = 1 << ItemMetaBits;
+export const ItemMetaMaxN = ItemMetaMax - 1;
 
-export enum I {
+export enum ItemIds {
     AIR,
     BEDROCK,
     STONE,
@@ -112,30 +113,22 @@ export enum I {
     __MAX__
 }
 
-/**
- * @description Maps item ids to item metadata
- * @example IM[im2f(I.STONE, 5)] // gives metadata for item with id=stone and meta=5
- */
-export const IM = <Record<number, ItemMetadata>>{};
+/*** @description Item id -> Item metadata */
+export const Id2Data = <Record<number, BlockData>>{};
 
-/**
- * @description Maps upper case block names to block full ids
- * @example B.REDSTONE // gives block full id for redstone
- */
-export const B = <Record<keyof typeof I, number>>{};
-/**
- * @description Maps block full ids to block metadata
- * @example BM[im2f(I.REDSTONE, 5)] // gives metadata for block with id=redstone and meta=5
- */
-export const BM = <Record<number, ItemMetadata>>{};
+/*** @description Maps block full ids to block metadata */
+export const FullId2Data = <Record<number, BlockData>>{};
 
-/**
- * @description Maps item identifiers to item metadata
- * @example ItemsByIdentifier["stone"] // gives metadata for item with identifier=stone
- */
-export const ItemsByIdentifier: Record<string, ItemMetadata> = {};
+/*** @description Item name -> Item metadata */
+export const Items = <Record<keyof typeof ItemIds, BlockData>>{};
 
-for (let id = 0; id < I.__MAX__; id++) {
-    I[I[id]] = id;
-    B[I[id]] = id << ItemMetaBits;
+/*** @description Uppercase item name -> Full id */
+export const FullIds = <Record<keyof typeof ItemIds, number>>{};
+
+/*** @description Maps item identifiers to item metadata */
+export const ItemIdentifiers: Record<string, BlockData> = {};
+
+for (let id = 0; id < ItemIds.__MAX__; id++) {
+    ItemIds[ItemIds[id]] = id;
+    FullIds[ItemIds[id]] = id << ItemMetaBits;
 }

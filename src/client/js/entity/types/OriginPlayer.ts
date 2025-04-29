@@ -1,10 +1,11 @@
 import CPlayer from "@c/entity/types/CPlayer";
 import {Containers, InventoryName} from "@/meta/Inventories";
-import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse} from "@dom/Client";
-import {Options} from "@c/utils/Utils";
+import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse, updateMouse} from "@dom/Client";
+import {formatDivText, Options} from "@c/utils/Utils";
 import Sound from "@/utils/Sound";
 
 export default class OriginPlayer extends CPlayer {
+    isClient = true;
     containerId = Containers.Closed;
     placeTime = 0;
     interactTime = 0;
@@ -12,8 +13,8 @@ export default class OriginPlayer extends CPlayer {
     hoveringIndex = 0;
     hoveringInventory: InventoryName | null = null;
 
-    teleport(x: number, y: number) {
-        super.teleport(x, y, false);
+    teleport(x: number, y: number, world = this.world) {
+        return super.teleport(x, y, world, false);
     };
 
     render(ctx: CanvasRenderingContext2D, dt: number) {
@@ -21,6 +22,7 @@ export default class OriginPlayer extends CPlayer {
         this.interactTime = Math.max(0, this.interactTime - dt);
         this.renderX = this.x;
         this.renderY = this.y;
+        updateMouse();
         this.renderHeadRotation = this.rotation = this.getRotationTowards(Mouse.x, Mouse.y);
         super.render(ctx, dt);
     };
@@ -68,6 +70,7 @@ export default class OriginPlayer extends CPlayer {
         }
 
         if (Keyboard.s && this.isFlying) this.tryToMove(0, -this.flySpeed * dt, dt);
+
         if (Keyboard.a) this.walkHorizontal(-1, dt);
         if (Keyboard.d) this.walkHorizontal(1, dt);
 
@@ -117,51 +120,7 @@ export default class OriginPlayer extends CPlayer {
         }
         const div = document.createElement("div");
         div.classList.add("message");
-        // b = bold
-        // u = underline
-        // s = strikethrough
-        // i = italics
-        // k = obfuscated
-        let parent = div;
-        const sep = message.split(/(§[\da-flusik]|:[a-z]+:)/);
-        for (const part of sep) {
-            if (/^§§[\da-f]|§[\da-fbusik]$/.test(part)) {
-                const dv = document.createElement("div");
-                dv.classList.add("sub-message");
-                parent.appendChild(dv);
-
-                if (/^§[\da-f]$/.test(part)) {
-                    dv.style.color = `var(--color-${part[1]})`;
-                } else switch (part[1]) {
-                    case "l":
-                        dv.style.fontWeight = "bold";
-                        break;
-                    case "u":
-                        dv.style.textDecoration = "underline";
-                        break;
-                    case "s":
-                        dv.style.textDecoration = "line-through";
-                        break;
-                    case "i":
-                        dv.style.fontStyle = "italic";
-                        break;
-                    case "k":
-                        dv.style.fontStyle = "oblique";
-                        break;
-                }
-                parent = dv;
-            } else if (/^:[a-z]+:$/.test(part) && [
-                "eyes", "nerd", "skull", "slight_smile"
-            ].includes(part.slice(1, -1))) {
-                const emote = document.createElement("div");
-                emote.classList.add("emote");
-                const emotePath = `./assets/textures/emotes/${part.slice(1, -1)}.png`;
-                emote.style.backgroundImage = `url(${emotePath})`;
-                parent.appendChild(emote);
-            } else {
-                parent.appendChild(document.createTextNode(part));
-            }
-        }
+        formatDivText(div, message);
 
         chatBox.appendChild(div);
 

@@ -3,6 +3,7 @@ export enum PacketIds {
     Ping,
     SendMessage,
 
+    SPreLoginInformation,
     SHandshake,
     SChunk,
     SSetChunkEntities,

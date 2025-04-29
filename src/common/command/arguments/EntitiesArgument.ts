@@ -1,11 +1,12 @@
 import CommandArgument from "@/command/CommandArgument";
 import {AnyToken} from "@/command/CommandProcessor";
 import SelectorToken from "@/command/token/SelectorToken";
-import Entity from "@/entity/Entity";
+
 import CommandError from "@/command/CommandError";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import {UsernameRegex} from "@/utils/Utils";
+import Entity from "@/entity/Entity";
 
 export default class EntitiesArgument<T extends Entity[] = Entity[]> extends CommandArgument<T> {
     default = <T>[];
@@ -34,7 +35,7 @@ export default class EntitiesArgument<T extends Entity[] = Entity[]> extends Com
         return this;
     };
 
-    read(as: CommandAs, at: Location, args: AnyToken[], index: number) {
+    read(as: CommandAs, at: Position, args: AnyToken[], index: number) {
         const arg = args[index];
 
         const entities = arg instanceof SelectorToken

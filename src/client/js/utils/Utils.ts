@@ -1,4 +1,4 @@
-import {EntityBoundingBoxes, EntityIds} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
 import CPlayer from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
 import Texture, {Canvas, Image, SkinData} from "@/utils/Texture";
@@ -8,10 +8,14 @@ import {ClassOf, SoundFiles} from "@/utils/Utils";
 import {useEffect, useState} from "react";
 import {configure, fs} from "@zenfs/core";
 import {WebStorage} from "@zenfs/dom";
-import Entity from "@/entity/Entity";
+
 import {Buffer} from "buffer";
 import CItemEntity from "@c/entity/types/CItemEntity";
 import Item from "@/item/Item";
+import CEntity from "@c/entity/CEntity";
+import CXPOrbEntity from "@c/entity/types/CXPOrbEntity";
+import CFallingBlockEntity from "@c/entity/types/CFallingBlockEntity";
+import {SteveDataURL} from "@dom/assets/Steve";
 
 export type Div = HTMLDivElement;
 export type Span = HTMLSpanElement;
@@ -26,23 +30,59 @@ export function useEventListener(event: string, fn: (e: Event) => void) {
     }, []);
 }
 
-export function useOptionState<K extends keyof typeof Options>(key: K) {
-    if (!Options) loadOptions();
-    const [value, setValue] = useState(Options[key]);
-    const newState: ReactState<typeof Options[K]> = [value, (v: typeof Options[K]) => {
-        setValue(v);
-        Options[key] = v;
-        saveOptions();
-    }];
-    return newState;
-}
-
 export function useGroupState<K extends string[], T>(names: K, default_: T) {
     const obj = {};
     for (const k of names) {
         obj[k] = useState(default_);
     }
     return obj as { [k in K[number]]: ReturnType<typeof useState<T>> };
+}
+
+const optionSubscribers = new Set<() => void>();
+
+export function useOptionSubscription<K extends keyof typeof Options>(key: K) {
+    const [value, setValue] = useState(Options[key]);
+
+    useEffect(() => {
+        const update = () => {
+            const newValue = Options[key];
+            setValue(newValue);
+        };
+
+        optionSubscribers.add(update);
+
+        return () => {
+            optionSubscribers.delete(update);
+        };
+    }, []);
+
+    return [value, (v: typeof Options[K]) => {
+        Options[key] = v;
+        optionSubscribers.forEach(callback => callback());
+        saveOptions();
+    }] as const;
+}
+
+const subscribers = <Record<string, Set<() => void>>>{};
+
+export function useSubscription(key: string, onUpdate?: () => void) {
+    const subs = subscribers[key] ??= new Set<() => void>();
+    const [value, setValue] = useState(0);
+
+    useEffect(() => {
+        const update = () => {
+            setValue(value + 1);
+            if (onUpdate) onUpdate();
+        };
+
+        subs.add(update);
+
+        return () => {
+            subs.delete(update);
+        };
+    }, []);
+
+    return () => subs.forEach(callback => callback());
 }
 
 export async function requestFullscreen() {
@@ -83,7 +123,7 @@ function initClientPrinter() {
     printer.tags.error.textColor = "none";
 }
 
-export const ClientEntityClasses = <Record<EntityIds, ClassOf<Entity>>>{};
+export const ClientEntityClasses = <Record<EntityIds, ClassOf<CEntity>>>{};
 
 export async function initClientThings() {
     SoundFiles.push(...Object.keys(import.meta.glob("../../client/assets/sounds/**/*")));
@@ -111,6 +151,8 @@ export async function initBrowserFS() {
 export function initClientEntities() {
     ClientEntityClasses[EntityIds.PLAYER] = CPlayer;
     ClientEntityClasses[EntityIds.ITEM] = CItemEntity;
+    ClientEntityClasses[EntityIds.XP_ORB] = CXPOrbEntity;
+    ClientEntityClasses[EntityIds.FALLING_BLOCK] = CFallingBlockEntity;
 }
 
 export function getWSUrls(ip: string, port: number): string[] {
@@ -127,7 +169,9 @@ export function getWSUrls(ip: string, port: number): string[] {
 }
 
 export type OptionsType = {
-    username: string;
+    fallbackUsername: string;
+    skin: string;
+    auth: string;
 
     master_volume: number;
     music_volume: number;
@@ -212,9 +256,11 @@ export type OptionsType = {
 };
 
 export const DefaultOptions: OptionsType = {
-    username: "Steve",
+    fallbackUsername: "Steve",
+    skin: SteveDataURL,
+    auth: "", //"127.0.0.1:1920",
 
-    // todo
+    // todo: volume types
     master_volume: 100,
     music_volume: 100,
     jukebox_volume: 100,
@@ -297,12 +343,12 @@ export const DefaultOptions: OptionsType = {
     pauseOnBlur: 1
 };
 
-export let Options: OptionsType;
+export const Options: OptionsType = {...DefaultOptions};
 export const TileSize = {value: 64};
 
 export function loadOptions() {
-    Options = {...DefaultOptions, ...(JSON.parse(localStorage.getItem("explorio.options")) || {})};
-    Options.username ||= "Steve";
+    Object.assign(Options, JSON.parse(localStorage.getItem("explorio.options")) || {});
+    Options.fallbackUsername ||= "Steve";
 }
 
 export function saveOptions() {
@@ -415,26 +461,25 @@ function renderHandItem(
 
 export function renderPlayerModel(
     ctx: CanvasRenderingContext2D, O: {
-        SIZE: number, bbPos: { x: number, y: number }, skin: SkinData, bodyRotation: boolean,
+        SIZE: number, bbPos: { x: number, y: number }, bb: BoundingBox, skin: SkinData, bodyRotation: boolean,
         leftArmRotation: number, leftLegRotation: number, rightLegRotation: number, rightArmRotation: number,
         headRotation: number, handItem: Item, offhandItem: Item, shadowOpacity: number
     }
 ) {
     const side: Record<string, Canvas> = O.skin[O.bodyRotation ? 0 : 1];
-    const bb = EntityBoundingBoxes[EntityIds.PLAYER];
 
     const head = [
-        O.bbPos.x, O.bbPos.y - (bb.height + 0.21) * O.SIZE,
+        O.bbPos.x, O.bbPos.y - (O.bb.height + 0.21) * O.SIZE,
         O.SIZE * 0.5, O.SIZE * 0.5
     ];
 
     const armBody = [
-        O.bbPos.x + 0.125 * O.SIZE, O.bbPos.y - (bb.height - 0.29) * O.SIZE,
+        O.bbPos.x + 0.125 * O.SIZE, O.bbPos.y - (O.bb.height - 0.29) * O.SIZE,
         O.SIZE * 0.25, O.SIZE * 0.75
     ];
 
     const leg = [
-        O.bbPos.x + 0.125 * O.SIZE, O.bbPos.y - (bb.height - 1.04) * O.SIZE,
+        O.bbPos.x + 0.125 * O.SIZE, O.bbPos.y - (O.bb.height - 1.04) * O.SIZE,
         O.SIZE * 0.25, O.SIZE * 0.75
     ];
 
@@ -503,4 +548,62 @@ export function drawDotTo(x: number, y: number) {
     const pos = getClientPosition(x, y);
     ctx.fillStyle = "red";
     ctx.fillRect(pos.x - 4, pos.y - 4, 8, 8);
+}
+
+export function formatDivText(div: Div, text: string) {
+    div.classList.add("message");
+    // l = bold
+    // u = underline
+    // s = strikethrough
+    // i = italics
+    // k = obfuscated
+    let parent = div;
+    const sep = text.split(/(§§[\da-f]|§[\da-flusikr]|:[a-z]+:)/);
+    for (const part of sep) {
+        if (/^§§[\da-f]|§[\da-flusikr]$/.test(part)) {
+            const dv = document.createElement("div");
+            dv.style.display = "contents";
+            parent.appendChild(dv);
+
+            if (/^§[\da-f]$/.test(part)) {
+                dv.style.color = `var(--color-${part[1]})`;
+            } else if (/^§§[\da-f]$/.test(part)) {
+                dv.style.backgroundColor = `var(--color-${part[2]})`;
+            } else switch (part[1]) {
+                case "l":
+                    dv.style.fontWeight = "bold";
+                    break;
+                case "u":
+                    dv.style.textDecoration = "underline";
+                    break;
+                case "s":
+                    dv.style.textDecoration = "line-through";
+                    break;
+                case "i":
+                    dv.style.fontStyle = "italic";
+                    break;
+                case "k":
+                    dv.style.fontStyle = "oblique";
+                    break;
+                case "r":
+                    dv.style.fontWeight = "normal";
+                    dv.style.textDecoration = "none";
+                    dv.style.fontStyle = "normal";
+                    dv.style.color = "white";
+                    dv.style.backgroundColor = "transparent";
+                    break;
+            }
+            parent = dv;
+        } else if (/^:[a-z]+:$/.test(part) && [
+            "eyes", "nerd", "skull", "slight_smile"
+        ].includes(part.slice(1, -1))) {
+            const emote = document.createElement("div");
+            emote.classList.add("emote");
+            const emotePath = `assets/textures/emotes/${part.slice(1, -1)}.png`;
+            emote.style.backgroundImage = `url(${emotePath})`;
+            parent.appendChild(emote);
+        } else {
+            parent.appendChild(document.createTextNode(part));
+        }
+    }
 }

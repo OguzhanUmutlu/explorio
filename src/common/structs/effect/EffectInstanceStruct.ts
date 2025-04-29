@@ -13,7 +13,7 @@ export const EffectInstanceStruct = new class extends Bin<EffectInstance> {
     name = "EffectInstance";
 
     unsafeWrite(bind: BufferIndex, value: EffectInstance): void {
-        BaseStruct.unsafeWrite(bind, {id: value.effect.id, amplifier: value.amplifier, time: value.time});
+        BaseStruct.unsafeWrite(bind, {id: value.effect.typeId, amplifier: value.amplifier, time: value.time});
     };
 
     read(bind: BufferIndex): EffectInstance {

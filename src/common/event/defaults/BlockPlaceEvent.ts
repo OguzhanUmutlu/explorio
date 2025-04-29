@@ -1,5 +1,6 @@
 import PluginEvent from "@/event/PluginEvent";
-import {ItemMetadata} from "@/meta/Items";
+
+import BlockData from "@/item/BlockData";
 import Entity from "@/entity/Entity";
 
 export default class BlockPlaceEvent extends PluginEvent {
@@ -7,7 +8,7 @@ export default class BlockPlaceEvent extends PluginEvent {
         public readonly entity: Entity,
         public readonly x: number,
         public readonly y: number,
-        public readonly block: ItemMetadata
+        public readonly block: BlockData
     ) {
         super();
     };

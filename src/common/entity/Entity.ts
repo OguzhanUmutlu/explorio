@@ -1,13 +1,13 @@
-import BoundingBox from "@/entity/BoundingBox";
-import World from "@/world/World";
-import {EntityStructs, getServer, x2cx, zstdOptionalDecode} from "@/utils/Utils";
-import Location, {getRotationTowards} from "@/utils/Location";
-import {Packets} from "@/network/Packets";
-import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
 import EffectInstance from "@/effect/EffectInstance";
 import Effect from "@/effect/Effect";
-import ObjectStructBinConstructor from "stramp/src/object/ObjectStructBin";
-import {Bin} from "stramp";
+
+import BoundingBox from "@/entity/BoundingBox";
+import Position, {getRotationTowards} from "@/utils/Position";
+import {Packets} from "@/network/Packets";
+import EntityTileBase from "@/entity/EntityTileBase";
+import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
+import World from "@/world/World";
+import Item from "@/item/Item";
 
 export const DefaultWalkSpeed = 5;
 export const DefaultFlySpeed = 7;
@@ -15,14 +15,12 @@ export const DefaultJumpVelocity = 7;
 export const DefaultGravity = 18;
 export const GroundHeight = 0.05;
 
-let _entity_id = 0;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const tAny = null!;
 
-export default abstract class Entity extends Location {
-    abstract typeId: number;
-    abstract typeName: string; // used in selectors' type= attribute
-    abstract name: string; // used for chat messages and informational purposes
+export default abstract class Entity extends EntityTileBase {
+    readonly world: World;
 
-    id = _entity_id++;
     _chunkX = NaN;
     _x = 0;
     _y = 0;
@@ -30,13 +28,13 @@ export default abstract class Entity extends Location {
     renderY = 0;
     vx = 0;
     vy = 0;
+    suffocationVY = 0;
     onGround = true;
     bb: BoundingBox;
     groundBB = new BoundingBox(0, 0, 0, GroundHeight);
     cacheState: string;
     tags = new Set<string>;
     effects = new Set<EffectInstance>;
-    despawned = false;
 
     walkSpeed = DefaultWalkSpeed;
     flySpeed = DefaultFlySpeed;
@@ -49,14 +47,49 @@ export default abstract class Entity extends Location {
     invincible = false;
     invisible = false;
 
-    server = getServer();
+    // first multiplied, then added
+    attributeMultiplyModifiers: Record<string, number> = {};
+    attributeAddModifiers: Record<string, number> = {};
 
-    constructor() {
-        super(0, 0, 0, null);
+    init(broadcast = true) {
+        const problem = !this.isClient && this.saveStruct.findProblem(this);
+
+        if (problem) {
+            console.warn("Invalid entity:", this, ", problem:", problem);
+            return false;
+        }
+
+        this.updateCacheState();
+        this.world.entities[this.id] = this;
+        if (this.world.isClient !== this.isClient) throw new Error("Unmatched isClient");
+        this.applyAttributes();
+        this.onMovement();
+        if (broadcast && !this.isClient) this.broadcastSpawn();
+
+        return true;
     };
 
-    copyLocation() {
-        return super.copy();
+    private get oldChunk() {
+        return !isNaN(this._chunkX) ? this.world.getChunk(this._chunkX, false) : null;
+    };
+
+    private setWorld(world: World) {
+        delete this.world.entities[this.id];
+        const oldChunk = this.oldChunk;
+
+        if (oldChunk) oldChunk.entities.delete(this);
+
+        (<Position>this).world = world;
+
+        const newChunk = world.getChunk(this.chunkX, false);
+        newChunk.entities.add(this);
+        newChunk.pollute();
+
+        return this;
+    };
+
+    get handItem(): Item | null {
+        return null;
     };
 
     getBlockReach() {
@@ -69,29 +102,6 @@ export default abstract class Entity extends Location {
 
     get eyeHeight() {
         return this.bb.height;
-    };
-
-    get struct() {
-        return <ObjectStructBinConstructor<Record<string, Bin<unknown>>, Record<string, unknown>, Entity>><unknown>EntityStructs[<keyof typeof EntityStructs>this.typeId];
-    };
-
-    getSaveBuffer(): Buffer {
-        return EntitySaveStruct.serialize(this);
-    };
-
-    init() {
-        this.updateCacheState();
-        this.world.entities[this.id] = this;
-        this.applyAttributes();
-        this.onMovement();
-    };
-
-    get chunkX() {
-        return x2cx(this.x);
-    };
-
-    get chunk() {
-        return this.world.getChunk(this.chunkX, false);
     };
 
     tryToJump() {
@@ -135,10 +145,15 @@ export default abstract class Entity extends Location {
         return this.world.getBlockCollisions(this.groundBB, limit);
     };
 
-    teleport(x: number, y: number) {
+    teleport(x: number, y: number, world = this.world) {
         this.x = x;
         this.y = y;
+
+        if (this.world !== world) return this.setWorld(world);
+
         this.onMovement();
+
+        return this;
     };
 
     tryToMove(x: number, y: number, dt: number) {
@@ -154,11 +169,39 @@ export default abstract class Entity extends Location {
 
         const already = this.getCollidingBlock();
         if (already) {
-            this.y += dt;
+            this.suffocationVY += dt;
+            this.y += dt * this.suffocationVY;
             this.onMovement();
             return false;
         }
 
+        this.suffocationVY = 0;
+
+        // Try combined movement first to check for corner cases
+        if (Math.abs(x) > eps && Math.abs(y) > eps) {
+            // Store original position
+            const originalX = this.x;
+            const originalY = this.y;
+
+            // Try moving diagonally first
+            this.x += x;
+            this.y += y;
+            this.updateCollisionBox();
+
+            // If we hit something diagonally, handle x and y separately
+            if (this.getCollidingBlock()) {
+                // Reset position
+                this.x = originalX;
+                this.y = originalY;
+                this.updateCollisionBox();
+            } else {
+                // Diagonal movement succeeded
+                this.onMovement();
+                return true;
+            }
+        }
+
+        // Handle horizontal movement with binary search
         let dx = x;
         let mx = Math.abs(dx) <= eps;
         while (Math.abs(dx) > eps) {
@@ -184,6 +227,7 @@ export default abstract class Entity extends Location {
             }
         }
 
+        // Handle vertical movement with binary search
         let dy = y;
         let my = Math.abs(dy) <= eps;
         while (Math.abs(dy) > eps) {
@@ -204,15 +248,33 @@ export default abstract class Entity extends Location {
 
     update(dt: number) {
         const x = this.x, y = this.y;
+
+        // Apply friction
         this.vx *= 0.999;
         this.vy *= 0.999;
+
+        // Apply gravity
         this.vy -= this.gravity * dt;
-        const hitX = !this.tryToMove(this.vx * dt, 0, dt);
-        const hitY = !this.tryToMove(0, this.vy * dt, dt);
-        if (hitX) this.vx = 0;
-        if (hitY) this.vy = 0;
+
+        // Combined movement attempt to detect corner collisions
+        const combinedResult = this.tryToMove(this.vx * dt, this.vy * dt, dt);
+
+        // If combined movement failed, try individual axes
+        if (!combinedResult) {
+            const hitX = !this.tryToMove(this.vx * dt, 0, dt);
+            const hitY = !this.tryToMove(0, this.vy * dt, dt);
+
+            // Reset velocities on collision
+            if (hitX) this.vx = 0;
+            if (hitY) this.vy = 0;
+        }
+
         this.calculateGround();
+
+        // Notify of movement changes
         if (this.x !== x || this.y !== y) this.onMovement();
+
+        // Update effects
         for (const effect of Array.from(this.effects)) {
             effect.time -= dt;
             if (effect.time <= 0) {
@@ -222,29 +284,29 @@ export default abstract class Entity extends Location {
         }
     };
 
+    serverUpdate(dt: number): void {
+        if (this.calcCacheState() !== this.cacheState) {
+            this.updateCacheState();
+            this.broadcastMovement();
+        }
+
+        this.update(dt);
+    };
+
     getBlockCollisionAt(x: number, y: number) {
         return this.world.getBlock(x, y).getCollision(this.bb, x, y);
     };
 
-    getChunkEntities() {
-        return this.chunk.entities;
-    };
-
-    get isClient() {
-        const name = this.constructor.name;
-        return name === "OriginPlayer" || (name[0] === "C" && name[1] === name[1].toUpperCase());
-    };
-
-    onMovement() {
+    private onMovement() {
         this._x = this.x;
         this._y = this.y;
+
+        const world = this.world;
 
         const oldChunkX = this._chunkX;
         const newChunkX = this.chunkX;
 
-        const world = this.world;
-
-        const oldChunk = isNaN(oldChunkX) ? null : world.getChunk(oldChunkX, false);
+        const oldChunk = this.oldChunk;
         const newChunk = world.getChunk(newChunkX, false);
 
         const oldEntities = oldChunk?.entities;
@@ -260,6 +322,7 @@ export default abstract class Entity extends Location {
         }
 
         this._chunkX = newChunkX;
+
         this.updateCollisionBox();
         this.updateGroundBoundingBox();
     };
@@ -270,14 +333,14 @@ export default abstract class Entity extends Location {
         this.groundBB.width = this.bb.width;
     };
 
-    getMovementData() {
+    getMovementData(): Record<string, typeof tAny> {
         return {
             x: this.x,
             y: this.y
         };
     };
 
-    getSpawnData() {
+    getSpawnData(): Record<string, typeof tAny> {
         return this.getMovementData();
     };
 
@@ -301,17 +364,6 @@ export default abstract class Entity extends Location {
         this.world.broadcastPacketAt(this.x, new Packets.SEntityRemove(this.id), [this]);
     };
 
-    serverUpdate(_dt: number): void {
-        if (this.calcCacheState() !== this.cacheState) {
-            this.updateCacheState();
-            this.broadcastMovement();
-        }
-    };
-
-    distance(x: number, y: number) {
-        return Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
-    };
-
     getDrops() {
         return [];
     };
@@ -324,6 +376,10 @@ export default abstract class Entity extends Location {
         for (const drop of this.getDrops()) this.world.dropItem(this.x, this.y, drop);
         this.world.dropXP(this.x, this.y, this.getXPDrops());
         this.despawn(broadcast);
+    };
+
+    getSaveBuffer(): Buffer {
+        return EntitySaveStruct.serialize(this);
     };
 
     despawn(broadcast = true) {
@@ -346,8 +402,75 @@ export default abstract class Entity extends Location {
         }
     };
 
-    applyAttributes() {
+    protected resetAttributes() {
+        this.walkSpeed = DefaultWalkSpeed;
+        this.flySpeed = DefaultFlySpeed;
+        this.jumpVelocity = DefaultJumpVelocity;
+        this.health = 20;
+        this.maxHealth = 20;
+        this.gravity = DefaultGravity;
+        this.canPhase = false;
+        this.immobile = false;
+        this.invincible = false;
+        this.invisible = false;
+    };
+
+    applyAttributes(reset = true) {
+        if (reset) this.resetAttributes();
         this.applyEffects();
+
+        const mulKeys = Object.keys(this.attributeMultiplyModifiers);
+        const addKeys = Object.keys(this.attributeAddModifiers);
+
+        for (let i = 0; i < mulKeys.length; i++) {
+            const key = mulKeys[i];
+            this[key] *= this.attributeMultiplyModifiers[key];
+        }
+
+        for (let i = 0; i < addKeys.length; i++) {
+            const key = addKeys[i];
+            this[key] += this.attributeAddModifiers[key];
+        }
+    };
+
+    setWalkSpeed(walkSpeed: number) {
+        this.walkSpeed = walkSpeed;
+    };
+
+    setFlySpeed(flySpeed: number) {
+        this.flySpeed = flySpeed;
+    };
+
+    setJumpVelocity(jumpVelocity: number) {
+        this.jumpVelocity = jumpVelocity;
+    };
+
+    setHealth(health: number) {
+        this.health = health;
+    };
+
+    setMaxHealth(maxHealth: number) {
+        this.maxHealth = maxHealth;
+    };
+
+    setGravity(gravity: number) {
+        this.gravity = gravity;
+    };
+
+    setCanPhase(canPhase: boolean) {
+        this.canPhase = canPhase;
+    };
+
+    setImmobile(immobile: boolean) {
+        this.immobile = immobile;
+    };
+
+    setInvincible(invincible: boolean) {
+        this.invincible = invincible;
+    };
+
+    setInvisible(invisible: boolean) {
+        this.invisible = invisible;
     };
 
     addEffect(effect: Effect, amplifier: number, duration: number) {
@@ -356,26 +479,10 @@ export default abstract class Entity extends Location {
 
     removeEffect(effect: Effect) {
         for (const e of Array.from(this.effects)) {
-            if (e.effect.id === effect.id) {
+            if (e.effect.typeId === effect.typeId) {
                 this.effects.delete(e);
                 break;
             }
         }
-    };
-
-    toString() {
-        return this.name;
-    };
-
-    static spawn(world: World) {
-        // @ts-expect-error Hello, there, you don't get to throw an error.
-        const entity = <this>new (this);
-        entity.world = world;
-        entity.init();
-        return entity;
-    };
-
-    static loadEntity(buffer: Buffer) {
-        return EntitySaveStruct.deserialize(zstdOptionalDecode(buffer));
     };
 }

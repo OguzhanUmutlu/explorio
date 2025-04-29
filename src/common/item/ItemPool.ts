@@ -1,4 +1,4 @@
-import {ItemsByIdentifier} from "@/meta/ItemIds";
+import {ItemIdentifiers} from "@/meta/ItemIds";
 import ItemDescriptor from "@/item/ItemDescriptor";
 import Item from "@/item/Item";
 
@@ -34,6 +34,6 @@ export default class ItemPool {
     };
 
     static fromIdentifier(name: string) {
-        return ItemsByIdentifier[name] || null;
+        return ItemIdentifiers[name] || null;
     };
 }

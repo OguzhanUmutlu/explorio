@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {isMobileByAgent, OptionsType, useOptionState} from "@c/utils/Utils";
+import {isMobileByAgent, OptionsType, useOptionSubscription} from "@c/utils/Utils";
 import GameOptionComponent from "@dom/components/options/GameOptionComponent";
 import OptionValueText from "@dom/components/options/OptionValueText";
 
@@ -13,7 +13,7 @@ export default function RangeOptionComponent(O: {
     action?: ((v: number) => void);
     default?: number;
 }) {
-    const state = O.action instanceof Function ? useState(O.default) : useOptionState(O.option);
+    const state = O.action instanceof Function ? useState(O.default) : useOptionSubscription(O.option);
 
     return <GameOptionComponent class="option-input" description={O.description ?? ""}>
         <input type="range" min={O.min} max={O.max} step={O.step} value={state[0]} onChange={e => {

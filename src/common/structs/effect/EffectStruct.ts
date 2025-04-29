@@ -7,7 +7,7 @@ export const EffectStruct = new class extends Bin<Effect> {
     name = "Effect";
 
     unsafeWrite(bind: BufferIndex, value: Effect): void {
-        bind.push(value.id);
+        bind.push(value.typeId);
     };
 
     read(bind: BufferIndex): Effect {

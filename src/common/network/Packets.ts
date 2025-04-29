@@ -73,6 +73,9 @@ export const PacketStructs = {
     [PacketIds.Ping]: X.date,
     [PacketIds.SendMessage]: X.string16,
 
+    [PacketIds.SPreLoginInformation]: X.object.struct({
+        auth: X.string16.or(X.null)
+    }),
     [PacketIds.SHandshake]: X.object.struct({
         entityId: X.u32,
         x: X.f32, y: X.f32,
@@ -80,6 +83,7 @@ export const PacketStructs = {
     }),
     [PacketIds.SChunk]: X.object.struct({
         x: X.i32,
+        biome: X.u8,
         data: ChunkBlocksBin
     }),
     [PacketIds.SSetChunkEntities]: X.object.struct({
@@ -169,7 +173,8 @@ export const PacketStructs = {
     [PacketIds.CAuth]: X.object.struct({
         name: X.string8,
         skin: X.string16,
-        version: X.u16
+        version: X.u16,
+        secret: X.buffer.sized(128).or(X.null)
     }),
     [PacketIds.CMovement]: X.object.struct({
         x: X.f32,

@@ -3,27 +3,30 @@ import {Packets} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
 import Packet from "@/network/Packet";
 import {ZstdInit} from "@oneidentity/zstd-js";
-import {EntityClasses, EntityIds, EntityNameMap} from "@/meta/Entities";
-import Player from "@/entity/defaults/Player";
+import {EntityClasses, EntityNameMap} from "@/meta/Entities";
 import {Effects} from "@/meta/Effects";
 import Effect from "@/effect/Effect";
-import SpeedEffect from "@/effect/defaults/SpeedEffect";
-import SlownessEffect from "@/effect/defaults/SlownessEffect";
 import {Bin} from "stramp";
-import ItemEntity from "@/entity/defaults/ItemEntity";
-import XPOrbEntity from "@/entity/defaults/XPOrbEntity";
-import {TileClasses, TileIds, TileNameMap} from "@/meta/Tiles";
-import ChestTile from "@/tile/defaults/ChestTile";
-import FurnaceTile from "@/tile/defaults/FurnaceTile";
+import {TileClasses, TileNameMap} from "@/meta/Tiles";
+import {ClassOf} from "@/utils/Utils";
 
-export function initEffects() {
-    for (const clazz of [
-        SpeedEffect,
-        SlownessEffect
-    ]) {
-        const effect = <Effect>new clazz;
-        Effects[effect.id] = effect;
-    }
+import Tile from "@/tile/Tile";
+import Entity from "@/entity/Entity";
+import Command from "@/command/Command";
+
+export function registerAny(clazz: ClassOf<Entity | Tile | Effect | Command>) {
+    const sample = new clazz();
+
+    if (sample instanceof Entity) {
+        EntityClasses[sample.typeId] = clazz;
+        EntityNameMap[sample.typeName] = sample.typeId;
+    } else if (sample instanceof Tile) {
+        TileClasses[sample.typeId] = clazz;
+        TileNameMap[sample.typeName] = sample.typeId;
+    } else if (sample instanceof Effect) Effects[sample.typeId] = sample;
+    else return false;
+
+    return true;
 }
 
 export function initPackets() {
@@ -43,23 +46,5 @@ export function initPackets() {
 export async function initCommon() {
     initItems();
     initPackets();
-    initBaseEntities();
-    initBaseTiles();
     await ZstdInit();
-}
-
-export function initBaseEntities() {
-    EntityClasses[EntityIds.PLAYER] = Player;
-    EntityClasses[EntityIds.ITEM] = ItemEntity;
-    EntityClasses[EntityIds.XP_ORB] = XPOrbEntity;
-    EntityNameMap.player = EntityIds.PLAYER;
-    EntityNameMap.item = EntityIds.ITEM;
-    EntityNameMap.xp_orb = EntityIds.XP_ORB;
-}
-
-export function initBaseTiles() {
-    TileClasses[TileIds.CHEST] = ChestTile;
-    TileClasses[TileIds.FURNACE] = FurnaceTile;
-    TileNameMap.chest = TileIds.CHEST;
-    TileNameMap.furnace = TileIds.FURNACE;
 }

@@ -1,25 +1,28 @@
 import GameOption from "@dom/components/options/classes/GameOption";
 import NumberOption from "@dom/components/options/classes/NumberOption";
 import ButtonOption from "@dom/components/options/classes/ButtonOption";
-import {ReactState} from "@c/utils/Utils";
+import {Options, ReactState, useOptionSubscription, useSubscription} from "@c/utils/Utils";
 import OptionMenu from "@dom/components/options/OptionMenu";
-import React, {ReactNode} from "react";
+import React, {ReactNode, useState} from "react";
 import OptionGroup from "@dom/components/options/classes/OptionGroup";
 import ToggleOption from "@dom/components/options/classes/ToggleOption";
 import SelectOption from "@dom/components/options/classes/SelectOption";
 import OptionButtonComponent from "@dom/components/options/OptionButtonComponent";
 import JSXOption from "@dom/components/options/classes/JSXOption";
 import {saveAndQuit} from "@dom/Client";
-import InputOption from "@dom/components/options/classes/InputOption";
+import GameOptionComponent from "@dom/components/options/GameOptionComponent";
+import {deleteCookie, getCookie, setCookie} from "@dom/components/CookieHandler";
+import InputOptionComponent from "@dom/components/options/InputOptionComponent";
 
 abstract class Menu {
-    protected constructor(public title: string, public back: OptionPages | null) {
+    protected constructor(public title: string, public back: OptionPages | null, public backName = "Done") {
     };
 
     toReact(pg: ReactState<OptionPages>) {
         return <OptionMenu title={this.title} name={Object.keys(Menus).find(i => Menus[i] === this) as OptionPages}
                            page={pg}
-                           back={this.back ? () => pg[1](this.back) : null}>
+                           back={this.back ? () => pg[1](this.back) : null}
+                           backName={this.backName}>
             {this.preReact(pg)}
         </OptionMenu>;
     };
@@ -38,8 +41,8 @@ class NormalMenu extends Menu {
 }
 
 class JSXMenu extends Menu {
-    constructor(public title: string, public back: OptionPages | null, public component: (pg: ReactState<OptionPages>) => ReactNode) {
-        super(title, back);
+    constructor(public title: string, public back: OptionPages | null, backName: string, public component: (pg: ReactState<OptionPages>) => ReactNode) {
+        super(title, back, backName);
     };
 
     preReact(pg: ReactState<OptionPages>) {
@@ -49,11 +52,14 @@ class JSXMenu extends Menu {
 
 export type OptionPages = "none" | "main" | "index" | "client" | "online" | "skin_customization" | "sound"
     | "video_settings" | "controls" | "language" | "chat" | "resource_packs" | "accessibility" | "animations"
-    | "statistics" | "achievements" | "mouse" | "key_binds";
+    | "statistics" | "achievements" | "mouse" | "key_binds" | "login";
+
+export const TokenCookieName = "__explorio__private__token__";
+export const UsernameCookieName = "__explorio__private__username__";
 
 export const Menus: Record<OptionPages, Menu> = {
     none: null,
-    main: new JSXMenu("test2", null, () => <></>),
+    main: new JSXMenu("test2", null, "", () => <></>),
     index: new NormalMenu("Options", "none", [
         new OptionGroup([
             new ButtonOption("Online...", "online")
@@ -106,9 +112,90 @@ export const Menus: Record<OptionPages, Menu> = {
     ]),
     statistics: new NormalMenu("Statistics", "main", []),
     achievements: new NormalMenu("Achievements", "main", []),
-    online: new NormalMenu("Online Options", "main", [
-        new InputOption("username", "Username", "", 5, 20)
-    ]),
+    online: new JSXMenu("Online Options", "main", "Done", pg => {
+        const updateLoggedIn = useSubscription("loggedIn");
+        const token = getCookie(TokenCookieName);
+        const username = getCookie(UsernameCookieName);
+        const loggedIn = token && username;
+        const fallbackUsername = useOptionSubscription("fallbackUsername");
+
+        return <>
+            <InputOptionComponent option="auth" text="Auth URL"/>
+            <GameOptionComponent class="option-input" description="">
+                <label>Username</label>:
+                <input placeholder="Steve" value={loggedIn ? username : fallbackUsername[0]}
+                       onChange={e => {
+                           fallbackUsername[1](e.target.value);
+                       }} disabled={!!loggedIn} type="text"
+                       maxLength={20}/>
+            </GameOptionComponent>
+            {
+                loggedIn
+                    ? <OptionButtonComponent text="Log Out" action={() => {
+                        deleteCookie(TokenCookieName);
+                        deleteCookie(UsernameCookieName);
+                        updateLoggedIn();
+                    }}/>
+                    : <OptionButtonComponent text="Log In" action={() => pg[1]("login")}/>
+            }
+        </>;
+    }),
+    login: new JSXMenu("Log In", "online", "Back", page => {
+        const updateLoggedIn = useSubscription("loggedIn");
+
+        const username = useState("");
+        const password = useState("");
+        const trying = useState(false);
+
+        return <>
+            <GameOptionComponent class="option-input" description="">
+                <label>Username</label>: <input type="text" value={username[0]}
+                                                onChange={e => username[1](e.target.value)}/>
+            </GameOptionComponent>
+            <GameOptionComponent class="option-input" description="">
+                <label>Password</label>: <input type="password" value={password[0]}
+                                                onChange={e => password[1](e.target.value)}/>
+            </GameOptionComponent>
+            <OptionButtonComponent text="Log In" disabled={trying[0]} action={async () => {
+                if (trying[0]) return;
+                trying[1](true);
+                let serv = Options.auth;
+                if (serv.endsWith("/")) serv = serv.slice(0, -1);
+                if (!serv.startsWith("http://") && !serv.startsWith("https://")) serv = "http://" + serv;
+
+                const response = await fetch(serv + "/login", {
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    method: "POST",
+                    body: JSON.stringify({username: username[0], password: password[0]})
+                }).catch(e => e);
+
+                if (response instanceof Error) {
+                    trying[1](false);
+                    console.error(response);
+                    alert(response.message);
+                    return;
+                }
+
+                if (response.statusText !== "OK") {
+                    trying[1](false);
+                    alert(response.statusText);
+                    return;
+                }
+
+                const token = await response.text();
+
+                setCookie(TokenCookieName, token);
+                setCookie(UsernameCookieName, username[0]);
+                updateLoggedIn();
+
+                trying[1](false);
+
+                page[1]("online");
+            }}/>
+        </>;
+    }),
     skin_customization: new NormalMenu("Skin Customization", "main", []),
     sound: new NormalMenu("Music & Sound Settings", "main", [
         new NumberOption("master_volume", "Master Volume", "", 0, 100, 1, "%"),
@@ -182,7 +269,7 @@ export const Menus: Record<OptionPages, Menu> = {
             new ToggleOption("pauseOnBlur", "Pause on Blur")
         ])
     ]),
-    key_binds: new JSXMenu("Mouse Settings", "controls", () => {
+    key_binds: new JSXMenu("Mouse Settings", "controls", "Done", () => {
         return <>
             Todo
         </>;
@@ -265,5 +352,10 @@ export const Menus: Record<OptionPages, Menu> = {
 
 export function getMenus(main: "index" | "client", pg: ReactState<OptionPages>) {
     Menus.main = Menus[main];
-    return Object.keys(Menus).filter(i => i !== "main" && i !== "none").map(i => Menus[i].toReact(pg));
+    let keys = Object.keys(Menus)
+        .filter(i => i !== "main" && i !== "none");
+
+    if (main === "client") keys = keys.filter(i => i !== "online" && i !== "login");
+
+    return keys.map(i => Menus[i].toReact(pg));
 }

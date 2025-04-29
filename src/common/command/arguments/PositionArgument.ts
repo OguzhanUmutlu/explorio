@@ -1,13 +1,13 @@
 import CommandArgument from "@/command/CommandArgument";
 import Vector2 from "@/utils/Vector2";
 import {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 
 export default class PositionArgument extends CommandArgument<Vector2> {
     default = new Vector2(0, 0);
 
-    read(_: CommandAs, at: Location, args: AnyToken[], index: number) {
+    read(_: CommandAs, at: Position, args: AnyToken[], index: number) {
         const argX = args[index].rawText;
         const argY = args[index + 1].rawText;
 

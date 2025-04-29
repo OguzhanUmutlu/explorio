@@ -12,7 +12,8 @@ export default class HelpCommand extends DefinitiveCommand {
             .then((sender, _, __, page) => {
                 page -= 1;
 
-                const commands = Array.from(new Set(Object.values(sender.server.commands)));
+                const commands = Array.from(new Set(Object.values(sender.server.commands)))
+                    .sort((a, b) => a.name.localeCompare(b.name));
                 const pageSize = 10;
 
                 let str = `§a-- Command List ${page + 1}/${Math.ceil(commands.length / pageSize)} --`;

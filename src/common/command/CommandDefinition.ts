@@ -8,11 +8,14 @@ import BoolArgument from "@/command/arguments/BoolArgument";
 import ObjectArgument from "@/command/arguments/ObjectArgument";
 import ArrayArgument from "@/command/arguments/ArrayArgument";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import EntityArgument from "@/command/arguments/EntityArgument";
 import LabelArgument from "@/command/arguments/LabelArgument";
 import EffectArgument from "@/command/arguments/EffectArgument";
 import ItemArgument from "@/command/arguments/ItemArgument";
+import EntityTypeArgument from "@/command/arguments/EntityTypeArgument";
+import TicksArgument from "@/command/arguments/TicksArgument";
+import {OneOfArgument} from "@/command/arguments/OneOfArgument";
 
 export type Append<T extends unknown[] | [], V> = T extends [] ? [V] : [...T, V];
 
@@ -21,7 +24,7 @@ export type CommandDefinitionType = CommandDefinition<CommandArgument[]>;
 export default class CommandDefinition<T extends CommandArgument[] = []> {
     permission: string | false = false;
     arguments = <CommandArgument[]>[];
-    run: (sender: CommandSender, as: CommandAs | null, at: Location, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => unknown;
+    run: (sender: CommandSender, as: CommandAs | null, at: Position, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => unknown;
 
     addArgumentViaClass<V extends CommandArgument>(clazz: new (name: string) => V, name: string, fn?: (n: V) => V) {
         const arg = new clazz(name);
@@ -34,8 +37,12 @@ export default class CommandDefinition<T extends CommandArgument[] = []> {
         return this.addArgumentViaClass(NumberArgument, name, fn);
     };
 
+    addTicksArgument<M extends TicksArgument>(name: string, fn?: (n: TicksArgument) => M): CommandDefinition<Append<T, M>> {
+        return this.addArgumentViaClass(TicksArgument, name, fn);
+    };
+
     addGameModeArgument<M extends GameModeArgument>(name: string, fn?: (n: GameModeArgument) => M): CommandDefinition<Append<T, M>> {
-        return this.addArgumentViaClass(NumberArgument, name, fn);
+        return this.addArgumentViaClass(GameModeArgument, name, fn);
     };
 
     addEffectArgument<M extends EffectArgument>(name: string, fn?: (n: EffectArgument) => M): CommandDefinition<Append<T, M>> {
@@ -74,8 +81,16 @@ export default class CommandDefinition<T extends CommandArgument[] = []> {
         return this.addArgumentViaClass(ArrayArgument, name, fn);
     };
 
+    addEntityTypeArgument<M extends EntityTypeArgument>(name: string, fn?: (n: EntityTypeArgument) => M): CommandDefinition<Append<T, M>> {
+        return this.addArgumentViaClass(EntityTypeArgument, name, fn);
+    };
+
     addLabelArgument<M extends LabelArgument>(name: string, fn?: (n: LabelArgument) => M) {
         return <CommandDefinition<T>>this.addArgumentViaClass(LabelArgument, name, fn);
+    };
+
+    addOneOfArgument<K, M extends OneOfArgument<K>>(name: string, fn?: (n: OneOfArgument) => M): CommandDefinition<Append<T, M>> {
+        return this.addArgumentViaClass(OneOfArgument, name, fn);
     };
 
     setPermission(permission: string | false) {

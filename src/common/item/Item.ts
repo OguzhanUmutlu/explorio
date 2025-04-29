@@ -1,7 +1,7 @@
-import {BM} from "@/meta/ItemIds";
+import {FullId2Data} from "@/meta/ItemIds";
 import {im2f} from "@/meta/Items";
 import ItemStruct from "@/structs/item/ItemStruct";
-import {ItemNBT} from "@/structs/item/ItemNBTStruct";
+import {ItemComponents} from "@/structs/item/ItemComponentsStruct";
 
 export default class Item {
     maxStack: number;
@@ -10,13 +10,17 @@ export default class Item {
         public id: number,
         public meta: number = 0,
         public count: number = 1,
-        public nbt: ItemNBT = {}
+        public components: ItemComponents = {}
     ) {
         this.maxStack = this.toMetadata().maxStack;
     };
 
+    get fullId() {
+        return im2f(this.id, this.meta);
+    };
+
     toMetadata() {
-        return BM[im2f(this.id, this.meta)];
+        return FullId2Data[this.fullId];
     };
 
     getTexture() {
@@ -35,15 +39,15 @@ export default class Item {
         return ItemStruct.deserialize(buffer);
     };
 
-    equals(item: Item, count = true, nbt = true) {
+    equals(item: Item, count = true, components = true) {
         if (!item) return false;
         return item.id === this.id
             && item.meta === this.meta
             && (!count || item.count === this.count)
-            && (!nbt || JSON.stringify(item.nbt) === JSON.stringify(this.nbt));
+            && (!components || JSON.stringify(item.components) === JSON.stringify(this.components));
     };
 
     clone(count = this.count) {
-        return new Item(this.id, this.meta, count ?? this.count, JSON.parse(JSON.stringify(this.nbt)))
+        return new Item(this.id, this.meta, count ?? this.count, JSON.parse(JSON.stringify(this.components)))
     };
 }

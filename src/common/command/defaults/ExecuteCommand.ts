@@ -4,7 +4,7 @@ import {skipWhitespace, splitParameters} from "@/command/CommandProcessor";
 import SelectorToken from "@/command/token/SelectorToken";
 import PositionArgument from "@/command/arguments/PositionArgument";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Location from "@/utils/Location";
+import Position from "@/utils/Position";
 import {EntityNameMap} from "@/meta/Entities";
 
 export default class ExecuteCommand extends Command {
@@ -14,7 +14,7 @@ export default class ExecuteCommand extends Command {
         super("execute", "Executes a given command.", "", [], "command.execute");
     };
 
-    execute(sender: CommandSender, as: CommandAs, at: Location, __: string[], label: string) {
+    execute(sender: CommandSender, as: CommandAs, at: Position, __: string[], label: string) {
         const tokens = splitParameters(label.split(" ").slice(1).join(" "));
 
         if (tokens.length === 0) {
@@ -38,8 +38,8 @@ export default class ExecuteCommand extends Command {
         }
 
         let entities: CommandAs[] = [as];
-        let locations: Record<number, Location> = {};
-        locations[as.id] = at.copy();
+        let positions: Record<number, Position> = {};
+        positions[as.id] = at.copy();
 
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i++];
@@ -47,7 +47,7 @@ export default class ExecuteCommand extends Command {
                 let last: unknown;
 
                 for (const entity of entities) {
-                    last = sender.server.executeCommandLabel(sender, entity, locations[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
+                    last = sender.server.executeCommandLabel(sender, entity, positions[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
                 }
 
                 return last;
@@ -55,15 +55,15 @@ export default class ExecuteCommand extends Command {
                 const selector = tokens[i];
                 if (!(selector instanceof SelectorToken)) throw new CommandError("Expected a selector after the 'as' keyword.");
                 const oldEntities = entities;
-                const oldLocations = locations;
+                const oldLocations = positions;
                 entities = [];
-                locations = {};
+                positions = {};
 
                 for (const entity of oldEntities) {
-                    for (const ent of sender.server.executeSelector(entity, locations[entity.id], selector)) {
+                    for (const ent of sender.server.executeSelector(entity, positions[entity.id], selector)) {
                         if (!entities.includes(ent)) {
                             entities.push(ent);
-                            locations[ent.id] ??= oldLocations[ent.id] || ent.copyLocation();
+                            positions[ent.id] ??= oldLocations[ent.id] || ent.copyPosition();
                         }
                     }
                 }
@@ -71,17 +71,17 @@ export default class ExecuteCommand extends Command {
                 const token = tokens[i];
                 if (token instanceof SelectorToken) {
                     for (const entity of entities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         const val = sender.server.executeSelector(entity, loc, token)[0];
                         loc.copyFrom(val);
                     }
                 } else {
-                    if (!this.posArg.blindCheck(tokens, i).pass) {
+                    if (this.posArg.blindCheck(tokens, i).error) {
                         throw new CommandError("Expected a position after the 'at' keyword.");
                     }
 
                     for (const entity of entities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         const val = this.posArg.read(entity, loc, tokens, i);
                         loc.x = val.x;
                         loc.y = val.y;
@@ -99,8 +99,8 @@ export default class ExecuteCommand extends Command {
                     throw new CommandError(`Cannot align the position with positions other than 'x' and 'y': ${got}`);
                 }
 
-                for (const id in locations) {
-                    const loc = locations[id];
+                for (const id in positions) {
+                    const loc = positions[id];
                     if (got.includes("x")) loc.x = Math.round(loc.x);
                     if (got.includes("y")) loc.y = Math.round(loc.y);
                 }
@@ -112,14 +112,14 @@ export default class ExecuteCommand extends Command {
                 }
 
                 for (const entity of entities) {
-                    const loc = locations[entity.id];
+                    const loc = positions[entity.id];
                     loc.x = entity.x;
                     loc.y = entity.y + (val === "feet" || !("eyeHeight" in entity) ? 0 : entity.eyeHeight);
                 }
             } else if (token.rawText === "facing") {
                 const token = tokens[i];
                 for (const entity of entities) {
-                    const loc = locations[entity.id];
+                    const loc = positions[entity.id];
                     const pos = token instanceof SelectorToken
                         ? sender.server.executeSelector(entity, loc, token)[0]
                         : this.posArg.read(entity, loc, tokens, i);
@@ -135,20 +135,20 @@ export default class ExecuteCommand extends Command {
                 }
 
                 for (const entity of entities) {
-                    const loc = locations[entity.id];
+                    const loc = positions[entity.id];
                     loc.world = sender.server.worlds[folder];
                 }
             } else if (token.rawText === "rotated") {
                 const token = tokens[i];
                 if (token instanceof SelectorToken) {
                     for (const entity of entities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         const val = sender.server.executeSelector(entity, loc, token)[0];
                         loc.rotation = val.rotation;
                     }
                 } else if (token.type === "number") {
                     for (const entity of entities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         loc.rotation = <number>token.value;
                     }
                 }
@@ -159,17 +159,22 @@ export default class ExecuteCommand extends Command {
                     throw new CommandError("Expected an entity name after the 'summon' keyword.");
                 }
 
-                const name = nameToken.rawText; // todo: validate this
+                const name = nameToken.rawText;
+
+                if (!(name in EntityNameMap)) {
+                    throw new CommandError(`Entity '${name}' does not exist.`);
+                }
+
                 const oldEntities = entities;
-                const oldLocations = locations;
+                const oldLocations = positions;
                 entities = [];
-                locations = {};
+                positions = {};
 
                 for (const entity of oldEntities) {
                     const loc = oldLocations[entity.id];
                     const newEntity = loc.world.summonEntity(EntityNameMap[name], loc.x, loc.y);
                     entities.push(newEntity);
-                    locations[newEntity.id] = newEntity.copyLocation();
+                    positions[newEntity.id] = newEntity.copyPosition();
                 }
             } else if (token.rawText === "if" || token.rawText === "unless") {
                 const b = 1 - +(token.rawText === "if");
@@ -181,7 +186,7 @@ export default class ExecuteCommand extends Command {
                 const comparator = tokens[i].rawText;
                 i++;
                 if (comparator === "block") {
-                    if (!this.posArg.blindCheck(tokens, i).pass) {
+                    if (this.posArg.blindCheck(tokens, i).error) {
                         throw new CommandError("Expected a position after the 'if block' subcommand.");
                     }
 
@@ -196,30 +201,30 @@ export default class ExecuteCommand extends Command {
                     const oldEntities = entities;
                     entities = [];
                     for (const entity of oldEntities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         const blockPos = this.posArg.read(entity, loc, tokens, posIndex);
                         const block = entity.world.getBlock(blockPos.x, blockPos.y);
                         if (b - +(block.getIdentifier() === blockName)) {
                             entities.push(entity);
-                            locations[entity.id] ??= loc.copy();
-                        } else delete locations[entity.id];
+                            positions[entity.id] ??= loc.copy();
+                        } else delete positions[entity.id];
                     }
                 } else if (comparator === "blocks") {
-                    if (!this.posArg.blindCheck(tokens, i).pass) {
+                    if (this.posArg.blindCheck(tokens, i)) {
                         throw new CommandError("Expected a position after the 'if blocks' subcommand.");
                     }
 
                     const pos1Index = i;
                     i += 2;
 
-                    if (!this.posArg.blindCheck(tokens, i).pass) {
+                    if (this.posArg.blindCheck(tokens, i)) {
                         throw new CommandError("Expected a destination for the 2nd argument of the 'if blocks' subcommand.");
                     }
 
                     const pos2Index = i;
                     i += 2;
 
-                    if (!this.posArg.blindCheck(tokens, i).pass) {
+                    if (this.posArg.blindCheck(tokens, i)) {
                         throw new CommandError("Expected a destination for the 3rd argument of the 'if blocks' subcommand.");
                     }
 
@@ -228,7 +233,7 @@ export default class ExecuteCommand extends Command {
                     const oldEntities = entities;
                     entities = [];
                     for (const entity of oldEntities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         const pos1 = this.posArg.read(entity, loc, tokens, pos1Index);
                         const pos2 = this.posArg.read(entity, loc, tokens, pos2Index);
                         const minX = Math.min(pos1.x, pos2.x);
@@ -250,10 +255,10 @@ export default class ExecuteCommand extends Command {
                             if (fail) break;
                         }
                         if (fail) {
-                            delete locations[entity.id];
+                            delete positions[entity.id];
                         } else {
                             entities.push(entity);
-                            locations[entity.id] ??= loc.copy();
+                            positions[entity.id] ??= loc.copy();
                         }
                     }
                 } else if (comparator === "entity") {
@@ -267,13 +272,13 @@ export default class ExecuteCommand extends Command {
                     const oldEntities = entities;
                     entities = [];
                     for (const entity of oldEntities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         const hasMatch = !!sender.server.executeSelector(entity, loc, selector)[0];
                         if (b - +hasMatch) {
                             entities.push(entity);
-                            locations[entity.id] ??= loc.copy();
+                            positions[entity.id] ??= loc.copy();
                         } else {
-                            delete locations[entity.id];
+                            delete positions[entity.id];
                         }
                     }
                 } else if (comparator === "loaded") {
@@ -285,11 +290,11 @@ export default class ExecuteCommand extends Command {
                     const oldEntities = entities;
                     entities = [];
                     for (const entity of oldEntities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         if (b + +!loc.world.chunks[x]) {
                             entities.push(entity);
-                            locations[entity.id] ??= loc.copy();
-                        } else delete locations[entity.id];
+                            positions[entity.id] ??= loc.copy();
+                        } else delete positions[entity.id];
                     }
                 } else if (comparator === "world") {
                     const folderToken = tokens[i];
@@ -303,11 +308,11 @@ export default class ExecuteCommand extends Command {
                     const oldEntities = entities;
                     entities = [];
                     for (const entity of oldEntities) {
-                        const loc = locations[entity.id];
+                        const loc = positions[entity.id];
                         if (b - +(loc.world.folder === folder)) {
                             entities.push(entity);
-                            locations[entity.id] ??= loc.copy();
-                        } else delete locations[entity.id];
+                            positions[entity.id] ??= loc.copy();
+                        } else delete positions[entity.id];
                     }
                 } else {
                     throw new CommandError(`Unknown condition type 'if ${comparator}'.`);
