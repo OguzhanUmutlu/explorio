@@ -1,8 +1,7 @@
 import {Bin, BufferIndex} from "stramp";
 import {ChunkBlockAmount} from "@/meta/WorldConstants";
 import {f2name, name2f} from "@/item/ItemFactory";
-import {ItemIds} from "@/meta/ItemIds";
-import {im2f} from "@/meta/ItemInformation";
+import {FullIds} from "@/meta/ItemIds";
 
 function getPalette(value: Uint16Array) {
     const palette: string[] = [];
@@ -53,7 +52,7 @@ export default new class ChunkBlocksBin extends Bin<Uint16Array> {
             if (blockId >= palette.length) throw new Error(`Invalid block ID ${blockId} at index ${i}`);
             const name = palette[blockId];
             if (name2f(name) === void 0) printer.warn(`Unknown block name: ${name}`);
-            blocks[i] = name2f(name) || im2f(ItemIds.AIR);
+            blocks[i] = name2f(name) || FullIds.AIR;
         }
         return blocks;
     };

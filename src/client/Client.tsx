@@ -43,9 +43,11 @@ Printer.makeGlobal();
 declare global {
     interface Window {
         bfs: typeof import("fs");
+        bfs_path: string;
     }
 
     const bfs: typeof import("fs");
+    const bfs_path: string;
 }
 
 export const IS_LOCALHOST = location.hostname === "localhost" || location.hostname === "127.0.0.1";
@@ -687,10 +689,9 @@ export function initClient() {
         connectionText[1]("Connecting...");
         clientNetwork._connect().then(r => r); // not waiting for it to connect
     } else {
-        singlePlayerServer = new Server(bfs, `singleplayer/${WorldInfo.uuid}`);
+        singlePlayerServer = new Server(bfs, `${bfs_path}${WorldInfo.uuid}`);
         Error.stackTraceLimit = 50;
 
-        if (!bfs.existsSync("singleplayer")) bfs.mkdirSync("singleplayer");
         const config = singlePlayerServer.config = DefaultServerConfig;
         config.saveIntervalTicks = Options.auto_save * 20;
         config.auth = null;
@@ -808,6 +809,8 @@ export function saveAndQuit() {
 // todo: on death the xp should be decreased
 // todo: item/block states and maybe rename meta to variant?
 // todo: add and implement shield in Damage.ts
+// todo: desktop singleplayer should be automatically hosted on a random port, there should be a switch to allow outside connections
+// todo: seas no longer generate?
 
 function isInChat() {
     return chatContainer[0];

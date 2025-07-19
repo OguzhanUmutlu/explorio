@@ -1,7 +1,6 @@
-import {ItemIds} from "@/meta/ItemIds";
+import {FullIds, ItemIds} from "@/meta/ItemIds";
 import BlockData from "@/item/BlockData";
 import World from "@/world/World";
-import {im2f} from "@/meta/ItemInformation";
 
 export default class GrassBlock extends BlockData {
     postProcessesTexture = true;
@@ -16,8 +15,8 @@ export default class GrassBlock extends BlockData {
 
         if (up.isOpaque || up.id === ItemIds.NATURAL_LOG) return world.setBlock(x, y, ItemIds.DIRT);
 
-        const right = world.getFullBlockAt(x + 1, y) === im2f(ItemIds.GRASS_BLOCK);
-        const left = world.getFullBlockAt(x - 1, y) === im2f(ItemIds.GRASS_BLOCK);
+        const right = world.getFullBlockAt(x + 1, y) === FullIds.GRASS_BLOCK;
+        const left = world.getFullBlockAt(x - 1, y) === FullIds.GRASS_BLOCK;
 
         if (right || left) world.setBlockIfEmpty(x, y, ItemIds.GRASS_BLOCK);
     };

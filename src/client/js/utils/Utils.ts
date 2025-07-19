@@ -6,7 +6,7 @@ import BoundingBox from "@/entity/BoundingBox";
 import {camera, canvas, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
 import {useEffect, useState} from "react";
-import {configure, fs} from "@zenfs/core";
+import * as ZenFS from "@zenfs/core";
 import {WebStorage} from "@zenfs/dom";
 
 import {Buffer} from "buffer";
@@ -133,12 +133,22 @@ export async function initClientThings() {
 
 export async function initBrowserFS() {
     if (!self.bfs) {
-        await configure({
-            mounts: {
-                "/": WebStorage.create({storage: localStorage})
-            }
-        });
-        self.bfs = <typeof import("fs")><unknown>fs;
+        let electron: unknown;
+        if ("electron" in self) electron = self.electron;
+        if (typeof electron === "undefined") {
+            await ZenFS.configure({
+                mounts: {
+                    "/": WebStorage.create({storage: localStorage})
+                }
+            });
+            self.bfs = <typeof import("fs")><unknown>ZenFS.fs;
+            self.bfs_path = "./singleplayer/";
+            if (!bfs.existsSync(bfs_path)) bfs.mkdirSync(bfs_path, {recursive: true});
+        } else {
+            const el = <{ fs: typeof import("fs"), fs_path: string }>electron;
+            self.bfs = el.fs;
+            self.bfs_path = el.fs_path;
+        }
         self.Buffer = Buffer;
     }
 }
@@ -378,7 +388,7 @@ export function removeWorld(uuid: string) {
     const world = worlds.find(i => i.uuid === uuid);
     if (!world) return;
 
-    const pth = "./singleplayer/" + uuid;
+    const pth = bfs_path + uuid;
     if (bfs.existsSync(pth)) bfs.rmSync(pth, {recursive: true});
 
     worlds.splice(worlds.indexOf(world), 1);

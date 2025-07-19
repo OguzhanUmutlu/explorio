@@ -1,3 +1,8 @@
+export const ItemIdBits = 10;
+export const ItemMetaBits = 16 - ItemIdBits;
+export const ItemMetaMax = 1 << ItemMetaBits;
+export const ItemMetaMaxN = ItemMetaMax - 1;
+
 export enum ItemIds {
     AIR,
     BEDROCK,
@@ -118,4 +123,10 @@ export enum ItemIds {
     NETHERITE_HOE,
 
     __MAX__
+}
+
+export const FullIds = <Record<keyof typeof ItemIds, number>>{};
+
+for (let i = 0; i < ItemIds.__MAX__; i++) {
+    FullIds[ItemIds[i]] = i << ItemMetaBits;
 }

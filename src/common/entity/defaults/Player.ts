@@ -75,6 +75,7 @@ export default class Player extends Entity implements CommandSender {
     canToggleFly = false;
     instantBreak = false;
     infiniteResource = false;
+    canPickupItems = true;
     seeShadows = false;
     placeCooldown = 0.3;
     food = 20;
@@ -507,6 +508,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = false;
                 this.instantBreak = false;
                 this.infiniteResource = false;
+                this.canPickupItems = true;
                 this.seeShadows = true;
                 this.placeCooldown = 0.3;
                 this.canPhase = false;
@@ -521,6 +523,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = true;
                 this.instantBreak = true;
                 this.infiniteResource = true;
+                this.canPickupItems = true;
                 this.seeShadows = true;
                 this.placeCooldown = 0;
                 this.canPhase = false;
@@ -536,6 +539,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = false;
                 this.instantBreak = false;
                 this.infiniteResource = false;
+                this.canPickupItems = true;
                 this.seeShadows = true;
                 this.placeCooldown = 0;
                 this.canPhase = false;
@@ -551,6 +555,7 @@ export default class Player extends Entity implements CommandSender {
                 this.canToggleFly = false;
                 this.instantBreak = false;
                 this.infiniteResource = false;
+                this.canPickupItems = false;
                 this.seeShadows = false;
                 this.placeCooldown = 0;
                 this.canPhase = true;

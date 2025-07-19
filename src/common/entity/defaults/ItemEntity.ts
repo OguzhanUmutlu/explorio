@@ -43,7 +43,7 @@ export default class ItemEntity extends Entity {
         for (const entity of this.getChunkEntities()) {
             if (this === entity) continue;
 
-            if (this.delay <= 0 && entity instanceof Player && entity.bb.copy().expand(3, 1.2).collides(this.bb)) {
+            if (this.delay <= 0 && entity instanceof Player && entity.canPickupItems && entity.bb.copy().expand(3, 1.2).collides(this.bb)) {
                 const rem = entity.addItem(source);
                 const alr = source.count;
                 source.count = rem;

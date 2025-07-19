@@ -1,5 +1,5 @@
 import Generator from "@/world/generators/Generator";
-import {ItemIds} from "@/meta/ItemIds";
+import {FullIds, ItemIds} from "@/meta/ItemIds";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
 import World from "@/world/World";
@@ -61,6 +61,10 @@ export const TreeLeavesShape = [
     prepareTree([], 0), // azalea
     prepareTree([], 0) // cherry
 ];
+
+export const BlocksUnderTree = [
+    FullIds.DIRT, FullIds.GRASS_BLOCK, FullIds.SNOWY_GRASS_BLOCK // podzol, snow block
+]
 
 export default class DefaultGenerator extends Generator {
     noise: NoiseFunction2D;
@@ -150,7 +154,7 @@ export default class DefaultGenerator extends Generator {
                 treeLength += 8;
                 break;
         }
-        chunk[x + (y - 1) * ChunkLength] = im2f(ItemIds.DIRT);
+        chunk[x + (y - 1) * ChunkLength] = FullIds.DIRT;
 
         for (let i = 0; i < treeLength; i++) {
             chunk[x + (i + y) * ChunkLength] = im2f(ItemIds.NATURAL_LOG, treeType);
@@ -190,7 +194,7 @@ export default class DefaultGenerator extends Generator {
 
         for (let x = 0; x < ChunkLength; x++) {
             const worldX = x + chunkXM;
-            chunk[x] = im2f(ItemIds.BEDROCK);
+            chunk[x] = FullIds.BEDROCK;
             const raw = this.computeFBM(worldX / 80, 0, 5, 2, 0.4);
             const shaped = Math.pow((raw + 1) / 2, 1.2) * 2 - 1;
             const height = Math.floor(
@@ -199,64 +203,64 @@ export default class DefaultGenerator extends Generator {
                 + SurfaceHeight
             );
 
-            let hasTree = false;
-            if (x === treeX && height >= SurfaceHeight) {
-                const noi = this.noise(worldX / 5, 10);
-                treeX += Math.floor(Math.abs(noi) * 3 + 3);
-                if (x != ChunkLength - 1) {
-                    hasTree = true;
-                    DefaultGenerator.plantTree(world, chunk, noi, chunkNoise, x, height + 1, worldX);
-                }
-            }
+            const hasTree = x === treeX && height >= SurfaceHeight && x != ChunkLength - 1;
 
             if (height < SurfaceHeight) {
                 for (let y = height; y < SurfaceHeight; y++) {
-                    chunk[x + y * ChunkLength] = im2f(ItemIds.WATER);
+                    chunk[x + y * ChunkLength] = FullIds.WATER;
                 }
             }
 
             for (let y = height; y >= 1; y--) {
                 if (this.isBubble(worldX, y)) {
-                    if (y < 12) chunk[x + y * ChunkLength] = im2f(ItemIds.LAVA);
+                    if (y < 12) chunk[x + y * ChunkLength] = FullIds.LAVA;
                     continue;
                 }
 
                 if (this.isConnector(worldX, y)) {
-                    if (y < 12) chunk[x + y * ChunkLength] = im2f(ItemIds.LAVA);
-                    //chunk[x + y * ChunkLength] = im2f(ItemIds.AIR);
+                    if (y < 12) chunk[x + y * ChunkLength] = FullIds.LAVA;
+                    //chunk[x + y * ChunkLength] = FullIds.AIR;
                     continue;
                 }
 
-                let id = im2f(ItemIds.AIR);
+                let id = FullIds.AIR;
                 if (y > height - 5) {
-                    if (y !== height) id = im2f(ItemIds.DIRT);
-                    if (height < SurfaceHeight) id = im2f(ItemIds.SAND);
-                    else if (height < SurfaceHeight + 5) id = im2f(ItemIds.GRAVEL);
+                    if (y !== height) id = FullIds.DIRT;
+                    if (height < SurfaceHeight) id = FullIds.SAND;
+                    else if (height < SurfaceHeight + 5) id = FullIds.GRAVEL;
                 }
-                if (y === height && id === im2f(ItemIds.AIR)) id = hasTree ? im2f(ItemIds.DIRT) : im2f(ItemIds.GRASS_BLOCK);
+                if (y === height && id === FullIds.AIR) id = hasTree ? FullIds.DIRT : FullIds.GRASS_BLOCK;
                 if (y <= height - 5) {
                     const deepslate = y < 64 + Math.floor(this.noise(worldX / 40, y / 40) * 10);
-                    id = deepslate ? im2f(ItemIds.DEEPSLATE) : im2f(ItemIds.STONE);
+                    id = deepslate ? FullIds.DEEPSLATE : FullIds.STONE;
                     const noiCoal = this.noiseCoal(worldX / 35, y / 35);
-                    if (noiCoal >= 0.85) id = deepslate ? im2f(ItemIds.DEEPSLATE_COAL_ORE) : im2f(ItemIds.COAL_ORE);
+                    if (noiCoal >= 0.85) id = deepslate ? FullIds.DEEPSLATE_COAL_ORE : FullIds.COAL_ORE;
                     const noiCopper = this.noiseCopper(worldX / 35, y / 35);
-                    if (noiCopper >= 0.85) id = deepslate ? im2f(ItemIds.DEEPSLATE_COPPER_ORE) : im2f(ItemIds.COPPER_ORE);
+                    if (noiCopper >= 0.85) id = deepslate ? FullIds.DEEPSLATE_COPPER_ORE : FullIds.COPPER_ORE;
                     const noiIron = this.noiseIron(worldX / 15, y / 15);
-                    if (noiIron >= 0.85) id = deepslate ? im2f(ItemIds.DEEPSLATE_IRON_ORE) : im2f(ItemIds.IRON_ORE);
+                    if (noiIron >= 0.85) id = deepslate ? FullIds.DEEPSLATE_IRON_ORE : FullIds.IRON_ORE;
                     if (y < 130) {
                         const noiGold = this.noiseGold(worldX / 15, y / 15);
-                        if (noiGold >= 0.9) id = deepslate ? im2f(ItemIds.DEEPSLATE_GOLD_ORE) : im2f(ItemIds.GOLD_ORE);
+                        if (noiGold >= 0.9) id = deepslate ? FullIds.DEEPSLATE_GOLD_ORE : FullIds.GOLD_ORE;
                         const noiLapis = this.noiseLapis(worldX / 15, y / 15);
-                        if (noiLapis >= 0.9) id = deepslate ? im2f(ItemIds.DEEPSLATE_LAPIS_ORE) : im2f(ItemIds.LAPIS_ORE);
+                        if (noiLapis >= 0.9) id = deepslate ? FullIds.DEEPSLATE_LAPIS_ORE : FullIds.LAPIS_ORE;
                         const noiseRedstone = this.noiseRedstone(worldX / 15, y / 15);
-                        if (noiseRedstone >= 0.9) id = deepslate ? im2f(ItemIds.DEEPSLATE_REDSTONE_ORE) : im2f(ItemIds.REDSTONE_ORE);
+                        if (noiseRedstone >= 0.9) id = deepslate ? FullIds.DEEPSLATE_REDSTONE_ORE : FullIds.REDSTONE_ORE;
                     }
                     if (y < 20) {
                         const noiDiamond = this.noiseDiamond(worldX, y);
-                        if (noiDiamond >= 0.9) id = deepslate ? im2f(ItemIds.DEEPSLATE_DIAMOND_ORE) : im2f(ItemIds.DIAMOND_ORE);
+                        if (noiDiamond >= 0.9) id = deepslate ? FullIds.DEEPSLATE_DIAMOND_ORE : FullIds.DIAMOND_ORE;
                     }
                 }
                 chunk[x + y * ChunkLength] = id;
+            }
+
+            if (x === treeX && height >= SurfaceHeight) {
+                const noi = this.noise(worldX / 5, 10);
+                treeX += Math.floor(Math.abs(noi) * 3 + 3);
+                if (BlocksUnderTree.includes(chunk[x + height * ChunkLength]) && x != ChunkLength - 1) {
+                    DefaultGenerator.plantTree(world, chunk, noi, chunkNoise, x, height + 1, worldX);
+                }
             }
         }
     };

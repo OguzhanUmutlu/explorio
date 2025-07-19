@@ -9,9 +9,10 @@ export const Versions = [
     "0.0.1-dev.8-alpha",
     "0.0.1-dev.9-alpha",
     "0.0.1-dev.10-alpha",
-    "0.0.1-dev.11-alpha"
+    "0.0.1-dev.11-alpha",
+    "0.0.1-dev.12-alpha"
 ];
 
-export const WorldGenerationVersion = 5;
+export const WorldGenerationVersion = 6;
 export const Version = Versions.length - 1;
 export const VersionString = Versions[Version];

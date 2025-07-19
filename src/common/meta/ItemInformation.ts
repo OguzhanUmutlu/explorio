@@ -1,15 +1,10 @@
 import Texture, {Canvas} from "@/utils/Texture";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
-import {ItemIds} from "@/meta/ItemIds";
+import {ItemIds, ItemMetaBits, ItemMetaMax, ItemMetaMaxN} from "@/meta/ItemIds";
 import {ClassOf} from "@/utils/Utils";
 import BlockData from "@/item/BlockData";
 import {MetaLengthMap} from "@/item/ItemFactory";
-
-export const ItemIdBits = 10;
-export const ItemMetaBits = 16 - ItemIdBits;
-export const ItemMetaMax = 1 << ItemMetaBits;
-export const ItemMetaMaxN = ItemMetaMax - 1;
 
 export enum TreeType {
     Oak,

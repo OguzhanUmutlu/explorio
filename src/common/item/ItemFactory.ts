@@ -3,7 +3,7 @@ import {ItemIds} from "@/meta/ItemIds";
 import Texture, {createCanvas} from "@/utils/Texture";
 import {ClassOf} from "@/utils/Utils";
 import {default as ID} from "@/item/ItemDescriptor";
-import {DefaultItemOptions, im2f, ItemMetaBits, ItemMetaDataConfig} from "@/meta/ItemInformation";
+import {DefaultItemOptions, im2f, ItemMetaDataConfig} from "@/meta/ItemInformation";
 import DefaultItems from "@/item/DefaultItems";
 
 export function im2data(id: number, meta = 0): BlockData {
@@ -39,13 +39,6 @@ class ItemFactory {
     static f2name = <Record<number, string>>{};
     static name2f = <Record<number, number>>{};
     static Items = <Record<keyof typeof ItemIds, BlockData>>{};
-    static FullIds = <Record<keyof typeof ItemIds, number>>{};
-
-    constructor() {
-        for (let id = 0; id < ItemIds.__MAX__; id++) {
-            ItemFactory.FullIds[ItemIds[id]] = id << ItemMetaBits;
-        }
-    };
 
     registerItem(id: number, _O: Partial<ItemMetaDataConfig>, DataClass: ClassOf<BlockData> = BlockData) {
         if (!_O.metas && (!_O.identifier || !_O.name)) {

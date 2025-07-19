@@ -10,8 +10,9 @@
     "test": "tsx tests/test.ts",
     "lint": "eslint src",
     "build:client": "vite build",
-    "build:desktop": "cd src/desktop && npm run build && cd ../../",
+    "build:desktop": "tsx ./scripts/build_desktop.ts",
     "build:docs": "typedoc",
+    "test:desktop": "npm run build:desktop && cd src/desktop && npx electron .",
     "prepublishOnly": "tsx ./scripts/publish.ts"
   },
   "keywords": [

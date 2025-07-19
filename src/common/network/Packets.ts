@@ -157,6 +157,7 @@ export const PacketStructs = {
         placeCooldown: X.f32,
         instantBreak: X.bool,
         infiniteResource: X.bool,
+        canPickupItems: X.bool,
         seeShadows: X.bool
     }),
     [PacketIds.SSetInventory]: X.object.struct({

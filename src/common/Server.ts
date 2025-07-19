@@ -63,12 +63,15 @@ import ResistanceEffect from "@/effect/defaults/ResistanceEffect";
 import SlownessEffect from "@/effect/defaults/SlownessEffect";
 import SpeedEffect from "@/effect/defaults/SpeedEffect";
 import ItemFactory from "@/item/ItemFactory";
+import Interval from "@/utils/Interval";
+import Timeout from "@/utils/Timeout";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
     maxPlayers: z.number().int().min(-1).max(4294967295), // -1 or 4294967295 means unlimited
     renderDistance: z.number().min(0),
     language: z.enum(<[LanguageName, ...LanguageName[]]>Object.keys(Languages)),
+    motd: z.string(),
     defaultWorld: z.string().default("default"),
     defaultWorlds: z.record(z.string(), ZWorldMetaData),
     packetCompression: z.boolean(),
@@ -91,6 +94,7 @@ export const DefaultServerConfig: ServerConfig = {
     maxPlayers: 20,
     renderDistance: 3,
     language: "en",
+    motd: "My Server",
     defaultWorld: "default",
     defaultWorlds: {
         default: {
@@ -124,6 +128,15 @@ const banEntryType = z.object({
 export type StorageDataValue = string | number | boolean | null | { [key: string]: StorageDataValue };
 export type StorageData = { [key: string]: StorageDataValue };
 
+interface ServerFS {
+    existsSync(path: string): boolean;
+    mkdirSync(path: string, options?: { recursive?: boolean; mode?: number }): void;
+    rmSync(path: string, options?: { recursive?: boolean }): void;
+    writeFileSync(path: string, data: Buffer | string): void;
+    readFileSync(path: string): Buffer;
+    readdirSync(path: string): string[];
+}
+
 export default class Server {
     worlds: Record<string, World> = {};
     defaultWorld: World;
@@ -139,9 +152,10 @@ export default class Server {
     pausedUpdates = false;
     bans: BanEntry[] = [];
     targetTickRate = 20;
+    ticks = 0;
     tickRate = 20;
     tickAccumulator = 0;
-    _ticks: number[] = [];
+    _ticksLastSecond: number[] = [];
     tickFrozen = false;
     tickNow = 0;
     stepTicks = 0;
@@ -180,7 +194,10 @@ export default class Server {
 
     itemFactory = new ItemFactory();
 
-    constructor(public fs: typeof import("fs"), public path: string, public socketServer: { close(): void } = null) {
+    timeouts = new Map<number, Set<Timeout>>;
+    intervals = new Set<Interval>;
+
+    constructor(public fs: ServerFS, public path: string, public socketServer: { close(): void } = null) {
         setServer(this);
     };
 
@@ -310,6 +327,29 @@ export default class Server {
             this.commands[alias] = command;
         }
         command.init();
+    };
+
+    afterFunc(ticks: number, callback: () => void, plugin: Plugin | null = null) {
+        ticks += this.ticks;
+        const timeout = new Timeout(this, plugin, ticks, callback);
+        if (!this.timeouts.has(ticks)) {
+            this.timeouts.set(ticks, new Set([timeout]));
+        } else this.timeouts.get(ticks).add(timeout);
+        return timeout;
+    };
+
+    repeatFunc(period: number, callback: () => void, plugin: Plugin | null = null) {
+        return this.repeatFuncDelayed(0, period, callback, plugin);
+    };
+
+    repeatFuncDelayed(delay: number, period: number, callback: () => void, plugin: Plugin | null = null) {
+        if (delay <= 0) {
+            callback();
+            delay = period;
+        }
+        const interval = new Interval(this, plugin, this.ticks + delay, period, callback);
+        this.intervals.add(interval);
+        return interval;
     };
 
     addBan(name: string, reason: string) {
@@ -455,11 +495,14 @@ export default class Server {
             }
         }
 
-        clazz._eventHandlers = new Map;
+        clazz._eventHandlers.clear();
     };
 
     disablePlugin(plugin: Plugin) {
         this.unregisterEvents(plugin);
+        for (const interval of plugin._intervals) clearInterval(interval);
+        plugin._intervals.length = 0;
+        for (const cancellable of plugin._cancellable) cancellable.cancel();
         plugin.onDisable();
     };
 
@@ -737,9 +780,11 @@ export default class Server {
         if (this.tickFrozen && this.stepTicks <= 0) return;
         this.stepTicks = 0;
 
-        this._ticks = this._ticks.filter(i => i > Date.now() - 1000);
-        this._ticks.push(Date.now());
-        this.tickRate = this._ticks.length;
+        this.ticks++;
+
+        this._ticksLastSecond = this._ticksLastSecond.filter(i => i > Date.now() - 1000);
+        this._ticksLastSecond.push(Date.now());
+        this.tickRate = this._ticksLastSecond.length;
 
         if (++this.saveCounter > this.config.saveIntervalTicks) {
             this.saveAll();
@@ -748,6 +793,24 @@ export default class Server {
 
         for (const folder in this.worlds) {
             this.worlds[folder].serverTick();
+        }
+
+        const timeouts = this.timeouts.get(this.ticks);
+        if (timeouts) {
+            for (const timeout of timeouts) {
+                timeout.callback(timeout);
+                timeout.plugin?._cancellable?.delete(timeout);
+            }
+            this.timeouts.delete(this.ticks);
+        }
+
+        const intervals = [...this.intervals];
+        for (let i = 0; i < intervals.length; i++) {
+            const interval = intervals[i];
+            if (this.ticks >= interval.next) {
+                interval.next += interval.period;
+                interval.callback(interval);
+            }
         }
     };
 

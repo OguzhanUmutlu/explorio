@@ -37,7 +37,7 @@ import BlockData from "@/item/BlockData";
 import Position from "@/utils/Position";
 import FallingBlockEntity from "@/entity/defaults/FallingBlockEntity";
 import ChunkGroupStruct from "@/structs/world/ChunkGroupStruct";
-import {ItemIds} from "@/meta/ItemIds";
+import {FullIds, ItemIds} from "@/meta/ItemIds";
 import {im2f} from "@/meta/ItemInformation";
 import {f2data} from "@/item/ItemFactory";
 
@@ -227,7 +227,7 @@ export default class World {
         const chunk = this.getChunkAt(x, generate).blocks;
         const i = xy2ci(x, y);
         const v = chunk[i];
-        if (v === fullId || (ifEmpty && v !== im2f(ItemIds.AIR))) return false;
+        if (v === fullId || (ifEmpty && v !== FullIds.AIR)) return false;
         chunk[i] = fullId;
         return true;
     };
@@ -502,7 +502,7 @@ export default class World {
 
         if (cancelled) return false;
 
-        this.setFullBlock(x, y, im2f(ItemIds.AIR), true, polluteBlock, broadcast);
+        this.setFullBlock(x, y, FullIds.AIR, true, polluteBlock, broadcast);
 
         if (!(entity instanceof Player) || !entity.infiniteResource) {
             for (const item of drops) {
