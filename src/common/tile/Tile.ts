@@ -3,9 +3,9 @@ import EntityTileBase from "@/entity/EntityTileBase";
 import TileSaveStruct from "@/structs/tile/TileSaveStruct";
 
 export default abstract class Tile extends EntityTileBase {
-    readonly x: number;
-    readonly y: number;
-    readonly world: World;
+    declare readonly x: number;
+    declare readonly y: number;
+    declare readonly world: World;
     readonly rotation = 0;
 
     init() {
@@ -21,7 +21,7 @@ export default abstract class Tile extends EntityTileBase {
         return true;
     };
 
-    update(dt: number) {
+    update(_dt: number) {
     };
 
     getSaveBuffer(): Buffer {

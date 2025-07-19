@@ -5,7 +5,6 @@ import Texture from "@/utils/Texture";
 
 export default class CXPOrbEntity extends XPOrbEntity implements CEntity {
     isClient = true;
-    amount: number;
 
     render(ctx: CanvasRenderingContext2D, dt: number) {
         super.render(ctx, dt);
