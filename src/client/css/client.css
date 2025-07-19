@@ -203,7 +203,7 @@ body {
     background-repeat: no-repeat;
 }
 
-.save-screen, .connection-text {
+.save-screen, .connection-text, .death-screen {
     position: absolute;
     left: 0;
     top: 0;
@@ -218,6 +218,10 @@ body {
     font-size: 40px;
     opacity: 0;
     pointer-events: none;
+}
+
+.death-screen, .connection-text {
+    flex-direction: column;
 }
 
 .background-blur {
@@ -239,7 +243,7 @@ body {
     translate: -50% -50%;
     height: 70vh;
     width: calc(70vh / 166 * 176);
-    background: url("../assets/textures/gui/container/inventory.png") no-repeat 50% 50%;
+    background: url("../assets/textures/gui/container/inventory.png") no-repeat;
     transition: all 0.3s;
     aspect-ratio: 176 / 166;
     background-size: 100% 100%;

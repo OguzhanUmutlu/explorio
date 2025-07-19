@@ -5,13 +5,11 @@ import Player from "@/entity/defaults/Player";
 import EntityStruct from "@/structs/entity/EntityStruct";
 import ItemStruct from "@/structs/item/ItemStruct";
 import X from "stramp";
-import {registerAny} from "@/utils/Inits";
 import Entity from "@/entity/Entity";
 
 const maxStack = 255;
 
 export default class ItemEntity extends Entity {
-    static _ = registerAny(this);
     typeId = EntityIds.ITEM;
     typeName = "item";
     name = "Item";

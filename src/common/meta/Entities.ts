@@ -1,7 +1,3 @@
-import {ClassOf} from "@/utils/Utils";
-import Entity from "@/entity/Entity";
-
-
 // How to add an entity?:
 // 1. Add the entity's upper-cased name to the EntityIds in this file
 // 2. Create a class for the entity in "src/common/entity/defaults/" by copying "ExampleEntity.ts"
@@ -12,9 +8,5 @@ export enum EntityIds {
     PLAYER,
     ITEM,
     XP_ORB,
-    FALLING_BLOCK,
-    __MAX__
+    FALLING_BLOCK
 }
-
-export const EntityNameMap: Record<string, EntityIds> = {};
-export const EntityClasses = <Record<EntityIds, ClassOf<Entity>>>{};

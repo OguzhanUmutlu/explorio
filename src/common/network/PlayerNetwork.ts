@@ -67,7 +67,8 @@ export default class PlayerNetwork {
 
     processCMovement({data: {x, y, rotation}}: PacketByName<"CMovement">) {
         if (
-            Math.abs(this.player.x - x) > 1.5
+            this.player.despawned
+            || Math.abs(this.player.x - x) > (this.player.isFlying ? this.player.flySpeed : this.player.walkSpeed) / 5 * 1.5
             || Math.abs(this.player.y - y) > 5
         ) return this.sendPosition(); // UNEXPECTED
         if (new PlayerMoveEvent(this.player, x, y, rotation).callGetCancel()) return this.sendPosition();
@@ -80,7 +81,7 @@ export default class PlayerNetwork {
     };
 
     processCStartBreaking({data}: PacketByName<"CStartBreaking">) {
-        if (!this.player.world.canBreakBlockAt(this.player, data.x, data.y)) {
+        if (this.player.despawned || !this.player.world.canBreakBlockAt(this.player, data.x, data.y)) {
             return this.sendBlock(data.x, data.y); // UNEXPECTED
         }
 
@@ -93,7 +94,8 @@ export default class PlayerNetwork {
 
     processCStopBreaking() {
         if (
-            !this.player.breaking
+            this.player.despawned
+            || !this.player.breaking
             || new PlayerStopBreakingEvent(this.player).callGetCancel()
         ) return;
         this.player.breaking = null;
@@ -102,6 +104,10 @@ export default class PlayerNetwork {
     };
 
     async processCAuth({data: {name, skin, version, secret}}: PacketByName<"CAuth">) {
+        if (Object.keys(this.server.players).length >= this.server.config.maxPlayers) {
+            return this.kick("Server is full");
+        }
+
         if (version !== Version) {
             return this.kick(version > Version ? "Client is outdated" : "Server is outdated");
         }
@@ -140,6 +146,10 @@ export default class PlayerNetwork {
             }
         }
 
+        if (Object.keys(this.server.players).length >= this.server.config.maxPlayers) {
+            return this.kick("Server is full");
+        }
+
         const loginEvent = new PlayerLoginEvent(name, this.ip);
         loginEvent.call();
 
@@ -174,7 +184,7 @@ export default class PlayerNetwork {
         const world = this.player.world;
         const handItem = this.player.handItem;
 
-        if (!handItem || !world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta, rotation)) {
+        if (this.player.despawned || !handItem || !world.tryToPlaceBlockAt(this.player, x, y, handItem.id, handItem.meta, rotation)) {
             this.sendResetPlaceCooldown();
             this.sendHandItem();
             return this.sendBlock(x, y);
@@ -190,7 +200,7 @@ export default class PlayerNetwork {
     };
 
     processCToggleFlight() {
-        if (this.player.canToggleFly) {
+        if (this.player.despawned || this.player.canToggleFly) {
             const ev = new PlayerToggleFlightEvent(this.player, !this.player.isFlying);
             ev.call();
             if (ev.cancelled) return;
@@ -199,7 +209,7 @@ export default class PlayerNetwork {
     };
 
     processCSetHandIndex({data}: PacketByName<"CSetHandIndex">) {
-        if (data > 8 || data < 0 || this.player.handIndex === data) return;
+        if (this.player.despawned || data > 8 || data < 0 || this.player.handIndex === data) return;
 
         const ev = new PlayerSetHandIndexEvent(this.player, data);
         ev.call();
@@ -216,13 +226,14 @@ export default class PlayerNetwork {
     };
 
     processCOpenInventory() {
-        if (this.player.containerId !== Containers.Closed) return;
+        if (this.player.despawned || this.player.containerId !== Containers.Closed) return;
         const cancel = new PlayerOpenContainerEvent(this.player, Containers.PlayerInventory).callGetCancel();
         if (cancel) return this.sendContainer();
         this.player.containerId = Containers.PlayerInventory;
     };
 
     processCCloseInventory() {
+        if (this.player.despawned) return;
         const cancel = new PlayerCloseContainerEvent(this.player, this.player.containerId).callGetCancel();
         if (cancel) return this.sendContainer();
         this.player.containerId = Containers.Closed;
@@ -230,6 +241,7 @@ export default class PlayerNetwork {
     };
 
     processCItemTransfer({data: {fromInventory, fromIndex, to}}: PacketByName<"CItemTransfer">) {
+        if (this.player.despawned) return;
         const inventories = this.player.inventories;
         const from = inventories[fromInventory];
         const isFromResult = fromInventory in CraftingResultMap;
@@ -325,6 +337,7 @@ export default class PlayerNetwork {
     };
 
     processCItemSwap({data: {fromInventory, fromIndex, toInventory, toIndex}}: PacketByName<"CItemSwap">) {
+        if (this.player.despawned) return;
         const from = this.player.inventories[fromInventory];
         const to = this.player.inventories[toInventory];
 
@@ -368,7 +381,7 @@ export default class PlayerNetwork {
     };
 
     processCItemDrop({data: {inventory, index, count}}: PacketByName<"CItemDrop">) {
-        if (!this.player.canAccessInventory(inventory)) return;
+        if (this.player.despawned || !this.player.canAccessInventory(inventory)) return;
 
         const inv = this.player.inventories[inventory];
         const item = inv.get(index);
@@ -387,9 +400,7 @@ export default class PlayerNetwork {
     };
 
     processCSetItem({data: {inventory, index, item}}: PacketByName<"CSetItem">) {
-        if (!this.player.infiniteResource) return;
-
-        if (!this.player.canAccessInventory(inventory)) return;
+        if (this.player.despawned || !this.player.infiniteResource || !this.player.canAccessInventory(inventory)) return;
 
         const inv = this.player.inventories[inventory];
 
@@ -407,12 +418,17 @@ export default class PlayerNetwork {
         if (!alreadyDirty && inv.dirtyIndexes.has(index)) inv.dirtyIndexes.delete(index);
     };
 
+    processCRespawn() {
+        if (!this.player.despawned) return;
+
+        this.player.respawn();
+    };
+
     processSendMessage({data}: PacketByName<"SendMessage">) {
-        if (!data) return;
+        if (this.player.despawned || !data) return;
 
         this.player.server.processMessage(this.player, data);
     };
-
 
     sendPacket(pk: Packet, immediate = false) {
         if (immediate) {

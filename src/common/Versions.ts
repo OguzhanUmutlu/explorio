@@ -1,16 +1,17 @@
 export const Versions = [
-    "0.0.1-dev.1 Alpha",
-    "0.0.1-dev.2 Alpha",
-    "0.0.1-dev.3 Alpha",
-    "0.0.1-dev.4 Alpha",
-    "0.0.1-dev.5 Alpha",
-    "0.0.1-dev.6 Alpha",
-    "0.0.1-dev.7 Alpha",
-    "0.0.1-dev.8 Alpha",
-    "0.0.1-dev.9 Alpha",
-    "0.0.1-dev.10 Alpha"
+    "0.0.1-dev.1-alpha",
+    "0.0.1-dev.2-alpha",
+    "0.0.1-dev.3-alpha",
+    "0.0.1-dev.4-alpha",
+    "0.0.1-dev.5-alpha",
+    "0.0.1-dev.6-alpha",
+    "0.0.1-dev.7-alpha",
+    "0.0.1-dev.8-alpha",
+    "0.0.1-dev.9-alpha",
+    "0.0.1-dev.10-alpha",
+    "0.0.1-dev.11-alpha"
 ];
 
-export const WorldGenerationVersion = 4;
+export const WorldGenerationVersion = 5;
 export const Version = Versions.length - 1;
 export const VersionString = Versions[Version];

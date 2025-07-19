@@ -8,6 +8,7 @@ import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 import {InventoryNameBin} from "@/structs/item/InventoryNameBin";
 import ItemStruct, {InventoryContentStruct} from "@/structs/item/ItemStruct";
 import {ContainerIDBin} from "@/meta/Inventories";
+import EntityAnimationStruct from "@/structs/entity/EntityAnimationStruct";
 
 export const EntityUpdateStruct = X.object.struct({
     typeId: X.u8,
@@ -16,6 +17,7 @@ export const EntityUpdateStruct = X.object.struct({
 });
 
 const BatchStruct = new class BatchStruct extends Bin<Packet[]> {
+    isOptional = false as const;
     name = "BatchPacket";
 
     unsafeWrite(bind: BufferIndex, value: Packet[]) {
@@ -74,7 +76,7 @@ export const PacketStructs = {
     [PacketIds.SendMessage]: X.string16,
 
     [PacketIds.SPreLoginInformation]: X.object.struct({
-        auth: X.string16.or(X.null)
+        auth: X.any.of(X.string16, X.null)
     }),
     [PacketIds.SHandshake]: X.object.struct({
         entityId: X.u32,
@@ -91,6 +93,10 @@ export const PacketStructs = {
         entities: X.array.typed(EntityUpdateStruct)
     }),
     [PacketIds.SEntityUpdate]: EntityUpdateStruct,
+    [PacketIds.SEntityAnimation]: X.object.struct({
+        entityId: X.u32,
+        animation: EntityAnimationStruct
+    }),
     [PacketIds.SEntityRemove]: X.u32,
     [PacketIds.SBlockUpdate]: X.object.struct({
         x: X.i32,
@@ -130,9 +136,11 @@ export const PacketStructs = {
         health: X.f32,
         maxHealth: X.f32,
         canPhase: X.bool,
-        // immobile: X.bool,
-        invincible: X.bool,
+        // immobile: X.bool, // buggy
+        // invincible: X.bool, // no need
         invisible: X.bool,
+        // resistanceLevel: X.u8, // no need
+        // fireImmunity: X.bool, // no need
 
         xp: X.u32,
         xpLevels: X.u32,
@@ -174,7 +182,7 @@ export const PacketStructs = {
         name: X.string8,
         skin: X.string16,
         version: X.u16,
-        secret: X.buffer.sized(128).or(X.null)
+        secret: X.any.of(X.buffer.sized(128), X.null)
     }),
     [PacketIds.CMovement]: X.object.struct({
         x: X.f32,
@@ -223,7 +231,8 @@ export const PacketStructs = {
         inventory: InventoryNameBin,
         index: X.u8,
         item: ItemStruct
-    })
+    }),
+    [PacketIds.CRespawn]: X.null
 } as const;
 
 export function readPacket(buffer: Buffer) {

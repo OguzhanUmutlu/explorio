@@ -5,7 +5,7 @@ import {Bin, ObjectStructBin} from "stramp";
 
 let _entity_id = 0;
 
-export default abstract class EntityTileBase<Save extends Record<string, Bin> = typeof Bin.AnyBin.__TYPE__> extends Position {
+export default abstract class EntityTileBase<Save extends Record<string, Bin> = Record<string, Bin>> extends Position {
     abstract typeId: number;
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes

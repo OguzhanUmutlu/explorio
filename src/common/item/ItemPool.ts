@@ -1,4 +1,3 @@
-import {ItemIdentifiers} from "@/meta/ItemIds";
 import ItemDescriptor from "@/item/ItemDescriptor";
 import Item from "@/item/Item";
 
@@ -31,9 +30,5 @@ export default class ItemPool {
         const select = this.select();
         if (!select) return null;
         return select.evaluate();
-    };
-
-    static fromIdentifier(name: string) {
-        return ItemIdentifiers[name] || null;
     };
 }

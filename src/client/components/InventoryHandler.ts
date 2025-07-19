@@ -1,12 +1,11 @@
-// you could technically set your time to the beginning of 1970, press E, click 1 item to trigger thrice-clicking
-// 1) why would you do this, it isn't like advantageous, completely client-sided feature
-// 2) why am I thinking of this
 import {CraftingMap, CraftingResultMap, InventoryName} from "@/meta/Inventories";
 import {clientNetwork, clientPlayer} from "@dom/Client";
 import {Div} from "@c/utils/Utils";
 
-let lastTakeInv = 0;
-let lastTakeInvIndex = -1;
+let lastClicked = 0;
+let clickedInv = "";
+let clickedItemIndex = -1;
+let clickCount = 0;
 
 export default class InventoryHandler {
     static removed: Partial<Record<InventoryName, Set<number>>> = {};
@@ -73,6 +72,10 @@ export default class InventoryHandler {
     };
 
     rightClick(index: number, shift: boolean) {
+        lastClicked = 0;
+        clickedItemIndex = -1;
+        clickedInv = "";
+        clickCount = 0;
         if (shift) return this.shiftClick(index);
 
         const source = this.inventory;
@@ -95,14 +98,72 @@ export default class InventoryHandler {
         return true;
     };
 
+    leftClickThrice(index: number) {
+        const source = this.inventory;
+        const item = source.get(index)?.clone();
+        const accessible = clientPlayer.getAccessibleInventoryNames();
+
+        // clicked thrice, collect all the items like the ones in the cursor to the cursor
+        let count = 0;
+        const maxStack = item.maxStack;
+        for (const invName of accessible) {
+            if (count >= maxStack) break;
+            const inv = clientPlayer.inventories[invName];
+            for (let j = 0; j < inv.size; j++) {
+                const item2 = inv.get(j);
+
+                if (!item2 || !item2.equals(item, false, true)) continue;
+
+                const moving = Math.min(maxStack - count, item2.count);
+                count += moving;
+
+                clientNetwork.makeItemTransfer(invName, j, [{
+                    inventory: "cursor",
+                    index: 0,
+                    count: moving
+                }]);
+
+                if (count >= maxStack) break;
+            }
+        }
+    };
+
     leftClick(index: number, shift: boolean) {
-        if (shift) return this.shiftClick(index);
+        if (shift) {
+            lastClicked = 0;
+            clickedItemIndex = -1;
+            clickedInv = "";
+            clickCount = 0;
+            return this.shiftClick(index);
+        }
 
         const source = this.inventory;
         const clickedResult = this.inventoryName in CraftingResultMap;
         const item = source.get(index)?.clone();
         const cursor = clientPlayer.cursorItem;
-        const accessible = clientPlayer.getAccessibleInventoryNames();
+
+        if (Date.now() - lastClicked > 500) {
+            lastClicked = Date.now();
+            clickedItemIndex = -1;
+            clickedInv = "";
+            clickCount = 0;
+        }
+
+        if (index !== clickedItemIndex || this.inventoryName !== clickedInv) {
+            clickedItemIndex = index;
+            clickedInv = this.inventoryName;
+            clickCount = 1;
+            lastClicked = Date.now();
+        } else {
+            clickCount++;
+            if (clickCount >= 3 && item) {
+                lastClicked = 0;
+                clickedItemIndex = -1;
+                clickedInv = "";
+                clickCount = 0;
+                return this.leftClickThrice(index);
+            }
+        }
 
         if (cursor) {
             // you are clicking to an item with an item in your cursor
@@ -111,7 +172,7 @@ export default class InventoryHandler {
                 // if it's possible, get more items from the craft result to the cursor
 
                 // not the same items
-                if (!item || !item.equals(cursor, false, true)) return;
+                if (!item || !item.equals(cursor, false, true) || item.count === cursor.count) return;
 
                 // can't get all of them, so give up
                 if (item.count + cursor.count > cursor.maxStack) return;
@@ -136,37 +197,6 @@ export default class InventoryHandler {
             }
         } else if (item) {
             // taking items to cursor
-            if (Date.now() - lastTakeInv < 1000 && lastTakeInvIndex === index) {
-                // clicked thrice, collect all the items like the ones in the cursor to the cursor
-                let count = 0;
-                const maxStack = item.maxStack;
-                for (const invName of accessible) {
-                    if (count >= maxStack) break;
-                    const inv = clientPlayer.inventories[invName];
-                    for (let j = 0; j < inv.size; j++) {
-                        const item2 = inv.get(j);
-
-                        if (!item2 || !item2.equals(item, false, true)) continue;
-
-                        const moving = Math.min(maxStack - count, item2.count);
-                        count += moving;
-
-                        clientNetwork.makeItemTransfer(invName, j, [{
-                            inventory: "cursor",
-                            index: 0,
-                            count: moving
-                        }]);
-
-                        if (count >= maxStack) break;
-                    }
-                }
-
-                return;
-            }
-
-            lastTakeInv = Date.now();
-            lastTakeInvIndex = index;
-
             clientNetwork.makeItemTransfer(this.inventoryName, index, [{
                 inventory: "cursor",
                 index: 0,

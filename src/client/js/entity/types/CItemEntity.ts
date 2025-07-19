@@ -1,14 +1,14 @@
 import CEntity from "@c/entity/CEntity";
 import ItemEntity from "@/entity/defaults/ItemEntity";
 import {getClientPosition, TileSize} from "@c/utils/Utils";
-import {FullId2Data} from "@/meta/ItemIds";
+import {f2data} from "@/item/ItemFactory";
 
 export default class CItemEntity extends ItemEntity implements CEntity {
     isClient = true;
     itemFullId: number;
 
     getItem() {
-        return FullId2Data[this.itemFullId];
+        return f2data(this.itemFullId);
     };
 
     render(ctx: CanvasRenderingContext2D, dt: number) {

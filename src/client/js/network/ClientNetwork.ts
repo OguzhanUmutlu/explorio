@@ -5,10 +5,19 @@ import PacketError from "@/network/PacketError";
 import CPlayer from "@c/entity/types/CPlayer";
 import CWorld from "@c/world/CWorld";
 import {PacketIds} from "@/meta/PacketIds";
-import {clientPlayer, isMultiPlayer, particleManager, ServerInfo, serverNetwork, setConnectionText} from "@dom/Client";
+import {
+    clientPlayer,
+    isMultiPlayer,
+    particleManager,
+    resetKeyboard,
+    ServerInfo,
+    serverNetwork,
+    setConnectionText,
+    showDeathScreen
+} from "@dom/Client";
+// @ts-expect-error ?worker
 import SocketWorker from "@c/worker/SocketWorker?worker";
 import {Version} from "@/Versions";
-import {FullId2Data} from "@/meta/ItemIds";
 import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
 import {Containers, InventoryName} from "@/meta/Inventories";
 import Item from "@/item/Item";
@@ -18,6 +27,9 @@ import {DefaultGravity} from "@/entity/Entity";
 import {getCookie} from "@dom/components/CookieHandler";
 import {TokenCookieName} from "@dom/components/options/Menus";
 import {copyBuffer} from "@/utils/Utils";
+import {AnimationDurations} from "@/meta/Animations";
+import {Buffer} from "buffer";
+import {f2data} from "@/item/ItemFactory";
 
 export default class ClientNetwork {
     worker: { postMessage(e: Buffer): void, terminate(): void };
@@ -214,9 +226,21 @@ export default class ClientNetwork {
         if (dist > 0) entity.onMovement();
     };
 
+    processSEntityAnimation({data}: PacketByName<"SEntityAnimation">) {
+        const entity = clientPlayer.world.entities[data.entityId];
+        if (!entity) return printer.error("<AnimationPacket> Entity ID not found:", data.entityId);
+        entity.animation = {...data.animation, time: AnimationDurations[data.animation.id]};
+    };
+
     processSEntityRemove({data}: PacketByName<"SEntityRemove">) {
+        if (data === clientPlayer.id) {
+            clientPlayer.despawned = true;
+            showDeathScreen();
+            resetKeyboard();
+            return;
+        }
         const entity = clientPlayer.world.entities[data];
-        if (!entity) return printer.error("Entity ID not found:", data);
+        if (!entity) return printer.error("<RemovePacket> Entity ID not found:", data);
         entity.despawn(false);
     };
 
@@ -256,12 +280,12 @@ export default class ClientNetwork {
     };
 
     processSPlaceBlock({data: {x, y, fullId}}: PacketByName<"SPlaceBlock">) {
-        const block = FullId2Data[fullId];
+        const block = f2data(fullId);
         clientPlayer.playSoundAt(block.randomPlace(), x, y);
     };
 
     processSBreakBlock({data: {x, y, fullId}}: PacketByName<"SBreakBlock">) {
-        const block = FullId2Data[fullId];
+        const block = f2data(fullId);
         clientPlayer.playSoundAt(block.randomBreak(), x, y);
         const particleAmount = [0, 5, 25, 100][Options.particles];
         for (let i = 0; i < particleAmount; i++) {
@@ -278,6 +302,9 @@ export default class ClientNetwork {
         if (clientPlayer.isFlying) {
             clientPlayer.vx = 0;
             clientPlayer.vy = 0;
+        }
+        if (clientPlayer.health > 0) {
+            clientPlayer.despawned = false;
         }
     };
 
@@ -425,10 +452,14 @@ export default class ClientNetwork {
         }));
     };
 
-    sendSetItem(inventory: InventoryName, index: number, item: Item) {
+    sendSetItem(inventory: InventoryName, index: number, item: Item, immediate = false) {
         this.sendPacket(new Packets.CSetItem({
             inventory, index, item
-        }));
+        }), immediate);
+    };
+
+    sendRespawn(immediate = false) {
+        this.sendPacket(new Packets.CRespawn(null), immediate);
     };
 
     sendPacket(pk: Packet, immediate = false) {

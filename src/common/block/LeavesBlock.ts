@@ -1,6 +1,6 @@
 import BlockData from "@/item/BlockData";
 import {createCanvas, Image} from "@/utils/Texture";
-import {TreeType} from "@/meta/Items";
+import {TreeType} from "@/meta/ItemInformation";
 
 export default class LeavesBlock extends BlockData {
     postProcessesTexture = true;

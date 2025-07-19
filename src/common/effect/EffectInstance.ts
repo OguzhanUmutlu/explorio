@@ -10,7 +10,7 @@ export default class EffectInstance {
         this.effect.apply(entity, this.amplifier);
     };
 
-    remove(entity: Entity) {
-        this.effect.remove(entity);
+    timeout(entity: Entity) {
+        this.effect.timeout(entity);
     };
 }

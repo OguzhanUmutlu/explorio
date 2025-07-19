@@ -12,10 +12,11 @@ import {
 } from "@/meta/BlockCollisions";
 import Texture, {createCanvas, Image, texturePlaceholder} from "@/utils/Texture";
 import Item from "@/item/Item";
-import {ItemIds, Items} from "@/meta/ItemIds";
-import {im2f, ItemMetaDataConfig, ToolLevels} from "@/meta/Items";
 import World from "@/world/World";
 import {randInt, xy2ci} from "@/utils/Utils";
+import {im2f, ItemMetaDataConfig} from "@/meta/ItemInformation";
+import {ItemIds} from "@/meta/ItemIds";
+import {f2data} from "@/item/ItemFactory";
 
 const ext = <new () => ItemMetaDataConfig>class {
 };
@@ -151,15 +152,11 @@ export default class BlockData extends ext {
         if (
             !itemMeta
             || !itemMeta.isTool
-            || !this.intendedToolType.includes(itemMeta.toolType)
+            || !(itemMeta.toolType in this.breakTimes)
             || itemMeta.toolLevel < this.requiredToolLevel
         ) return this.breakTime;
 
-        let time = [0.5, 0.4, 0.3, 0.2, 0.12, 0.1, 0.05][itemMeta.toolLevel] * 0.5 * this.breakTime;
-
-        if (itemMeta.toolLevel === ToolLevels.GOLDEN) time *= 0.2;
-
-        return time;
+        return this.breakTimes[itemMeta.toolType][itemMeta.toolLevel - 1];
     };
 
     toItem(count = 1) {
@@ -191,7 +188,7 @@ export default class BlockData extends ext {
     };
 
     getDrops(item: Item | null = null) {
-        const itemMeta = item?.toMetadata() ?? Items.AIR;
+        const itemMeta = item?.toMetadata() ?? f2data(ItemIds.AIR);
         const itemLevel = itemMeta.toolLevel;
         const itemType = itemMeta.toolType;
 
@@ -208,7 +205,7 @@ export default class BlockData extends ext {
     };
 
     getXPDrops(item: Item | null = null) {
-        const itemMeta = item?.toMetadata() ?? Items.AIR;
+        const itemMeta = item?.toMetadata() ?? f2data(ItemIds.AIR);
         const itemLevel = itemMeta.toolLevel;
         const itemType = itemMeta.toolType;
 

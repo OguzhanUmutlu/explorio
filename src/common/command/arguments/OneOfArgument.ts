@@ -4,21 +4,18 @@ import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import CommandError from "@/command/CommandError";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const tAny = null!; // "trust me bro"
-
 export class OneOfArgument<V = unknown> extends CommandArgument<V> {
     default = null;
     args: CommandArgument<V>[] = [];
 
-    setArgs<T extends CommandArgument<typeof tAny>[]>(args: T) {
+    setArgs<T extends CommandArgument<V>[]>(args: T) {
         if (args.length === 0) throw new Error("Expected at least one argument");
 
         const newT = <OneOfArgument<{
             [K in keyof T]: T[K] extends CommandArgument<infer U> ? U : never;
-        }[number]>><unknown>this;
+        }[number]>>this;
 
-        newT.args = args;
+        newT.args = args as typeof newT.args;
         newT.default = args[0].getDefault();
         return newT;
     };

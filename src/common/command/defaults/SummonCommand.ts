@@ -1,7 +1,6 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
 import Vector2 from "@/utils/Vector2";
-import {EntityNameMap} from "@/meta/Entities";
 
 export default class SummonCommand extends DefinitiveCommand {
     constructor() {
@@ -16,7 +15,7 @@ export default class SummonCommand extends DefinitiveCommand {
             .then((sender, _, loc, entityId, position, nbt) => {
                 if (position.x === Infinity) position = loc.copy();
 
-                const typeName = Object.keys(EntityNameMap).find(i => EntityNameMap[i] === entityId);
+                const typeName = sender.server.registeredEntities[entityId].name;
 
                 if (sender.world.summonEntity(entityId, position.x, position.y, nbt)) {
                     sender.sendMessage(`§cSummoned ${typeName} at (${position.x}, ${position.y}).`);

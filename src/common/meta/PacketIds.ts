@@ -8,6 +8,7 @@ export enum PacketIds {
     SChunk,
     SSetChunkEntities,
     SEntityUpdate,
+    SEntityAnimation,
     SEntityRemove,
     SBlockUpdate,
     SBlockBreakingUpdate,
@@ -45,6 +46,7 @@ export enum PacketIds {
     CItemDrop,
     CItemSwap,
     CSetItem,
+    CRespawn
     // CContainerSwap,
     // CInteractBlock,
     // CToggleFlight,

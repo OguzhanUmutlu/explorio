@@ -1,15 +1,16 @@
 import X, {Bin, BufferIndex} from "stramp";
-import {StrampProblem} from "stramp/src/StrampProblem";
-import {EffectIds, Effects} from "@/meta/Effects";
 import EffectInstance from "@/effect/EffectInstance";
+import {StrampProblem} from "stramp/types/StrampProblem";
+import {getServer} from "@/utils/Utils";
 
 const BaseStruct = X.object.struct({
-    id: X.any.ofValues(...<EffectIds[]>Object.values(EffectIds)),
+    id: X.u16, // should be big enough
     amplifier: X.u8,
     time: X.u32
 });
 
 export const EffectInstanceStruct = new class extends Bin<EffectInstance> {
+    isOptional = false as const;
     name = "EffectInstance";
 
     unsafeWrite(bind: BufferIndex, value: EffectInstance): void {
@@ -18,7 +19,7 @@ export const EffectInstanceStruct = new class extends Bin<EffectInstance> {
 
     read(bind: BufferIndex): EffectInstance {
         const obj = BaseStruct.read(bind);
-        return new EffectInstance(Effects[obj.id], obj.amplifier, obj.time);
+        return new EffectInstance(getServer().registeredEffects[obj.id], obj.amplifier, obj.time);
     };
 
     unsafeSize(): number {
@@ -30,6 +31,6 @@ export const EffectInstanceStruct = new class extends Bin<EffectInstance> {
     };
 
     get sample(): EffectInstance {
-        return new EffectInstance(Effects[0], 0, 0);
+        throw new Error("Cannot sample EffectInstanceStruct");
     };
 }

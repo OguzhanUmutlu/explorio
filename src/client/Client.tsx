@@ -25,17 +25,20 @@ import CWorld from "@c/world/CWorld";
 import "fancy-printer";
 import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
 import {Containers, CraftingResultMap, InventorySizes} from "@/meta/Inventories";
-import {FullId2Data} from "@/meta/ItemIds";
 import Server, {DefaultServerConfig} from "@/Server";
 import PlayerNetwork from "@/network/PlayerNetwork";
 import ParticleManager from "@c/particle/ParticleManager";
 import Packet from "@/network/Packet";
 import {ChunkLength, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
-import {im2f} from "@/meta/Items";
 import {cx2x, cy2y, rotateMeta, x2cx, y2cy} from "@/utils/Utils";
 import {getMenus, OptionPages} from "@dom/components/options/Menus";
 import CPlayer from "@c/entity/types/CPlayer";
 import Texture from "@/utils/Texture";
+import InventoryContainer from "@dom/components/InventoryContainer";
+import {ZWorldMetaData} from "@/world/World";
+import {im2data} from "@/item/ItemFactory";
+
+Printer.makeGlobal();
 
 declare global {
     interface Window {
@@ -45,11 +48,13 @@ declare global {
     const bfs: typeof import("fs");
 }
 
+export const IS_LOCALHOST = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 let containerState: ReactState<Containers>;
 let chatContainer: ReactState<boolean>;
 export let clientUUID: ReactState<string>;
 let optionPopup: ReactState<OptionPages>;
 let saveScreen: ReactState<boolean>;
+let deathScreen: ReactState<boolean>;
 let connectionText: ReactState<string>;
 export let canvas: HTMLCanvasElement;
 export let chatBox: Div;
@@ -65,7 +70,8 @@ const f3 = {
     x: null as ReactState<number>,
     y: null as ReactState<number>,
     vx: null as ReactState<number>,
-    vy: null as ReactState<number>
+    vy: null as ReactState<number>,
+    momentum: null as ReactState<number>
 };
 export let handIndexState: ReactState<number>;
 
@@ -82,9 +88,15 @@ export const Keyboard: Record<string, boolean> = {};
 export let particleManager: ParticleManager;
 export let renderCollisionBoxes = false;
 export let showChunkBorders = false;
+const CAMERA_ZOOM_MAX = 10;
+const CAMERA_ZOOM_MIN = 0.5;
 let cameraZoomMultiplier = 1;
 let cameraZoom = 1;
 let cameraZoomRender = 1;
+
+export function showDeathScreen() {
+    deathScreen[1](true);
+}
 
 export function setTitleText(type: "title" | "subtitle" | "actionbar", text: string) {
     const div = type === "title" ? titleDiv : type === "subtitle" ? subTitleDiv : actionbarDiv;
@@ -188,6 +200,7 @@ function render() {
         f3.y[1](+clientPlayer.y.toFixed(2));
         f3.vx[1](+clientPlayer.vx.toFixed(2));
         f3.vy[1](+clientPlayer.vy.toFixed(2));
+        f3.momentum[1](+clientPlayer.momentum.toFixed(2));
     }
 
     if (document.activeElement !== document.body) {
@@ -282,7 +295,7 @@ function render() {
         const blockPos = getClientPosition(Mouse.rx, Mouse.ry);
         if (item) {
             const rotated = rotateMeta(item.id, item.meta, Mouse.rotation);
-            const block = FullId2Data[im2f(item.id, rotated)];
+            const block = im2data(item.id, rotated);
             if (block && clientPlayer.canPlaceBlock()) {
                 block.renderBlock(ctx, world, Mouse.rx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false);
                 drawShadow(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, shadow / 2);
@@ -348,7 +361,7 @@ function onWheel(e: WheelEvent) {
     if (e.altKey) {
         if (e.deltaY > 0) cameraZoomMultiplier *= 0.9;
         else cameraZoomMultiplier *= 1.1;
-        cameraZoomMultiplier = Math.max(0.5, Math.min(10, cameraZoomMultiplier));
+        cameraZoomMultiplier = Math.max(CAMERA_ZOOM_MIN, Math.min(CAMERA_ZOOM_MAX, cameraZoomMultiplier));
         e.preventDefault();
     } else {
         clientNetwork.sendHandIndex((clientPlayer.handIndex + (e.deltaY > 0 ? 1 : -1) + InventorySizes.hotbar) % InventorySizes.hotbar);
@@ -518,7 +531,7 @@ function onLoseFocus() {
     Mouse.left = false;
     Mouse.right = false;
     Mouse.middle = false;
-    if (Options.pauseOnBlur && optionPopup[0] === "none") {
+    if (Options.pauseOnBlur && !isAnyUIOpen()) {
         optionPopup[1]("main");
         closeChat();
     }
@@ -594,7 +607,7 @@ function onMouseUp(e: MouseEvent) {
 
 function putIntoChat(input: string) {
     chatInput.value = input;
-    requestAnimationFrame(() => chatInput.setSelectionRange(input.length, input.length))
+    requestAnimationFrame(() => chatInput.setSelectionRange(input.length, input.length));
 }
 
 function onChatKeyPress(e: KeyboardEvent) {
@@ -626,6 +639,7 @@ function onChatKeyPress(e: KeyboardEvent) {
 export function initClient() {
     connectionText[1]("");
     saveScreen[1](false);
+    deathScreen[1](false);
     Mouse = {...DefaultMouse};
     resetKeyboard();
     Error.stackTraceLimit = 50;
@@ -657,8 +671,9 @@ export function initClient() {
     particleManager = new ParticleManager;
 
     clientServer = new CServer();
+    clientServer.registerDefaults();
     clientServer.config = DefaultServerConfig;
-    clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set, DefaultServerConfig.defaultWorlds.default);
+    clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set, ZWorldMetaData.parse(DefaultServerConfig.defaultWorlds.default));
     clientServer.defaultWorld.ensureSpawnChunks();
 
     const req = {socket: {remoteAddress: "::ffff:127.0.0.1"}};
@@ -672,7 +687,7 @@ export function initClient() {
         connectionText[1]("Connecting...");
         clientNetwork._connect().then(r => r); // not waiting for it to connect
     } else {
-        singlePlayerServer = new Server(bfs, `singleplayer/${WorldInfo.uuid}`, {close: () => void 0});
+        singlePlayerServer = new Server(bfs, `singleplayer/${WorldInfo.uuid}`);
         Error.stackTraceLimit = 50;
 
         if (!bfs.existsSync("singleplayer")) bfs.mkdirSync("singleplayer");
@@ -779,7 +794,7 @@ export function saveAndQuit() {
 // todo: block animations, how would this even work? sub-chunk renders are cached? do we have multiple sub-chunk renders
 //     that include every frame of animation? this actually doesn't sound like a bad idea. it's like a buffer cache.
 
-// todo: add block details
+// todo: add block details like little random rocks on grass or sand
 // todo: make biome based grass textures
 // todo: add inventory item tooltip and add an advanced mode to it via F3+G
 // todo: add usernames on top of the players
@@ -789,7 +804,10 @@ export function saveAndQuit() {
 // todo: add title, subtitle, actionbar support with -> timings <-
 // todo: render health/food/armor/breathe/xp
 // todo: make disconnect screen better, add a back button
-// todo: add fall damage
+// todo: items disappear on restart, I think every entity does?
+// todo: on death the xp should be decreased
+// todo: item/block states and maybe rename meta to variant?
+// todo: add and implement shield in Damage.ts
 
 function isInChat() {
     return chatContainer[0];
@@ -811,11 +829,11 @@ function toggleChat() {
 }
 
 function isAnyUIOpen() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0] !== "none" || isInChat();
+    return containerState[0] !== Containers.Closed || saveScreen[0] || deathScreen[0] || connectionText[0] || optionPopup[0] !== "none" || isInChat();
 }
 
 function hasBlur() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || connectionText[0] || optionPopup[0] !== "none";
+    return containerState[0] !== Containers.Closed || saveScreen[0] || deathScreen[0] || connectionText[0] || optionPopup[0] !== "none";
 }
 
 function F3Component(O: { ikey: string }) {
@@ -828,9 +846,10 @@ export default function Client(O: {
     favicon: ReactState<string>
 }) {
     // @ts-expect-error This is for debugging purposes.
-    window.dbg = {s: singlePlayerServer, p: clientPlayer, t: FullId2Data};
+    window.dbg = {s: singlePlayerServer, p: clientPlayer};
     optionPopup = useState<OptionPages>("none");
     saveScreen = useState(false);
+    deathScreen = useState(false);
     connectionText = useState("");
     containerState = useState(Containers.Closed);
     chatContainer = useState(false);
@@ -852,8 +871,17 @@ export default function Client(O: {
         try {
             initClient();
         } catch (e) {
+            if (IS_LOCALHOST) throw e;
             console.error(e);
-            window.alert("Couldn't load the world. " + e.message);
+            alert("Couldn't load the world. " + e.message);
+            location.hash = "";
+            terminateClient();
+            return;
+        }
+        if (singlePlayerServer && singlePlayerServer.closed) {
+            if (singlePlayerServer.closeReason) {
+                alert("The world was closed: " + singlePlayerServer.closeReason);
+            }
             location.hash = "";
             terminateClient();
             return;
@@ -876,7 +904,8 @@ export default function Client(O: {
             X: <F3Component ikey="x"/><br/>
             Y: <F3Component ikey="y"/><br/>
             VX: <F3Component ikey="vx"/><br/>
-            VY: <F3Component ikey="vy"/>
+            VY: <F3Component ikey="vy"/><br/>
+            M: <F3Component ikey="momentum"/>
         </div>, [])}
 
 
@@ -942,8 +971,8 @@ export default function Client(O: {
 
 
         {/* Player Inventory */}
-        <div className="player-inventory-container"
-             style={containerState[0] === Containers.PlayerInventory ? {scale: "1"} : {}}>
+        <InventoryContainer containerId={Containers.PlayerInventory} containerState={containerState}
+                            src="assets/textures/gui/container/inventory.png" className="player-inventory-container">
             <InventoryDiv className="inv-pp inventory" inventoryName={"player"}
                           ikey="pp"></InventoryDiv>
             <InventoryDiv className="inv-ph inventory" inventoryName={"hotbar"}
@@ -954,12 +983,12 @@ export default function Client(O: {
                           ikey="pcs"></InventoryDiv>
             <InventoryDiv className="inv-pcr inventory" inventoryName={"craftingSmallResult"}
                           ikey="pcr"></InventoryDiv>
-        </div>
+        </InventoryContainer>
 
 
         {/* Crafting Table Inventory */}
-        <div className="crafting-table-container"
-             style={containerState[0] === Containers.CraftingTable ? {scale: "1"} : {}}>
+        <InventoryContainer containerId={Containers.CraftingTable} containerState={containerState}
+                            src="assets/textures/gui/container/crafting_table.png" className="crafting-table-container">
             <InventoryDiv className="inv-cc inventory" inventoryName={"craftingBig"}
                           ikey="cc"></InventoryDiv>
             <InventoryDiv className="inv-ccr inventory" inventoryName={"craftingBigResult"}
@@ -967,12 +996,12 @@ export default function Client(O: {
             <InventoryDiv className="inv-cp inventory" inventoryName={"player"} ikey="cp"></InventoryDiv>
             <InventoryDiv className="inv-ch inventory" inventoryName={"hotbar"}
                           ikey="ch"></InventoryDiv>
-        </div>
+        </InventoryContainer>
 
 
         {/* Furnace Inventory */}
-        <div className="furnace-container"
-             style={containerState[0] === Containers.Furnace ? {scale: "1"} : {}}>
+        <InventoryContainer containerId={Containers.Furnace} containerState={containerState}
+                            src="assets/textures/gui/container/furnace.png" className="furnace-container">
             <InventoryDiv className="inv-ffi inventory" inventoryName={"furnaceInput"}
                           ikey="ffi"></InventoryDiv>
             <InventoryDiv className="inv-fff inventory" inventoryName={"furnaceFuel"}
@@ -982,7 +1011,7 @@ export default function Client(O: {
             <InventoryDiv className="inv-fp inventory" inventoryName={"player"} ikey="fp"></InventoryDiv>
             <InventoryDiv className="inv-fh inventory" inventoryName={"hotbar"}
                           ikey="fh"></InventoryDiv>
-        </div>
+        </InventoryContainer>
 
 
         {/* Cursor Inventory */}
@@ -1012,6 +1041,23 @@ export default function Client(O: {
         </div>
 
 
+        {/* The screen that pops up on death */}
+        <div className="death-screen" style={
+            deathScreen[0] ? {
+                opacity: "1",
+                pointerEvents: "auto"
+            } : {}
+        }>
+            <h1>You Died!</h1>
+            <div className="btn" onClick={() => {
+                clientNetwork.sendRespawn();
+                deathScreen[1](false);
+            }}>Respawn
+            </div>
+            <div className="btn" onClick={() => saveAndQuit()}>Title Screen</div>
+        </div>
+
+
         {/* The screen that only pops up when saving */}
         <div className="save-screen" style={
             saveScreen[0] ? {
@@ -1029,6 +1075,9 @@ export default function Client(O: {
                 opacity: "1",
                 pointerEvents: "auto"
             } : {}
-        }>{connectionText[0]}</div>
+        }>
+            <h3>{connectionText[0]}</h3>
+            <div className="btn" onClick={() => saveAndQuit()}>Title Screen</div>
+        </div>
     </>;
 }

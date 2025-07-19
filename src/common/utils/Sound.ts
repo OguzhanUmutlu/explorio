@@ -6,9 +6,13 @@ let canCreateContext = false;
 function tryCreateAudioContext() {
     if (ctx) return true;
     if (!canCreateContext) return false;
-    ctx = new AudioContext();
-    canCreateContext = false;
-    ctx.resume().then(r => r);
+    try {
+        ctx = new AudioContext();
+        canCreateContext = false;
+        ctx.resume().then(r => r);
+    } catch {
+        return false;
+    }
     return true;
 }
 
@@ -196,7 +200,18 @@ class SoundContext {
     };
 }
 
-if (typeof addEventListener !== "undefined") addEventListener("mousedown", async () => {
-    canCreateContext = true;
-    tryCreateAudioContext();
-});
+if (typeof addEventListener !== "undefined") {
+    function enableAudioContext() {
+        canCreateContext = true;
+        tryCreateAudioContext();
+        removeEventListener("keydown", enableAudioContext);
+        removeEventListener("mousedown", enableAudioContext);
+        removeEventListener("wheel", enableAudioContext);
+        clearInterval(int);
+    }
+
+    const int = setInterval(enableAudioContext, 1000);
+    /*addEventListener("keydown", enableAudioContext);
+    addEventListener("mousedown", enableAudioContext);
+    addEventListener("wheel", enableAudioContext);*/
+}

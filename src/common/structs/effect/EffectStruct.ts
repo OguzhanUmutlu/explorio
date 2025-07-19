@@ -1,9 +1,10 @@
 import {Bin, BufferIndex} from "stramp";
 import Effect from "@/effect/Effect";
-import {StrampProblem} from "stramp/src/StrampProblem";
-import {EffectIds, Effects} from "@/meta/Effects";
+import {StrampProblem} from "stramp/types/StrampProblem";
+import {getServer} from "@/utils/Utils";
 
 export const EffectStruct = new class extends Bin<Effect> {
+    isOptional = false as const;
     name = "Effect";
 
     unsafeWrite(bind: BufferIndex, value: Effect): void {
@@ -11,7 +12,7 @@ export const EffectStruct = new class extends Bin<Effect> {
     };
 
     read(bind: BufferIndex): Effect {
-        return Effects[bind.shift()];
+        return getServer().registeredEffects[bind.shift()];
     };
 
     unsafeSize(): number {
@@ -23,6 +24,6 @@ export const EffectStruct = new class extends Bin<Effect> {
     };
 
     get sample(): Effect {
-        return Effects[EffectIds.MiningFatigue]; // As a child I yearned for the mines.
+        throw new Error("Cannot sample EffectStruct");
     };
 }

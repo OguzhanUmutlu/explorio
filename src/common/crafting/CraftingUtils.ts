@@ -5,7 +5,7 @@ import Item from "@/item/Item";
 import Inventory from "@/item/Inventory";
 import {Crafting} from "@/crafting/Crafting";
 import ShapedCrafting from "@/crafting/ShapedCrafting";
-import {TreeType} from "@/meta/Items";
+import {TreeType} from "@/meta/ItemInformation";
 
 export const CraftingList: Crafting[] = [
     ShapedCrafting.simple([

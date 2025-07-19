@@ -1,7 +1,7 @@
 import {ZstdSimple} from "@oneidentity/zstd-js";
 import Server from "@/Server";
 import Position from "@/utils/Position";
-import {Id2Data, ItemIdentifiers} from "@/meta/ItemIds";
+import {im2data, name2data} from "@/item/ItemFactory";
 import {ChunkGroupBits, ChunkGroupLengthN, ChunkLengthBits, ChunkLengthN} from "@/meta/WorldConstants";
 import Entity from "@/entity/Entity";
 import Inventory from "@/item/Inventory";
@@ -10,7 +10,12 @@ import World from "@/world/World";
 import {z} from "zod";
 import {readWordOrString} from "@/command/CommandProcessor";
 import CommandError from "@/command/CommandError";
-//import World from "@/world/World";
+import {Buffer} from "buffer";
+import Printer from "fancy-printer";
+
+declare global {
+    let printer: typeof Printer.brackets;
+}
 
 let server: Server;
 
@@ -41,7 +46,7 @@ export function rand(min: number, max: number) {
 }
 
 export function rotateMeta(id: number, meta: number, rotation: number) {
-    const baseBlock = Id2Data[id];
+    const baseBlock = im2data(id);
     if (baseBlock && (baseBlock.isSlab || baseBlock.isStairs)) return meta % (baseBlock.metas.length / 4) + rotation * baseBlock.metas.length / 4;
     return meta;
 }
@@ -64,10 +69,8 @@ export function simpleTypeChecker(sample: unknown, any: unknown) {
 }
 
 let assetsBase = "./";
-if (typeof global !== "undefined") {
-    assetsBase = (await import(/* @vite-ignore */ eval("'path'")))
-        .dirname((await import(/* @vite-ignore */ eval("'url'")))
-            .fileURLToPath(import.meta.url)) + "/../client/";
+if (typeof process !== "undefined" && process.versions?.node) {
+    assetsBase = `${import.meta.dirname}/../client/`;
 }
 
 export function simplifyTexturePath(path: string) {
@@ -236,6 +239,15 @@ export function splitByUnderscore(str: string) {
 export function splitByUppercase(str: string) {
     return str.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
 }
+
+// c = chunk
+// g = group
+// r = relative (0-15)
+// Put x and y next to them to make sense of them.
+// x means world x by default
+// rx means relative x in chunk
+// so rxy means relative x in chunk and world y
+// and rxry would mean relative x and relative y in chunk
 
 /** @description World X to chunkX */
 export function x2cx(x: number) {
@@ -566,7 +578,7 @@ export function operatePathSafely(data: unknown, path: string, operator: string,
             obj.setContents(<(Item | null)[]>value);
         } else if (obj instanceof Item) {
             if (key === "identifier") {
-                const item = ItemIdentifiers[<keyof typeof ItemIdentifiers>value];
+                const item = name2data(<string>value);
                 if (!item) throw new CommandError("Invalid item identifier");
                 bef[parts.at(-1)!] = new Item(item.id, item.meta, obj.count, {...obj.components});
                 return;
@@ -579,4 +591,41 @@ export function operatePathSafely(data: unknown, path: string, operator: string,
             operateUnsafe(obj, key, operator, value);
         }
     } else throw new CommandError("Cannot index " + typeof obj);
+}
+
+function levenshtein(a: string, b: string) {
+    const dp = Array(a.length + 1).fill(null).map(() =>
+        Array(b.length + 1).fill(0)
+    );
+
+    for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,     // deletion
+                dp[i][j - 1] + 1,     // insertion
+                dp[i - 1][j - 1] + cost  // substitution
+            );
+        }
+    }
+
+    return dp[a.length][b.length];
+}
+
+export function suggestString(input: string, strings: string[], maxDistance = 2): string | null {
+    let best: { str: string, score: number } | null = null;
+
+    for (const str of strings) {
+        const isPrefix = str.startsWith(input);
+        if (input.length < 3 && !isPrefix) continue;
+        const distance = levenshtein(input, str);
+        const score = distance - (isPrefix ? 1 : 0.5); // same bias
+
+        if (score <= maxDistance && (!best || score < best.score)) best = {str, score};
+    }
+
+    return best && best.score <= maxDistance ? best.str : null;
 }

@@ -3,6 +3,7 @@ import World from "@/world/World";
 import {getServer} from "@/utils/Utils";
 
 export default new class WorldStruct extends Bin<World> {
+    isOptional = false as const;
     name = "World";
 
     unsafeWrite(bind: BufferIndex, value: World): void {

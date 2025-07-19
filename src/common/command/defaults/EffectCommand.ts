@@ -29,27 +29,6 @@ export default class EffectCommand extends DefinitiveCommand {
     definitions = [
         new CommandDefinition()
             .addLabelArgument("give")
-            .addEffectArgument("effect")
-            .addNumberArgument("duration")
-            .addNumberArgument("amplifier", o => o.setOptional().setDefault(1))
-            .then((sender, as, _, effect, duration, amplifier) => {
-                const r = handleArgs(sender, duration, amplifier);
-                if (!r) return;
-                [duration, amplifier] = r;
-
-                if (as instanceof Entity) {
-                    as.addEffect(effect, amplifier, duration);
-                    sender.sendMessage(
-                        `Added the ${effect.name} effect to ${as.name}`
-                    );
-                } else {
-                    sender.sendMessage(
-                        `Couldn't add the effect to ${as.name} as it is not an entity.`
-                    );
-                }
-            }),
-        new CommandDefinition()
-            .addLabelArgument("give")
             .addEntitiesArgument("entities")
             .addEffectArgument("effect")
             .addNumberArgument("duration")

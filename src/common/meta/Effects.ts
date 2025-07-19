@@ -1,5 +1,3 @@
-import Effect from "@/effect/Effect";
-
 export enum EffectIds {
     Speed,
     Slowness,
@@ -10,6 +8,7 @@ export enum EffectIds {
     Strength,
     Weakness,
 
+    Resistance,
     FireResistance,
 
     Blindness,
@@ -27,5 +26,3 @@ export enum EffectIds {
 
     __MAX__
 }
-
-export const Effects = <Record<EffectIds, Effect>>{};

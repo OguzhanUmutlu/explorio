@@ -1,5 +1,3 @@
-import {im2f} from "@/meta/Items";
-import {FullId2Data, FullIds, ItemIds} from "@/meta/ItemIds";
 import BoundingBox from "@/entity/BoundingBox";
 import Generator from "@/world/generators/Generator";
 import FlatGenerator from "@/world/generators/FlatGenerator";
@@ -8,7 +6,8 @@ import FlowerLandGenerator from "@/world/generators/FlowerLandGenerator";
 import CustomGenerator from "@/world/generators/CustomGenerator";
 import {
     cgx2cx,
-    checkAny, cx2cgi,
+    checkAny,
+    cx2cgi,
     cx2cgx,
     rotateMeta,
     x2cx,
@@ -28,7 +27,7 @@ import BlockPlaceEvent from "@/event/defaults/BlockPlaceEvent";
 import BlockBreakEvent from "@/event/defaults/BlockBreakEvent";
 import ItemEntity from "@/entity/defaults/ItemEntity";
 import Item from "@/item/Item";
-import {EntityClasses, EntityIds} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
 import {Containers} from "@/meta/Inventories";
 import InteractBlockEvent from "@/event/defaults/InteractBlockEvent";
 import Chunk from "@/world/Chunk";
@@ -38,6 +37,9 @@ import BlockData from "@/item/BlockData";
 import Position from "@/utils/Position";
 import FallingBlockEntity from "@/entity/defaults/FallingBlockEntity";
 import ChunkGroupStruct from "@/structs/world/ChunkGroupStruct";
+import {ItemIds} from "@/meta/ItemIds";
+import {im2f} from "@/meta/ItemInformation";
+import {f2data} from "@/item/ItemFactory";
 
 export function getRandomSeed() {
     return Math.floor(Math.random() * 100000000);
@@ -70,9 +72,14 @@ export const ZWorldMetaData = z.object({
     generator: z.enum(<[GeneratorKeys, ...GeneratorKeys[]]>Object.keys(Generators)),
     generatorOptions: z.string(),
     gameRules: z.object({
-        "randomTickSpeed": z.number().min(0).max(10000).default(3)
+        randomTickSpeed: z.number().min(0).max(10000).default(3),
+        keepInventory: z.boolean().default(false)
     }),
-    generationVersion: z.number().optional()
+    generationVersion: z.number().optional(),
+    spawnPoint: z.object({
+        x: z.number(),
+        y: z.number()
+    }).default({x: 0, y: -1})
 });
 
 export type WorldMetaData = z.infer<typeof ZWorldMetaData>;
@@ -99,6 +106,7 @@ export default class World {
     tiles: Record<number, Tile> = {};
     unloaded = false;
     gameRules: WorldMetaData["gameRules"];
+    spawnPoint: Position;
 
     constructor(
         public server: Server,
@@ -112,6 +120,13 @@ export default class World {
         if (generator) generator.setWorld(this);
         this.path = "worlds/" + folder;
         this.gameRules = data.gameRules;
+        this.spawnPoint = new Position(data.spawnPoint.x, data.spawnPoint.y, 0, this);
+    };
+
+    getSpawnPoint() {
+        const spawnPoint = this.spawnPoint.copy();
+        if (spawnPoint.y < 0) spawnPoint.y = this.getHighHeight(spawnPoint.x);
+        return spawnPoint;
     };
 
     ensureSpawnChunks() {
@@ -163,13 +178,13 @@ export default class World {
     };
 
     getBlock(x: number, y: number) {
-        return FullId2Data[this.getFullBlockAt(x, y)] || FullId2Data[0];
+        return f2data(this.getFullBlockAt(x, y)) || f2data(ItemIds.AIR);
     };
 
     getFullBlockAt(x: number, y: number) {
         x = Math.round(x);
         y = Math.round(y);
-        if (!this.inWorld(y)) return FullIds.AIR;
+        if (!this.inWorld(y)) return ItemIds.AIR;
         return this.getChunkAt(x, false).blocks[xy2ci(x, y)];
     };
 
@@ -212,7 +227,7 @@ export default class World {
         const chunk = this.getChunkAt(x, generate).blocks;
         const i = xy2ci(x, y);
         const v = chunk[i];
-        if (v === fullId || (ifEmpty && v !== FullIds.AIR)) return false;
+        if (v === fullId || (ifEmpty && v !== im2f(ItemIds.AIR))) return false;
         chunk[i] = fullId;
         return true;
     };
@@ -264,6 +279,7 @@ export default class World {
         if (generate && this.generator && !this.chunksGenerated.has(chunkX)) {
             this.chunksGenerated.add(chunkX);
             this.generator.generate(chunkX);
+            chunk.load();
             this._polluteChunk(chunkX);
         }
     };
@@ -350,12 +366,14 @@ export default class World {
 
             const generated = this.chunksGenerated.has(chunkX);
 
-            list.push(generated ? {
-                blocks: chunk.blocks,
-                entities: Array.from(chunk.entities).filter(i => !(i instanceof Player)),
-                tiles: Array.from(chunk.tiles),
-                updateSchedules: chunk.updateSchedules
-            } : null);
+            if (generated) {
+                list.push({
+                    blocks: chunk.blocks,
+                    entities: Array.from(chunk.entities).filter(i => !(i instanceof Player)),
+                    tiles: Array.from(chunk.tiles),
+                    updateSchedules: chunk.updateSchedules
+                });
+            } else list.push(null)
 
             if (chunk.dirty && generated) hasDirty = true;
             chunk.dirty = false;
@@ -411,9 +429,10 @@ export default class World {
         y = Math.round(y);
         meta = rotateMeta(id, meta, rotation);
         const fullId = im2f(id, meta);
-        const block = FullId2Data[fullId];
+        const block = f2data(fullId);
         if (
-            !this.inWorld(y)
+            entity.despawned
+            || !this.inWorld(y)
             || entity.distance(x, y) > entity.getBlockReach()
             || !this.hasSurroundingBlock(x, y)
             || !block
@@ -437,10 +456,10 @@ export default class World {
         x = Math.round(x);
         y = Math.round(y);
         meta = rotateMeta(id, meta, rotation);
-        if (!this.canPlaceBlockAt(entity, x, y, id, meta, rotation)) return false;
+        if (entity.despawned || !this.canPlaceBlockAt(entity, x, y, id, meta, rotation)) return false;
 
         const fullId = im2f(id, meta);
-        const block = FullId2Data[fullId];
+        const block = f2data(fullId);
         const target = this.getBlock(x, y);
         this._setBlock(x, y, fullId, true);
 
@@ -462,7 +481,8 @@ export default class World {
         x = Math.round(x);
         y = Math.round(y);
         const target = this.getBlock(x, y);
-        return this.inWorld(y)
+        return !entity.despawned
+            && this.inWorld(y)
             && entity.distance(x, y) <= entity.getBlockReach()
             && this.getBlockDepth(x, y) <= 1
             && target.getBreakTime(entity instanceof Player ? entity.handItem : null) !== -1
@@ -470,7 +490,7 @@ export default class World {
     };
 
     tryToBreakBlockAt(entity: Entity, x: number, y: number, polluteBlock = true, broadcast = true, light = true, damage = true) {
-        if (!this.canBreakBlockAt(entity, x, y)) return false;
+        if (entity.despawned || !this.canBreakBlockAt(entity, x, y)) return false;
 
         const block = this.getBlock(x, y);
 
@@ -482,7 +502,7 @@ export default class World {
 
         if (cancelled) return false;
 
-        this.setFullBlock(x, y, FullIds.AIR, true, polluteBlock, broadcast);
+        this.setFullBlock(x, y, im2f(ItemIds.AIR), true, polluteBlock, broadcast);
 
         if (!(entity instanceof Player) || !entity.infiniteResource) {
             for (const item of drops) {
@@ -507,14 +527,15 @@ export default class World {
         x = Math.round(x);
         y = Math.round(y);
         const target = this.getBlock(x, y);
-        return this.inWorld(y)
+        return !entity.despawned
+            && this.inWorld(y)
             && entity.distance(x, y) <= entity.getBlockReach()
             && this.getBlockDepth(x, y) <= 1
             && InteractableBlocks.includes(target.id);
     };
 
     tryToInteractBlockAt(player: Player, x: number, y: number) {
-        if (!this.canInteractBlockAt(player, x, y)) return;
+        if (player.despawned || !this.canInteractBlockAt(player, x, y)) return;
 
         const block = this.getBlock(x, y);
 
@@ -545,7 +566,7 @@ export default class World {
     };
 
     createEntity<T extends Entity>(id: EntityIds, x: number, y: number) {
-        const entity = new (EntityClasses[id])();
+        const entity = new (this.server.registeredEntities[id])();
         entity.x = x;
         entity.y = y;
         (<Position>entity).world = this;
@@ -559,9 +580,7 @@ export default class World {
             if (!checkAny(nbt, entity)) return null;
             try {
                 Object.assign(entity, entity.saveStruct.adapt(nbt));
-
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (e) {
+            } catch {
                 return null;
             }
         }
@@ -611,16 +630,16 @@ export default class World {
         return collisions;
     };
 
-    __canPlaceBlockAroundSimple(x: number, y: number) {
+    __isPlaceableAt(x: number, y: number) {
         const block = this.getBlock(x, y);
         return block.id !== ItemIds.AIR && !block.isLiquid;
     };
 
     hasSurroundingBlock(x: number, y: number) {
-        return this.__canPlaceBlockAroundSimple(x - 1, y) ||
-            this.__canPlaceBlockAroundSimple(x + 1, y) ||
-            this.__canPlaceBlockAroundSimple(x, y - 1) ||
-            this.__canPlaceBlockAroundSimple(x, y + 1);
+        return this.__isPlaceableAt(x - 1, y) ||
+            this.__isPlaceableAt(x + 1, y) ||
+            this.__isPlaceableAt(x, y - 1) ||
+            this.__isPlaceableAt(x, y + 1);
     };
 
     getBlockDepth(x: number, y: number, careOpaque = false, careLava = false) {

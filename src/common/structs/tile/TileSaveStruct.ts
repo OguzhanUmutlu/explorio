@@ -1,8 +1,10 @@
 import X, {Bin, BufferIndex, IntBaseBin} from "stramp";
 import Tile from "@/tile/Tile";
-import {TileClasses, TileIds} from "@/meta/Tiles";
+import {TileIds} from "@/meta/Tiles";
+import {getServer} from "@/utils/Utils";
 
 export default new class TileSaveStruct extends Bin<Tile> {
+    isOptional = false as const;
     name = "Tile";
     typeIdBin: IntBaseBin;
 
@@ -18,8 +20,8 @@ export default new class TileSaveStruct extends Bin<Tile> {
 
     read(bind: BufferIndex): Tile {
         const typeId = this.typeIdBin.read(bind);
-        const tile = new (TileClasses[typeId])();
-        const obj = tile.saveStruct.read(bind, tile);
+        const tile = new (getServer().registeredTiles[typeId])();
+        const obj = tile.saveStruct.read(bind);
 
         for (const k in obj) {
             tile[k] = obj[k];

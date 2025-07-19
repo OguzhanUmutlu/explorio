@@ -1,85 +1,79 @@
-import X, {Bin, BufferIndex} from "stramp";
+import {Bin, BufferIndex} from "stramp";
 import {ChunkBlockAmount} from "@/meta/WorldConstants";
-import {copyBuffer} from "@/utils/Utils";
+import {f2name, name2f} from "@/item/ItemFactory";
+import {ItemIds} from "@/meta/ItemIds";
+import {im2f} from "@/meta/ItemInformation";
 
-function findSmallPatterns(array: Uint16Array, max = 255) {
-    const result = [];
-    for (let i = 0; i < array.length; i++) {
-        let count = 1;
-        while (count < max && array[i] === array[i + 1]) {
-            count++;
-            i++;
-        }
-        result.push([array[i], count]);
+function getPalette(value: Uint16Array) {
+    const palette: string[] = [];
+    palette.push("air");
+    for (let i = 0; i < value.length; i++) {
+        const block = value[i];
+        const identifier = f2name(block);
+        if (!palette.includes(identifier)) palette.push(identifier);
     }
-    return result;
+    return palette;
 }
-
-function blocksToBuffer(blocks: Uint16Array) {
-    let zeroEnd = 0;
-    for (let i = blocks.length - 1; i >= 0; i--) {
-        if (blocks[i] !== 0) {
-            zeroEnd = i;
-            break;
-        }
-    }
-    const buf = [];
-    const spl = findSmallPatterns(blocks.slice(0, zeroEnd + 1));
-    for (let i = 0; i < spl.length; i++) {
-        const sp = spl[i];
-        if (sp[1] > 1) {
-            buf.push(0xfe);
-            buf.push(sp[1]);
-        }
-        buf.push(sp[0] & 0xff);
-        buf.push((sp[0] >> 8) & 0xff);
-    }
-    return buf;
-}
-
-const baseBlocks = X.u16array.sized(ChunkBlockAmount);
 
 export default new class ChunkBlocksBin extends Bin<Uint16Array> {
+    isOptional = false as const;
     name = "Chunk";
 
     unsafeWrite(bind: BufferIndex, value: Uint16Array) {
-        const buf = copyBuffer(blocksToBuffer(value));
-        buf.copy(bind.buffer, bind.index);
-        bind.index += buf.length;
-        bind.push(0xff);
+        const palette = getPalette(value);
+        for (let i = 0; i < palette.length; i++) {
+            const name = palette[i];
+            if (name.length === 0) throw new Error(`Empty block name at index ${i} in palette`);
+            bind.write(name);
+            bind.push(0);
+        }
+        bind.push(0);
+        for (let i = 0; i < value.length; i++) {
+            const blockId = value[i];
+            const name = f2name(blockId);
+            const index = palette.indexOf(name);
+            bind.writeUInt16(index);
+        }
     };
 
     read(bind: BufferIndex): Uint16Array {
         const blocks = new Uint16Array(ChunkBlockAmount);
-        let i = 0;
-        for (; i < blocks.length; i++) {
-            if (bind.current === 0xff) {
-                bind.index++;
-                break;
+        const palette: string[] = [];
+        let byte: number;
+        while ((byte = bind.incGet())) {
+            let name = "";
+            while (byte) {
+                name += String.fromCharCode(byte);
+                byte = bind.incGet();
             }
-
-            if (bind.current === 0xfe) {
-                bind.index++;
-                const count = bind.incGet();
-                const val = bind.readUInt16();
-                for (let j = 0; j < count; j++) {
-                    blocks[i++] = val;
-                }
-                i--;
-                continue;
-            }
-
-            blocks[i] = bind.readUInt16();
+            palette.push(name);
+        }
+        for (let i = 0; i < ChunkBlockAmount; i++) {
+            const blockId = bind.readUInt16();
+            if (blockId >= palette.length) throw new Error(`Invalid block ID ${blockId} at index ${i}`);
+            const name = palette[blockId];
+            if (name2f(name) === void 0) printer.warn(`Unknown block name: ${name}`);
+            blocks[i] = name2f(name) || im2f(ItemIds.AIR);
         }
         return blocks;
     };
 
     unsafeSize(value: Uint16Array): number {
-        return blocksToBuffer(value).length + 1
+        const palette: string[] = [];
+        let size = 1; // the palette terminator
+        for (let i = 0; i < value.length; i++) {
+            const block = value[i];
+            const name = f2name(block);
+            if (!palette.includes(name)) {
+                size += name.length + 1;
+                palette.push(name);
+            }
+        }
+        return size + value.length * 2;
     };
 
-    findProblem(value: Uint16Array, strict?: boolean) {
-        return baseBlocks.findProblem(value, strict);
+    findProblem(value: Uint16Array, _?: boolean) {
+        if (!(value instanceof Uint16Array)) return this.makeProblem("Expected a Uint16Array");
     };
 
     get sample(): Uint16Array {

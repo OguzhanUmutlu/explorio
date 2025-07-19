@@ -3,12 +3,10 @@ import {EntityIds} from "@/meta/Entities";
 import EntityStruct from "@/structs/entity/EntityStruct";
 import X from "stramp";
 import Item from "@/item/Item";
-import {f2id, f2meta} from "@/meta/Items";
-import {registerAny} from "@/utils/Inits";
+import {f2id, f2meta} from "@/meta/ItemInformation";
 import Entity from "@/entity/Entity";
 
 export default class FallingBlockEntity extends Entity {
-    static _ = registerAny(this);
     typeId = EntityIds.FALLING_BLOCK;
     typeName = "falling_block";
     name = "Falling Block";

@@ -7,9 +7,13 @@ let nodeCanvas = <{
     loadImage(url: string): Promise<Image>
 }>null;
 try {
-    nodeCanvas = await import(/* @vite-ignore */ eval("'canvas'"));
-} catch (e) {
-    void e;
+    if (typeof process !== "undefined" && process.versions?.node) {
+        // eslint-disable-next-line
+        // @ts-ignore
+        nodeCanvas = await import(/* @vite-ignore */ JSON.parse('"canvas"'));
+    }
+// eslint-disable-next-line
+} catch {
 }
 
 export const imagePlaceholder = createCanvas(1, 1);
@@ -105,6 +109,7 @@ export default class Texture {
     _stairsBottomRight: Canvas | null = null;
     _pixels: Canvas[] = [];
     _pixelValues: string[] = [];
+    _boundaries: { left: number, right: number, top: number, bottom: number } | null = null;
 
     constructor(public actualSrc: string, known?: Promise<Canvas | Image> | Canvas | Image | null) {
         if (this.actualSrc.endsWith("undefined.png")) throw new Error("not cool, report this")
@@ -123,6 +128,46 @@ export default class Texture {
         } else {
             this.image = known;
         }
+    };
+
+    get width() {
+        return this.image ? this.image.width : 0;
+    };
+
+    get height() {
+        return this.image ? this.image.height : 0;
+    };
+
+    getOpaqueBoundaries() {
+        if (!this.image || this._boundaries) return this._boundaries ?? {left: 0, right: 0, top: 0, bottom: 0};
+        const canvas = createCanvas(this.image.width, this.image.height);
+        canvas.width = this.image.width;
+        canvas.height = this.image.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(this.image, 0, 0);
+
+        const {data, width, height} = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let top = height, bottom = 0, left = width, right = 0;
+        let found = false;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+                const alpha = data[idx + 3];
+                if (alpha !== 0) {
+                    found = true;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+                }
+            }
+        }
+
+        if (!found) return this._boundaries = {left: 0, right: 0, top: 0, bottom: 0};
+
+        return this._boundaries = {left, right, top, bottom};
     };
 
     destroy() {

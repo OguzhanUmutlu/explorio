@@ -1,10 +1,10 @@
 import {createCanvas} from "@/utils/Texture";
 import {clientPlayer} from "@dom/Client";
-import {FullId2Data} from "@/meta/ItemIds";
 import World from "@/world/World";
 import {ChunkLength} from "@/meta/WorldConstants";
 import {cx2x, cy2y, i2rx, i2ry, rxry2ci} from "@/utils/Utils";
 import {drawShadow} from "@c/utils/Utils";
+import {f2data} from "@/item/ItemFactory";
 
 const renderScale = 32; // Blocks are rendered as 16x16
 const renderSize = renderScale * ChunkLength;
@@ -44,7 +44,7 @@ export default class CSubChunk {
     ) {
         const ctx = this.bCtx;
         const dCtx = this.dCtx;
-        const block = FullId2Data[fullId];
+        const block = f2data(fullId);
         const dx = relX * renderScale;
         const dy = renderScale * (ChunkLength - relY);
         const dw = renderScale;

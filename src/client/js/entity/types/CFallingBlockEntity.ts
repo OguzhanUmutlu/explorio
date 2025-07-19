@@ -1,14 +1,13 @@
 import CEntity from "@c/entity/CEntity";
 import {getClientPosition, TileSize} from "@c/utils/Utils";
-import {FullId2Data} from "@/meta/ItemIds";
 import FallingBlockEntity from "@/entity/defaults/FallingBlockEntity";
+import {f2data} from "@/item/ItemFactory";
 
 export default class CFallingBlockEntity extends FallingBlockEntity implements CEntity {
     isClient = true;
-    blockFullId: number;
 
     getBlock() {
-        return FullId2Data[this.blockFullId];
+        return f2data(this.blockFullId);
     };
 
     render(ctx: CanvasRenderingContext2D, dt: number) {

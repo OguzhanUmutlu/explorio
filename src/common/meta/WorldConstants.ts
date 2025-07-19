@@ -1,10 +1,10 @@
 export const WorldHeightExp = 9;
 export const ChunkLengthBits = 4;
-export const WorldHeight = 1 << WorldHeightExp;
-export const ChunkLength = 1 << ChunkLengthBits;
-export const ChunkLengthN = ChunkLength - 1;
-export const SubChunkAmount = WorldHeight / ChunkLength;
-export const ChunkBlockAmount = ChunkLength * WorldHeight;
+export const WorldHeight = 1 << WorldHeightExp; // 512
+export const ChunkLength = 1 << ChunkLengthBits; // 16
+export const ChunkLengthN = ChunkLength - 1; // 15
+export const SubChunkAmount = WorldHeight / ChunkLength; // 32
+export const ChunkBlockAmount = ChunkLength * WorldHeight; // 8192
 export const ChunkGroupBits = 8;
-export const ChunkGroupLength = 1 << ChunkGroupBits;
-export const ChunkGroupLengthN = ChunkGroupLength - 1;
+export const ChunkGroupLength = 1 << ChunkGroupBits; // 256
+export const ChunkGroupLengthN = ChunkGroupLength - 1; // 255

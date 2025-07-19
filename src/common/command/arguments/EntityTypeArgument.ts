@@ -2,7 +2,8 @@ import CommandArgument from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
 import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
-import {EntityIds, EntityNameMap} from "@/meta/Entities";
+import {EntityIds} from "@/meta/Entities";
+import {getServer} from "@/utils/Utils";
 
 export default class EntityTypeArgument extends CommandArgument<EntityIds> {
     default = null;
@@ -14,14 +15,14 @@ export default class EntityTypeArgument extends CommandArgument<EntityIds> {
     };
 
     read(_: CommandAs, __: Position, args: AnyToken[], index: number) {
-        return EntityNameMap[args[index].rawText];
+        return getServer().entityNameToId[args[index].rawText];
     };
 
     blindCheck(args: AnyToken[], index: number) {
         const arg = args[index];
 
         return {
-            error: arg && EntityNameMap[arg.rawText] ? null : {
+            error: arg && getServer().entityNameToId[arg.rawText] ? null : {
                 token: arg,
                 message: "Expected a valid entity name"
             }, index: index + 1

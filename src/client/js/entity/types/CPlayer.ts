@@ -38,6 +38,28 @@ export default class CPlayer extends Player implements CEntity {
 
     shadow = 0;
 
+    get bodyRotation() {
+        return this.renderHeadRotation > -90 && this.renderHeadRotation < 90;
+    };
+
+    renderModel(ctx: CanvasRenderingContext2D) {
+        renderPlayerModel(ctx, {
+            SIZE: TileSize.value,
+            bbPos: getClientPosition(this.renderX - 0.25, this.renderY - 0.5),
+            bb: this.bb,
+            skin: this.skin.skin(),
+            bodyRotation: this.bodyRotation,
+            leftArmRotation: this.renderLeftArmRotation,
+            leftLegRotation: this.renderLeftLegRotation,
+            rightLegRotation: this.renderRightLegRotation,
+            rightArmRotation: this.renderRightArmRotation,
+            headRotation: this.renderHeadRotation,
+            handItem: this.handItem,
+            offhandItem: this.offhandItem,
+            shadowOpacity: this.shadow
+        });
+    };
+
     render(ctx: CanvasRenderingContext2D, dt: number) {
         super.render(ctx, dt);
         // this.renderHeadRotation += (this.rotation - this.renderHeadRotation) / 20;
@@ -61,23 +83,17 @@ export default class CPlayer extends Player implements CEntity {
         this.breakingTime = Math.max(0, this.breakingTime - dt);
 
         this.renderHeadRotation = this.rotation;
-        const bodyRotation = this.renderHeadRotation > -90 && this.renderHeadRotation < 90;
+        const bodyRotation = this.bodyRotation;
         this.renderRightArmRotation += (this.rightArmRotation - this.renderRightArmRotation) / 20;
         this.renderLeftArmRotation += (this.leftArmRotation - this.renderLeftArmRotation) / 20;
         this.renderRightLegRotation += (this.rightLegRotation - this.renderRightLegRotation) / 20;
         this.renderLeftLegRotation += (this.leftLegRotation - this.renderLeftLegRotation) / 20;
         this.shadow += (this.world.getShadowOpacity(this.x, this.y) - this.shadow) / 20;
-
-        // f(0) = 0
-        // f(250) = pi / 4
-        // f(500) = 0
-        // f(750) = -pi / 4
-        // f(1000) = 0 (period)
         const isWalking = this.walkingRemaining > 0;
         const isSwinging = this.swingRemaining > 0;
         const isBreaking = this.breaking;
 
-        if (isWalking && this.onGround) {
+        if (isWalking && this.onGround && !this.isFlying) {
             this.walkSoundTime = Math.max(0, this.walkSoundTime - dt);
             if (this.walkSoundTime === 0) {
                 const collision = this.getGroundBlock();
@@ -116,20 +132,6 @@ export default class CPlayer extends Player implements CEntity {
         const baseSkin = this.skin.skin();
         if (!baseSkin) return;
 
-        renderPlayerModel(ctx, {
-            SIZE: TileSize.value,
-            bbPos: getClientPosition(this.renderX - 0.25, this.renderY - 0.5),
-            bb: this.bb,
-            skin: baseSkin,
-            bodyRotation,
-            leftArmRotation: this.renderLeftArmRotation,
-            leftLegRotation: this.renderLeftLegRotation,
-            rightLegRotation: this.renderRightLegRotation,
-            rightArmRotation: this.renderRightArmRotation,
-            headRotation: this.renderHeadRotation,
-            handItem: this.handItem,
-            offhandItem: this.offhandItem,
-            shadowOpacity: this.shadow
-        });
+        this.renderModel(ctx);
     };
 }

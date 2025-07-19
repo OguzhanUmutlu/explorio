@@ -4,11 +4,14 @@
 
 Explorio is a 2D block game
 
-Assets are taken from a few repositories on GitHub like:
-- https://github.com/PrismarineJS/minecraft-assets
-- https://github.com/PixiGeko/Minecraft-default-assets
-
 </div>
+
+## Running a server
+
+1. Get in the directory where you want to run the server.
+2. Run `npm init -y && npm install -g explorio`
+3. Run `explorio` or `npx explorio`
+4. Voilà! The server is up and running
 
 ## How to play?
 
@@ -19,7 +22,7 @@ Assets are taken from a few repositories on GitHub like:
 5. Optionally select a seed
 6. Press Create World
 7. Click your world in the world list
-8. Viola! You're in the game
+8. Voilà! You're in the game
 
 ## How to connect to a server?
 
@@ -30,13 +33,14 @@ Assets are taken from a few repositories on GitHub like:
 5. Enter server IP and port
 6. Press Add Server
 7. Click the server in the server list
-8. Viola! You're in the game
+8. Voilà! You're in the game
 
 ## What's a client and where to find it?
 
 The client is hosted statically by GitHub Pages on https://oguzhanumutlu.github.io/explorio
 
-You can also find hosted clients outside GitHub Pages and use them. Though this is not recommended.
+You can also find hosted clients outside GitHub Pages and use them. **Though keep in mind that using third party clients
+is risky.**
 
 ### Running/modding the client locally
 

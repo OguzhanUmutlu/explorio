@@ -1,6 +1,6 @@
 import Item from "@/item/Item";
 import World from "@/world/World";
-import {Id2Data} from "@/meta/ItemIds";
+import {im2data} from "@/item/ItemFactory";
 import ItemDescriptor from "@/item/ItemDescriptor";
 
 export default class Inventory {
@@ -96,7 +96,7 @@ export default class Inventory {
     };
 
     addAt(index: number, item: Item, count = item?.count || 0) {
-        const mt = Id2Data[item.id];
+        const mt = im2data(item.id);
         if (!mt) printer.error("Item not found:", item.id)
         const maxStack = mt.maxStack;
         const it = this.get(index);
@@ -165,8 +165,7 @@ export default class Inventory {
         const sameItem = fromItem.equals(toItem, false, true);
         if (toItem && !sameItem) return null; // the source item and the target item were not the same
 
-        const maxStack = toItem.maxStack;
-        if (toItem && toItem.count + count > maxStack) return null; // count is too much and overflows
+        if (toItem && toItem.count + count > toItem.maxStack) return null; // count is too much and overflows
 
         const alrThis = this.dirtyIndexes.has(from);
         const alrTar = target.dirtyIndexes.has(to);
@@ -210,7 +209,7 @@ export default class Inventory {
     damageItemAt(index: number, amount = 1, world: World | null = null, x = 0, y = 0) {
         const item = this.get(index);
         if (item) {
-            const durability = Id2Data[item.id].durability;
+            const durability = im2data(item.id).durability;
             if (durability > 0) {
                 item.components.damage ??= 0;
                 if ((item.components.damage += amount) >= durability) {

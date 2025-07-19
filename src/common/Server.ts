@@ -1,6 +1,5 @@
 import World, {Generators, getRandomSeed, WorldMetaData, ZWorldMetaData} from "@/world/World";
 import Player from "@/entity/defaults/Player";
-import Command from "@/command/Command";
 import CommandError from "@/command/CommandError";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
 import {cleanText} from "@/command/CommandProcessor";
@@ -8,7 +7,15 @@ import SelectorToken from "@/command/token/SelectorToken";
 import Position from "@/utils/Position";
 
 import TeleportCommand from "@/command/defaults/TeleportCommand";
-import {checkLag, ClassOf, SelectorSorters, setServer, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
+import {
+    checkLag,
+    ClassOf,
+    SelectorSorters,
+    setServer,
+    suggestString,
+    zstdOptionalDecode,
+    zstdOptionalEncode
+} from "@/utils/Utils";
 import ListCommand from "@/command/defaults/ListCommand";
 import ConsoleCommandSender from "@/command/ConsoleCommandSender";
 import ExecuteCommand from "@/command/defaults/ExecuteCommand";
@@ -42,9 +49,24 @@ import GameRuleCommand from "@/command/defaults/GameRuleCommand";
 import DataCommand from "@/command/defaults/DataCommand";
 import X from "stramp";
 import {Version, Versions, VersionString, WorldGenerationVersion} from "@/Versions";
+import KillCommand from "@/command/defaults/KillCommand";
+import Effect from "@/effect/Effect";
+import Tile from "@/tile/Tile";
+import Command from "@/command/Command";
+import FallingBlockEntity from "@/entity/defaults/FallingBlockEntity";
+import ItemEntity from "@/entity/defaults/ItemEntity";
+import XPOrbEntity from "@/entity/defaults/XPOrbEntity";
+import ChestTile from "@/tile/defaults/ChestTile";
+import FurnaceTile from "@/tile/defaults/FurnaceTile";
+import FireResistanceEffect from "@/effect/defaults/FireResistanceEffect";
+import ResistanceEffect from "@/effect/defaults/ResistanceEffect";
+import SlownessEffect from "@/effect/defaults/SlownessEffect";
+import SpeedEffect from "@/effect/defaults/SpeedEffect";
+import ItemFactory from "@/item/ItemFactory";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
+    maxPlayers: z.number().int().min(-1).max(4294967295), // -1 or 4294967295 means unlimited
     renderDistance: z.number().min(0),
     language: z.enum(<[LanguageName, ...LanguageName[]]>Object.keys(Languages)),
     defaultWorld: z.string().default("default"),
@@ -66,6 +88,7 @@ export type EventHandlersType = Map<ClassOf<PluginEvent>, SingleEventHandler[]>;
 
 export const DefaultServerConfig: ServerConfig = {
     port: 1881,
+    maxPlayers: 20,
     renderDistance: 3,
     language: "en",
     defaultWorld: "default",
@@ -107,7 +130,6 @@ export default class Server {
     players: Record<string, Player> = {};
     lastUpdate = Date.now() - 1;
     saveCounter = 0;
-    commands: Record<string, Command> = {};
     sender: ConsoleCommandSender;
     config: ServerConfig;
     pluginMetas: Record<string, PluginMetadata> = {};
@@ -125,8 +147,40 @@ export default class Server {
     stepTicks = 0;
     storage: StorageData = {};
     closed = false;
+    closeReason = "";
+    terminalHistory: string[] = [];
 
-    constructor(public fs: typeof import("fs"), public path: string, public socketServer: { close(): void }) {
+    entityNameToId: Record<string, number> = {};
+    entityIdToName = <Record<number, string>>{};
+    registeredEntities = <Record<number, ClassOf<Entity>>>{};
+
+    tileNameToId: Record<string, number> = {};
+    tileIdToName = <Record<number, string>>{};
+    registeredTiles = <Record<number, ClassOf<Tile>>>{};
+
+    commands: Record<string, Command> = {};
+
+    effectNameToId: Record<string, number> = {};
+    registeredEffects = <Record<number, Effect>>{};
+
+    defaultCommandClasses = [
+        HelpCommand, ListCommand, TeleportCommand, ExecuteCommand, PermissionCommand, GameModeCommand,
+        EffectCommand, ClearCommand, GiveCommand, KickCommand, BanCommand, BanIPCommand, OperatorCommand,
+        DeOperatorCommand, SayCommand, SummonCommand, TickCommand, GameRuleCommand, DataCommand, KillCommand
+    ];
+    defaultEntityClasses = [
+        Player, FallingBlockEntity, ItemEntity, XPOrbEntity
+    ];
+    defaultTileClasses = [
+        ChestTile, FurnaceTile
+    ];
+    defaultEffectClasses = [
+        FireResistanceEffect, ResistanceEffect, SlownessEffect, SpeedEffect
+    ];
+
+    itemFactory = new ItemFactory();
+
+    constructor(public fs: typeof import("fs"), public path: string, public socketServer: { close(): void } = null) {
         setServer(this);
     };
 
@@ -158,6 +212,14 @@ export default class Server {
         return !this.fs;
     };
 
+    registerDefaults() {
+        for (const clazz of this.defaultCommandClasses) this.registerCommand(new clazz());
+        for (const clazz of this.defaultEntityClasses) this.registerEntity(new clazz());
+        for (const clazz of this.defaultTileClasses) this.registerTile(new clazz());
+        for (const clazz of this.defaultEffectClasses) this.registerEffect(new clazz());
+        this.itemFactory.initDefaultItems();
+    };
+
     init() {
         this.sender = new ConsoleCommandSender;
         this.intervalId = setInterval(() => {
@@ -167,31 +229,12 @@ export default class Server {
             this.update(dt);
         });
 
-        for (const clazz of [
-            HelpCommand,
-            ListCommand,
-            TeleportCommand,
-            ExecuteCommand,
-            PermissionCommand,
-            GameModeCommand,
-            EffectCommand,
-            ClearCommand,
-            GiveCommand,
-            KickCommand,
-            BanCommand,
-            BanIPCommand,
-            OperatorCommand,
-            DeOperatorCommand,
-            SayCommand,
-            SummonCommand,
-            TickCommand,
-            GameRuleCommand,
-            DataCommand
-        ]) this.registerCommand(new clazz());
+        this.registerDefaults();
 
         this.createDirectory(this.path);
 
         this.loadConfig();
+        if (this.closed) return;
 
         this.loadStorage();
 
@@ -205,16 +248,13 @@ export default class Server {
         try {
             for (const ban of JSON.parse(this.readFile("bans.json").toString())) {
                 if (!banEntryType.safeParse(ban).success) {
-                    printer.error("Couldn't parse ban entry. Closing server... Please fix the ban entry or remove it. Entry: " + JSON.stringify(ban));
-                    return this.close();
+                    return this.close("Couldn't parse ban entry. Closing server... Please fix the ban entry or remove it. Entry: " + JSON.stringify(ban));
                 }
 
                 this.bans.push(new BanEntry(ban.name, ban.ip, ban.timestamp, ban.reason));
             }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (e) {
-            printer.error("Couldn't parse ban file. Closing server... Please fix the JSON or remove the file.");
-            return this.close();
+        } catch {
+            return this.close("Couldn't parse ban file. Closing server... Please fix the JSON or remove the file.");
         }
 
         this.loadPlugins().then(() => this.pluginsReady = true);
@@ -229,11 +269,47 @@ export default class Server {
         }
 
         if (!(this.config.defaultWorld in this.worlds)) {
-            printer.error("Default world couldn't be found. Please create the world named '" + this.config.defaultWorld + "'");
-            return this.close();
+            return this.close("Default world couldn't be found. Please create the world named '" + this.config.defaultWorld + "'");
         }
 
         this.defaultWorld = this.worlds[this.config.defaultWorld];
+    };
+
+    registerEntity(sample: Entity) {
+        if (this.registeredEntities[sample.typeId]) {
+            throw new Error(`Entity type ID ${sample.typeId} is already registered.`);
+        }
+
+        this.registeredEntities[sample.typeId] = sample.constructor as ClassOf<Entity>;
+        this.entityNameToId[sample.typeName] = sample.typeId;
+        this.entityIdToName[sample.typeId] = sample.typeName;
+    };
+
+    registerTile(sample: Tile) {
+        if (this.registeredTiles[sample.typeId]) {
+            throw new Error(`Tile type ID ${sample.typeId} is already registered.`);
+        }
+
+        this.registeredTiles[sample.typeId] = sample.constructor as ClassOf<Tile>;
+        this.tileNameToId[sample.typeName] = sample.typeId;
+        this.tileIdToName[sample.typeId] = sample.typeName;
+    };
+
+    registerEffect(sample: Effect) {
+        if (this.registeredEffects[sample.typeId]) {
+            throw new Error(`Effect type ID ${sample.typeId} is already registered.`);
+        }
+
+        this.registeredEffects[sample.typeId] = sample;
+        this.effectNameToId[sample.typeName] = sample.typeId;
+    };
+
+    registerCommand(command: Command) {
+        this.commands[command.name] = command;
+        for (const alias of command.aliases) {
+            this.commands[alias] = command;
+        }
+        command.init();
     };
 
     addBan(name: string, reason: string) {
@@ -257,7 +333,8 @@ export default class Server {
         if (!this.fileExists("server.json")) {
             this.config ??= DefaultServerConfig;
             this.writeFile("server.json", JSON.stringify(this.config, null, 2));
-            printer.warn("Created server.json, please edit it and restart the server");
+            this.closeReason = "Created server.json, please edit it and restart the server.";
+            printer.warn(this.closeReason);
             return this.close();
         } else {
             try {
@@ -267,14 +344,17 @@ export default class Server {
                     printer.error(`Invalid server.json. Errors:\n${
                         r.error.errors.map(e => e.path.join(" and ") + ": " + e.message).join("\n")
                     }\nPlease edit it and restart the server.`);
+                    this.closeReason = "Invalid server.json, please edit it and restart the server.";
                     return this.close();
                 }
                 this.config = got;
             } catch (e) {
                 printer.error(e);
-                printer.warn("Invalid server.json, please edit it and restart the server");
+                this.closeReason = "Invalid server.json, please edit it and restart the server.";
+                printer.warn(this.closeReason);
                 printer.info("Default config: ", JSON.stringify(DefaultServerConfig, null, 2));
-                return this.close();
+                this.close();
+                return;
             }
         }
     };
@@ -292,6 +372,7 @@ export default class Server {
         printer.error("Failed to load plugin %c" + folder, "color: yellow");
         printer.error(message);
         printer.error("Closing the server for plugin integrity.");
+        this.closeReason = message.message;
         this.close();
     }
 
@@ -347,8 +428,7 @@ export default class Server {
                 }
             }
             if (!loadedAny) {
-                printer.error(`Circular dependencies detected in the plugins: ${Array.from(nonReadyPluginNames).join(", ")}. Closing the server for plugin integrity.`);
-                this.close();
+                this.close(`Circular dependencies detected in the plugins: ${Array.from(nonReadyPluginNames).join(", ")}. Closing the server for plugin integrity.`);
             }
         }
     };
@@ -571,8 +651,7 @@ export default class Server {
         const buf = this.readFile(path);
         try {
             const conf = JSON.parse(buf.toString())
-            ZWorldMetaData.parse(conf);
-            return conf;
+            return ZWorldMetaData.parse(conf);
         } catch (e) {
             printer.error("World " + folder + " has an invalid world.json file");
             printer.error(e);
@@ -594,12 +673,10 @@ export default class Server {
 
         const version = data.generationVersion;
         if (version !== WorldGenerationVersion) {
-            printer.error(`World ${folder} was generated by ${version > Version ? "a newer" : "an older"} version of `
+            if (folder === this.config.defaultWorld) this.close(`World ${folder} was generated by ${version > Version ? "a newer" : "an older"} version of `
                 + `the server(${version > Version ? "" : `Version: ${Versions[version]}`}Version ID: ${version}).\n`
                 + `You can either delete the world for it to regenerate or you can replace it with another chunk that `
                 + `was generated by the same version of the server(Version: ${VersionString}, Version ID: ${Version}).`);
-
-            if (folder === this.config.defaultWorld) this.close();
 
             return null;
         }
@@ -626,16 +703,24 @@ export default class Server {
 
     update(dt: number) {
         if (this.pausedUpdates) return;
-        checkLag("server update", 10);
+        checkLag("server worlds update");
 
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
         }
 
+        checkLag("server worlds update", 5);
+
+        checkLag("server update players");
+
         for (const playerName in this.players) {
             const player = this.players[playerName];
             player.serverUpdate(dt);
         }
+
+        checkLag("server update players", 5);
+
+        checkLag("server tick");
 
         this.tickAccumulator += dt;
         const df = 1 / this.targetTickRate;
@@ -645,7 +730,7 @@ export default class Server {
             this.tick();
         }
 
-        checkLag("server update");
+        checkLag("server tick", 500);
     };
 
     tick() {
@@ -697,18 +782,27 @@ export default class Server {
         const commandLabel = split[0].toLowerCase();
         const command = this.commands[commandLabel];
 
-        if (!command) {
+        if (!command || (command.permission && !sender.hasPermission(command.permission))) {
+            const allowed: string[] = [];
+            for (const cmd in this.commands) {
+                const c = this.commands[cmd];
+                if (!c.permission || sender.hasPermission(c.permission)) allowed.push(cmd, ...c.aliases);
+            }
+
+            allowed.sort((a, b) => a.localeCompare(b));
+
+            const suggested = suggestString(commandLabel, allowed.filter(i => i !== "help" && /^[a-zA-Z\d]+$/.test(i)));
+            if (suggested) {
+                sender.sendMessage(`§cUnknown command: ${commandLabel}. Did you mean §e${suggested}§c? Type /help for a list of commands`);
+                return;
+            }
+
             sender.sendMessage(`§cUnknown command: ${commandLabel}. Type /help for a list of commands`);
             return;
         }
 
         const args = split.slice(1);
         try {
-            if (command.permission && !sender.hasPermission(command.permission)) {
-                sender.sendMessage(`§cYou don't have permission to execute this command.`);
-                return;
-            }
-
             return command.execute(sender, as, at, args, label);
         } catch (e) {
             if (e instanceof CommandError) {
@@ -749,14 +843,6 @@ export default class Server {
         } else this.processChat(player, message);
     };
 
-    registerCommand(command: Command) {
-        this.commands[command.name] = command;
-        for (const alias of command.aliases) {
-            this.commands[alias] = command;
-        }
-        command.init();
-    };
-
     saveWorlds() {
         for (const folder in this.worlds) {
             this.worlds[folder].save();
@@ -789,8 +875,10 @@ export default class Server {
         this.saveStorage();
     };
 
-    close() {
-        if (this.closed) return;
+    close(err?: string) {
+        if (err) printer.error(err);
+        if (this.closed) return false;
+        if (err) this.closeReason = err;
 
         this.closed = true;
 
@@ -808,7 +896,8 @@ export default class Server {
         this.saveBans();
         this.saveStorage();
 
-        this.socketServer.close();
+        if (this.socketServer) this.socketServer.close();
         clearInterval(this.intervalId);
+        return true;
     };
 }

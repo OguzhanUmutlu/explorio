@@ -1,16 +1,11 @@
-import X, {Bin, BufferIndex, IntBaseBin} from "stramp";
-import {EntityIds, EntityClasses} from "@/meta/Entities";
+import X, {Bin, BufferIndex} from "stramp";
 import Entity from "@/entity/Entity";
-
+import {getServer} from "@/utils/Utils";
 
 export default new class EntitySaveStruct extends Bin<Entity> {
+    isOptional = false as const;
     name = "Entity";
-    typeIdBin: IntBaseBin;
-
-    constructor() {
-        super();
-        this.typeIdBin = <IntBaseBin>X.getNumberTypeOf(EntityIds.__MAX__);
-    };
+    typeIdBin = X.u16; // Should be enough.
 
     unsafeWrite(bind: BufferIndex, entity: Entity) {
         this.typeIdBin.unsafeWrite(bind, entity.typeId);
@@ -20,8 +15,8 @@ export default new class EntitySaveStruct extends Bin<Entity> {
 
     read(bind: BufferIndex): Entity {
         const typeId = this.typeIdBin.read(bind);
-        const entity = new (EntityClasses[typeId])();
-        const obj = entity.saveStruct.read(bind, entity);
+        const entity = new (getServer().registeredEntities[typeId])();
+        const obj = entity.saveStruct.read(bind);
 
         for (const k in obj) {
             entity[k] = obj[k];

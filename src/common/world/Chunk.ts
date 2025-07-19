@@ -3,10 +3,11 @@ import {ChunkBlockAmount, ChunkGroupLength, ChunkLength, WorldHeight} from "@/me
 import World, {SpawnChunkDistance} from "@/world/World";
 import Player from "@/entity/defaults/Player";
 import {cgx2cx, cx2cgx, cx2x, i2rx, i2ry, randInt, rxy2ci} from "@/utils/Utils";
-import {FullId2Data} from "@/meta/ItemIds";
 import Tile from "@/tile/Tile";
 import BlockData from "@/item/BlockData";
 import Entity from "@/entity/Entity";
+import {f2data} from "@/item/ItemFactory";
+import {ItemIds} from "@/meta/ItemIds";
 
 export default class Chunk {
     blocks: Uint16Array = new Uint16Array(ChunkBlockAmount);
@@ -55,21 +56,21 @@ export default class Chunk {
     // Finds the first air block from bottom
     getLowHeight(relX: number) {
         let i = rxy2ci(relX, 0);
-        while (i < ChunkBlockAmount && !FullId2Data[this.blocks[i]].canBePhased) i += ChunkLength;
+        while (i < ChunkBlockAmount && !f2data(this.blocks[i]).canBePhased) i += ChunkLength;
         return (i - relX) / ChunkLength;
     };
 
     // Finds the last air block from top
     getHighHeight(relX: number) {
         let i = rxy2ci(relX, WorldHeight - 1);
-        while (i >= 0 && FullId2Data[this.blocks[i]].canBePhased && i > 0) i -= ChunkLength;
+        while (i >= 0 && f2data(this.blocks[i]).canBePhased && i > 0) i -= ChunkLength;
         return (i - relX) / ChunkLength + 1;
     };
 
     // Finds the last transparent block from top
     getHighTransparentHeight(relX: number) {
         let i = rxy2ci(relX, WorldHeight - 1);
-        while (i >= 0 && !FullId2Data[this.blocks[i]].isOpaque && i > 0) i -= ChunkLength;
+        while (i >= 0 && !f2data(this.blocks[i]).isOpaque && i > 0) i -= ChunkLength;
         return (i - relX) / ChunkLength + 1;
     };
 
@@ -126,6 +127,10 @@ export default class Chunk {
         for (const entity of this.entities) entity.init();
         for (const tile of this.tiles) tile.init();
         this.broadcast();
+        for (let i = 0; i < ChunkBlockAmount; i++) {
+            const blockData = f2data(this.blocks[i]);
+            blockData.onBlockUpdate(this.world, cx2x(this.x, i2rx(i)), i2ry(i));
+        }
     };
 
     unload() {
@@ -156,8 +161,8 @@ export default class Chunk {
 
     getBlock(relX: number, y: number): BlockData {
         if (relX < 0 || relX >= ChunkLength) return this.world.getBlock(cx2x(this.x, relX), y);
-        if (y < 0 || y >= WorldHeight) return FullId2Data[0];
-        return FullId2Data[this.blocks[rxy2ci(relX, y)]];
+        if (y < 0 || y >= WorldHeight) return f2data(ItemIds.AIR);
+        return f2data(this.blocks[rxy2ci(relX, y)]);
     };
 
     getLight(relX: number, y: number) {
@@ -174,7 +179,7 @@ export default class Chunk {
         if (update) this.world.onUpdateLight(cx2x(this.x) + relX, y);
     };
 
-    updateLight(relX: number, y: number) {
+    updateLight(_relX: number, _y: number) {
         /*if (y < 0 || y >= WorldHeight) return;
         this.setLight(relX, y, 0, false);
         this.applyLight(relX + 1, y, this.getLight(relX + 1, y), true, true);

@@ -1,7 +1,6 @@
 import BoundingBox from "@/entity/BoundingBox";
 import {EntityIds} from "@/meta/Entities";
 import Player from "@/entity/defaults/Player";
-import {registerAny} from "@/utils/Inits";
 import Entity from "@/entity/Entity";
 import EntityStruct from "@/structs/entity/EntityStruct";
 import X from "stramp";
@@ -9,7 +8,6 @@ import X from "stramp";
 const maxStack = 255;
 
 export default class XPOrbEntity extends Entity {
-    static _ = registerAny(this);
     typeId = EntityIds.XP_ORB;
     typeName = "xp_orb";
     name = "XP Orb";

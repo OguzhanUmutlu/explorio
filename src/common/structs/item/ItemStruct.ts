@@ -1,7 +1,8 @@
 import X from "stramp";
-import {ItemIds, ItemMetaMax} from "@/meta/ItemIds";
+import {ItemIds} from "@/meta/ItemIds";
 import Item from "@/item/Item";
 import {ItemComponentsStruct} from "@/structs/item/ItemComponentsStruct";
+import {ItemMetaMax} from "@/meta/ItemInformation";
 
 export const ItemIdBin = X.getNumberTypeOf(ItemIds.__MAX__);
 export const ItemMetaBin = X.getNumberTypeOf(ItemMetaMax);
@@ -15,4 +16,4 @@ const ItemStruct = X.object.struct({
 
 export default ItemStruct;
 
-export const InventoryContentStruct = ItemStruct.or(X.null);
+export const InventoryContentStruct = X.any.of(ItemStruct, X.null);

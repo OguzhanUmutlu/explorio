@@ -6,8 +6,14 @@ import Position, {getRotationTowards} from "@/utils/Position";
 import {Packets} from "@/network/Packets";
 import EntityTileBase from "@/entity/EntityTileBase";
 import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
-import World from "@/world/World";
+import World, {Collision} from "@/world/World";
 import Item from "@/item/Item";
+import {randInt} from "@/utils/Utils";
+import {Damage} from "@/entity/Damage";
+import EntityAnimationStruct from "@/structs/entity/EntityAnimationStruct";
+import Packet from "@/network/Packet";
+import Player from "@/entity/defaults/Player";
+import {AnimationIds} from "@/meta/Animations";
 
 export const DefaultWalkSpeed = 5;
 export const DefaultFlySpeed = 7;
@@ -15,11 +21,8 @@ export const DefaultJumpVelocity = 7;
 export const DefaultGravity = 18;
 export const GroundHeight = 0.05;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const tAny = null!;
-
 export default abstract class Entity extends EntityTileBase {
-    readonly world: World;
+    declare readonly world: World;
 
     _chunkX = NaN;
     _x = 0;
@@ -30,11 +33,12 @@ export default abstract class Entity extends EntityTileBase {
     vy = 0;
     suffocationVY = 0;
     onGround = true;
+    groundCollision: Collision | null = null;
     bb: BoundingBox;
     groundBB = new BoundingBox(0, 0, 0, GroundHeight);
     cacheState: string;
     tags = new Set<string>;
-    effects = new Set<EffectInstance>;
+    effects: Record<number, EffectInstance> = {};
 
     walkSpeed = DefaultWalkSpeed;
     flySpeed = DefaultFlySpeed;
@@ -46,10 +50,14 @@ export default abstract class Entity extends EntityTileBase {
     immobile = false;
     invincible = false;
     invisible = false;
+    resistanceLevel = 0;
+    fireImmunity = false;
 
     // first multiplied, then added
     attributeMultiplyModifiers: Record<string, number> = {};
     attributeAddModifiers: Record<string, number> = {};
+
+    animation: (typeof EntityAnimationStruct.__TYPE__ & { time: number }) | null = null;
 
     init(broadcast = true) {
         const problem = !this.isClient && this.saveStruct.findProblem(this);
@@ -74,7 +82,7 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     private setWorld(world: World) {
-        delete this.world.entities[this.id];
+        if (this.world) delete this.world.entities[this.id];
         const oldChunk = this.oldChunk;
 
         if (oldChunk) oldChunk.entities.delete(this);
@@ -90,6 +98,57 @@ export default abstract class Entity extends EntityTileBase {
 
     get handItem(): Item | null {
         return null;
+    };
+
+    damage(damage: Damage) {
+        const finalDamage = damage.getFinalDamage();
+        if (finalDamage <= 0) return 0;
+
+        this.setHealth(Math.max(0, this.health - finalDamage));
+        if (this.health <= 0) {
+            this.kill();
+            return finalDamage;
+        }
+
+        this.broadcastPacketHere(new Packets.SEntityAnimation({
+            entityId: this.id,
+            animation: {
+                id: AnimationIds.HURT,
+                data: null
+            }
+        }));
+
+        this.world.playSound(`assets/sounds/damage/hit${randInt(1, 3)}.ogg`, this.x, this.y);
+
+        return finalDamage;
+    };
+
+    getArmorPoints() {
+        return 0;
+    };
+
+    getArmorToughness() {
+        return 0;
+    };
+
+    getGenericProtectionLevel() {
+        return 0;
+    };
+
+    getFireProtectionLevel() {
+        return 0;
+    };
+
+    getBlastProtectionLevel() {
+        return 0;
+    };
+
+    getProjectileProtectionLevel() {
+        return 0;
+    };
+
+    getFeatherFallingLevel() {
+        return 0;
     };
 
     getBlockReach() {
@@ -126,7 +185,7 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     calculateGround() { // used in the server-side
-        this.onGround = !!this.getGroundBlock();
+        this.onGround = !!(this.groundCollision = this.getGroundBlock());
     };
 
     getCollidingBlock() {
@@ -247,41 +306,33 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     update(dt: number) {
-        const x = this.x, y = this.y;
+        if (this.isClient || !(this instanceof Player)) { // Do not do these if it's a server-side player
+            const x = this.x, y = this.y;
+            // Apply friction
+            this.vx *= 0.999;
+            this.vy *= 0.999;
 
-        // Apply friction
-        this.vx *= 0.999;
-        this.vy *= 0.999;
+            // Apply gravity
+            this.vy -= this.gravity * dt;
 
-        // Apply gravity
-        this.vy -= this.gravity * dt;
+            // Combined movement attempt to detect corner collisions
+            const combinedResult = this.tryToMove(this.vx * dt, this.vy * dt, dt);
 
-        // Combined movement attempt to detect corner collisions
-        const combinedResult = this.tryToMove(this.vx * dt, this.vy * dt, dt);
+            // If combined movement failed, try individual axes
+            if (!combinedResult) {
+                const hitX = !this.tryToMove(this.vx * dt, 0, dt);
+                const hitY = !this.tryToMove(0, this.vy * dt, dt);
 
-        // If combined movement failed, try individual axes
-        if (!combinedResult) {
-            const hitX = !this.tryToMove(this.vx * dt, 0, dt);
-            const hitY = !this.tryToMove(0, this.vy * dt, dt);
+                // Reset velocities on collision
+                if (hitX) this.vx = 0;
+                if (hitY) this.vy = 0;
+            }
 
-            // Reset velocities on collision
-            if (hitX) this.vx = 0;
-            if (hitY) this.vy = 0;
+            // Notify of movement changes
+            if (this.x !== x || this.y !== y) this.onMovement();
         }
 
         this.calculateGround();
-
-        // Notify of movement changes
-        if (this.x !== x || this.y !== y) this.onMovement();
-
-        // Update effects
-        for (const effect of Array.from(this.effects)) {
-            effect.time -= dt;
-            if (effect.time <= 0) {
-                this.effects.delete(effect);
-                effect.remove(this);
-            }
-        }
     };
 
     serverUpdate(dt: number): void {
@@ -291,13 +342,26 @@ export default abstract class Entity extends EntityTileBase {
         }
 
         this.update(dt);
+
+        // Update effects
+        let updatedAny = false;
+        for (const [id, effect] of Object.entries(this.effects)) {
+            effect.time -= dt;
+            if (effect.time <= 0) {
+                delete this.effects[id];
+                effect.timeout(this);
+                updatedAny = true;
+            }
+        }
+
+        if (updatedAny) this.applyAttributes();
     };
 
     getBlockCollisionAt(x: number, y: number) {
         return this.world.getBlock(x, y).getCollision(this.bb, x, y);
     };
 
-    private onMovement() {
+    protected onMovement() {
         this._x = this.x;
         this._y = this.y;
 
@@ -333,19 +397,19 @@ export default abstract class Entity extends EntityTileBase {
         this.groundBB.width = this.bb.width;
     };
 
-    getMovementData(): Record<string, typeof tAny> {
+    getMovementData() {
         return {
             x: this.x,
             y: this.y
         };
     };
 
-    getSpawnData(): Record<string, typeof tAny> {
+    getSpawnData() {
         return this.getMovementData();
     };
 
     broadcastMovement() {
-        this.world.broadcastPacketAt(this.x, new Packets.SEntityUpdate({
+        this.broadcastPacketHere(new Packets.SEntityUpdate({
             entityId: this.id,
             typeId: this.typeId,
             props: this.getMovementData()
@@ -353,7 +417,7 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     broadcastSpawn() {
-        this.world.broadcastPacketAt(this.x, new Packets.SEntityUpdate({
+        this.broadcastPacketHere(new Packets.SEntityUpdate({
             entityId: this.id,
             typeId: this.typeId,
             props: this.getSpawnData()
@@ -361,7 +425,7 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     broadcastDespawn() {
-        this.world.broadcastPacketAt(this.x, new Packets.SEntityRemove(this.id), [this]);
+        this.broadcastPacketHere(new Packets.SEntityRemove(this.id), [this]);
     };
 
     getDrops() {
@@ -372,9 +436,21 @@ export default abstract class Entity extends EntityTileBase {
         return 0;
     };
 
+    broadcastPacketHere(pk: Packet, exclude: Entity[] = [], immediate = false) {
+        this.world.broadcastPacketAt(this.x, pk, exclude, immediate);
+    };
+
+    broadcastSoundHere(sound: string, volume = 1) {
+        this.world.playSound(sound, this.x, this.y, volume);
+    };
+
     kill(broadcast = true) {
         for (const drop of this.getDrops()) this.world.dropItem(this.x, this.y, drop);
         this.world.dropXP(this.x, this.y, this.getXPDrops());
+        this.broadcastPacketHere(new Packets.SEntityAnimation({
+            entityId: this.id,
+            animation: {id: AnimationIds.DEATH, data: null}
+        }));
         this.despawn(broadcast);
     };
 
@@ -397,9 +473,7 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     applyEffects() {
-        for (const effect of this.effects) {
-            effect.apply(this);
-        }
+        for (const effect of Object.values(this.effects)) effect.apply(this);
     };
 
     protected resetAttributes() {
@@ -413,12 +487,17 @@ export default abstract class Entity extends EntityTileBase {
         this.immobile = false;
         this.invincible = false;
         this.invisible = false;
+        this.resistanceLevel = 0;
+        this.fireImmunity = false;
     };
 
     applyAttributes(reset = true) {
         if (reset) this.resetAttributes();
         this.applyEffects();
+        this.applyAttributeModifiers();
+    };
 
+    applyAttributeModifiers() {
         const mulKeys = Object.keys(this.attributeMultiplyModifiers);
         const addKeys = Object.keys(this.attributeAddModifiers);
 
@@ -474,15 +553,20 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     addEffect(effect: Effect, amplifier: number, duration: number) {
-        this.effects.add(new EffectInstance(effect, amplifier, duration));
+        const ex = this.effects[effect.typeId];
+        if (ex) {
+            if (ex.amplifier >= amplifier || (ex.amplifier === amplifier && ex.time > duration)) return;
+            effect.timeout(this);
+        }
+
+        this.effects[effect.typeId] = new EffectInstance(effect, amplifier, duration);
     };
 
     removeEffect(effect: Effect) {
-        for (const e of Array.from(this.effects)) {
-            if (e.effect.typeId === effect.typeId) {
-                this.effects.delete(e);
-                break;
-            }
+        const ex = this.effects[effect.typeId];
+        if (ex) {
+            effect.timeout(this);
+            delete this.effects[effect.typeId];
         }
     };
 }

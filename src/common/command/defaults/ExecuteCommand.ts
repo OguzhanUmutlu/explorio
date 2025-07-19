@@ -5,7 +5,6 @@ import SelectorToken from "@/command/token/SelectorToken";
 import PositionArgument from "@/command/arguments/PositionArgument";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
 import Position from "@/utils/Position";
-import {EntityNameMap} from "@/meta/Entities";
 
 export default class ExecuteCommand extends Command {
     posArg = new PositionArgument("position");
@@ -161,7 +160,7 @@ export default class ExecuteCommand extends Command {
 
                 const name = nameToken.rawText;
 
-                if (!(name in EntityNameMap)) {
+                if (!(name in sender.server.entityNameToId)) {
                     throw new CommandError(`Entity '${name}' does not exist.`);
                 }
 
@@ -172,7 +171,7 @@ export default class ExecuteCommand extends Command {
 
                 for (const entity of oldEntities) {
                     const loc = oldLocations[entity.id];
-                    const newEntity = loc.world.summonEntity(EntityNameMap[name], loc.x, loc.y);
+                    const newEntity = loc.world.summonEntity(sender.server.entityNameToId[name], loc.x, loc.y);
                     entities.push(newEntity);
                     positions[newEntity.id] = newEntity.copyPosition();
                 }

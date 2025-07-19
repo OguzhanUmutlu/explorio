@@ -118,16 +118,11 @@ export type ServerData = {
     preferSecure: boolean
 };
 
-function initClientPrinter() {
-    printer.tags.warn.textColor = "none";
-    printer.tags.error.textColor = "none";
-}
-
 export const ClientEntityClasses = <Record<EntityIds, ClassOf<CEntity>>>{};
 
 export async function initClientThings() {
+    // @ts-expect-error .glob is a Vite feature
     SoundFiles.push(...Object.keys(import.meta.glob("../../client/assets/sounds/**/*")));
-    initClientPrinter();
     loadOptions();
     initClientEntities();
     await initCommon();
@@ -459,6 +454,7 @@ function renderHandItem(
     );
 }
 
+// Renderers are here because we may render them outside the game like the main menu's skin preview feature
 export function renderPlayerModel(
     ctx: CanvasRenderingContext2D, O: {
         SIZE: number, bbPos: { x: number, y: number }, bb: BoundingBox, skin: SkinData, bodyRotation: boolean,

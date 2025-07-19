@@ -16,9 +16,10 @@ import EntityStruct from "@/structs/entity/EntityStruct";
 import WorldStruct from "@/structs/world/WorldStruct";
 import X from "stramp";
 import InventoryStruct from "@/structs/item/InventoryStruct";
-import {registerAny} from "@/utils/Inits";
 import Entity from "@/entity/Entity";
 import Position from "@/utils/Position";
+import {FallDamage} from "@/entity/damage/FallDamage";
+import {Block} from "@/block/Block";
 
 const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
     [Containers.Closed]: ["hotbar", "offhand"],
@@ -37,7 +38,6 @@ const nonShiftables: InventoryName[] = ["cursor", "player", "offhand", "hotbar",
 const temporaryInventories: InventoryName[] = ["cursor", "craftingSmall", "craftingBig"];
 
 export default class Player extends Entity implements CommandSender {
-    static _ = registerAny(this);
     typeId = EntityIds.PLAYER;
     typeName = "player";
     saveStruct = EntityStruct.extend({
@@ -86,6 +86,7 @@ export default class Player extends Entity implements CommandSender {
     containerX = 0;
     containerY = 0;
     inventories = <Record<InventoryName, Inventory>>{};
+    fallY = 0;
 
     init() {
         for (const k in InventorySizes) {
@@ -236,6 +237,7 @@ export default class Player extends Entity implements CommandSender {
     serverUpdate(dt: number) {
         const gravity = this.gravity;
         this.gravity = 0;
+        const wasOnGround = this.onGround;
         super.serverUpdate(dt);
         this.gravity = gravity;
         const chunkX = this.chunkX;
@@ -283,7 +285,49 @@ export default class Player extends Entity implements CommandSender {
             this.network.syncInventory(<InventoryName>name);
         }
 
+        const isOnGround = this.onGround;
+        const collision = this.groundCollision;
+
+        if (!wasOnGround && isOnGround) {
+            const fallDistance = this.fallY - this.y;
+            this.damage(new FallDamage(this, new Block(new Position(collision.x, collision.y, 0, this.world), collision.block), fallDistance));
+            this.fallY = this.y;
+        } else if (!isOnGround) {
+            if (this.y > this.fallY) this.fallY = this.y;
+        }
+
         this.network.releaseBatch();
+    };
+
+    kill(broadcast: boolean = true) {
+        if (!this.world.gameRules.keepInventory) {
+            for (const inv in this.inventories) for (const item of this.inventories[<InventoryName>inv].getContents()) {
+                if (item && item.count > 0) {
+                    this.world.dropItem(this.x, this.bb.height + this.bb.y, item.clone());
+                }
+            }
+            this.clearInventories();
+            this.network.sendInventories();
+        }
+        super.kill(broadcast);
+        this.breaking = null;
+        this.breakingTime = 0;
+        this.broadcastBlockBreaking();
+    };
+
+    respawn() {
+        this.despawned = false;
+        this.breaking = null;
+        this.breakingTime = 0;
+        this.health = this.maxHealth;
+        this.food = this.maxFood;
+        const spawn = this.world.getSpawnPoint();
+        this.teleport(spawn.x, spawn.y, this.world, false);
+        this.broadcastBlockBreaking();
+        this.network.sendAttributes();
+        this.network.sendPosition();
+        this.broadcastSpawn();
+        this.onMovement();
     };
 
     despawn() {
@@ -291,10 +335,12 @@ export default class Player extends Entity implements CommandSender {
         for (const x of this.viewingChunks) {
             this.world.getChunk(x, true).dereference();
         }
+        this.network.sendPacket(new Packets.SEntityRemove(this.id));
     };
 
     teleport(x: number, y: number, world = this.world, send = true) {
         super.teleport(x, y, world);
+        this.fallY = this.y;
         if (send) this.network.sendPosition();
 
         return this;
@@ -307,7 +353,7 @@ export default class Player extends Entity implements CommandSender {
             y: this.breaking[1],
             time: this.breakingTime
         }), [this]);
-        else this.world.broadcastPacketAt(this.x, new Packets.SBlockBreakingStop({
+        else this.broadcastPacketHere(new Packets.SBlockBreakingStop({
             entityId: this.id
         }), [this]);
     };
@@ -319,7 +365,7 @@ export default class Player extends Entity implements CommandSender {
         if (this.broadcastedItem && this.broadcastedItem.equals(item, false, false)) return;
 
         this.broadcastedItem = item;
-        this.world.broadcastPacketAt(this.x, new Packets.SEntityUpdate({
+        this.broadcastPacketHere(new Packets.SEntityUpdate({
             entityId: this.id,
             typeId: this.typeId,
             props: {handItemId: item ? item.id : 0, handItemMeta: item ? item.meta : 0}
@@ -404,9 +450,8 @@ export default class Player extends Entity implements CommandSender {
     static new(name: string) {
         const player = new Player;
         player.name = name;
-        const world = (<Position>player).world = getServer().defaultWorld;
-        player.x = 0;
-        player.y = world.getHighTransparentHeight(player.x);
+        const spawn = getServer().defaultWorld.getSpawnPoint();
+        player.teleport(spawn.x, spawn.y, spawn.world, false);
         return player;
     };
 
@@ -446,11 +491,8 @@ export default class Player extends Entity implements CommandSender {
 
     applyAttributes(reset = true) {
         if (reset) this.resetAttributes();
-
         this.applyGameModeAttributes();
-
         super.applyAttributes(false);
-
         this.network?.sendAttributes();
     };
 

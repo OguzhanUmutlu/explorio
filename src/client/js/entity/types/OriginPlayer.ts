@@ -12,6 +12,8 @@ export default class OriginPlayer extends CPlayer {
     name = "";
     hoveringIndex = 0;
     hoveringInventory: InventoryName | null = null;
+    targetMomentum = 0;
+    momentum = 0;
 
     teleport(x: number, y: number, world = this.world) {
         return super.teleport(x, y, world, false);
@@ -28,11 +30,7 @@ export default class OriginPlayer extends CPlayer {
     };
 
     walkHorizontal(sign: 1 | -1, dt: number) {
-        this.tryToMove(
-            this.isFlying
-                ? sign * this.flySpeed * dt
-                : sign * (Keyboard.shift ? 1.2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed * dt,
-            0, dt);
+        this.tryToMove(this.momentum * dt, 0, dt);
     };
 
     rightClicked() {
@@ -71,8 +69,17 @@ export default class OriginPlayer extends CPlayer {
 
         if (Keyboard.s && this.isFlying) this.tryToMove(0, -this.flySpeed * dt, dt);
 
-        if (Keyboard.a) this.walkHorizontal(-1, dt);
-        if (Keyboard.d) this.walkHorizontal(1, dt);
+        const direction = Keyboard.a ? -1 : (Keyboard.d ? 1 : 0);
+
+        this.targetMomentum = this.isFlying
+            ? direction * this.flySpeed
+            : direction * (Keyboard.shift ? 1.2 : 1) * (this.onGround ? 1 : 0.8) * this.walkSpeed;
+
+        if (Math.sign(this.momentum) !== direction && direction !== 0) this.momentum = 0;
+
+        this.momentum += (this.targetMomentum - this.momentum) * 10 * dt;
+
+        if (direction) this.walkHorizontal(direction, dt);
 
         if (this.isFlying && this.onGround && this.canToggleFly) {
             clientNetwork.sendToggleFlight();

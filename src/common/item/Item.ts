@@ -1,17 +1,23 @@
-import {FullId2Data} from "@/meta/ItemIds";
-import {im2f} from "@/meta/Items";
+import {im2f} from "@/meta/ItemInformation";
 import ItemStruct from "@/structs/item/ItemStruct";
 import {ItemComponents} from "@/structs/item/ItemComponentsStruct";
+import {f2data} from "@/item/ItemFactory";
+
+export const DefaultItemComponents: ItemComponents = {
+    damage: 0
+};
 
 export default class Item {
     maxStack: number;
+    components: ItemComponents;
 
     constructor(
         public id: number,
         public meta: number = 0,
         public count: number = 1,
-        public components: ItemComponents = {}
+        components: Partial<ItemComponents> = {}
     ) {
+        this.components = {...DefaultItemComponents, ...components}
         this.maxStack = this.toMetadata().maxStack;
     };
 
@@ -20,7 +26,7 @@ export default class Item {
     };
 
     toMetadata() {
-        return FullId2Data[this.fullId];
+        return f2data(this.fullId);
     };
 
     getTexture() {

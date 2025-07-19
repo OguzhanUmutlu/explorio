@@ -1,9 +1,3 @@
-import BlockData from "@/item/BlockData";
-
-export const ItemMetaBits = 5;
-export const ItemMetaMax = 1 << ItemMetaBits;
-export const ItemMetaMaxN = ItemMetaMax - 1;
-
 export enum ItemIds {
     AIR,
     BEDROCK,
@@ -12,26 +6,30 @@ export enum ItemIds {
     SNOWY_GRASS_BLOCK,
     DIRT,
     SAND,
+    CLAY,
+    GRAVEL,
     GLASS,
     COBBLESTONE,
     LOG,
     LEAVES,
     NATURAL_LOG,
-    GRAVEL,
     WATER,
     LAVA,
     COAL_ORE,
+    COPPER_ORE,
     IRON_ORE,
     GOLD_ORE,
     LAPIS_ORE,
     REDSTONE_ORE,
     DIAMOND_ORE,
     DEEPSLATE_COAL_ORE,
+    DEEPSLATE_COPPER_ORE,
     DEEPSLATE_IRON_ORE,
     DEEPSLATE_GOLD_ORE,
     DEEPSLATE_LAPIS_ORE,
     DEEPSLATE_REDSTONE_ORE,
     DEEPSLATE_DIAMOND_ORE,
+    DEEPSLATE_EMERALD_ORE,
     DEEPSLATE,
     COBBLED_DEEPSLATE,
     ALLIUM,
@@ -57,28 +55,32 @@ export enum ItemIds {
     COBBLESTONE_STAIRS,
     DIRT_STAIRS,
     COAL_BLOCK,
+    COPPER_BLOCK,
     IRON_BLOCK,
     GOLD_BLOCK,
     DIAMOND_BLOCK,
+    RAW_COPPER_BLOCK,
+    RAW_IRON_BLOCK,
+    RAW_GOLD_BLOCK,
     ANVIL,
     ENTITY_SPAWNER,
     CRAFTING_TABLE,
     CHEST,
     FURNACE,
-
     CHARCOAL,
     APPLE,
     STICK,
     FLINT,
+    RAW_COPPER,
     RAW_IRON,
     RAW_GOLD,
     COAL,
+    COPPER_INGOT,
     IRON_INGOT,
     GOLD_INGOT,
     LAPIS,
     REDSTONE,
     DIAMOND,
-
     WOODEN_SWORD,
     WOODEN_AXE,
     WOODEN_PICKAXE,
@@ -89,6 +91,11 @@ export enum ItemIds {
     STONE_PICKAXE,
     STONE_SHOVEL,
     STONE_HOE,
+    COPPER_SWORD,
+    COPPER_AXE,
+    COPPER_PICKAXE,
+    COPPER_SHOVEL,
+    COPPER_HOE,
     IRON_SWORD,
     IRON_AXE,
     IRON_PICKAXE,
@@ -111,24 +118,4 @@ export enum ItemIds {
     NETHERITE_HOE,
 
     __MAX__
-}
-
-/*** @description Item id -> Item metadata */
-export const Id2Data = <Record<number, BlockData>>{};
-
-/*** @description Maps block full ids to block metadata */
-export const FullId2Data = <Record<number, BlockData>>{};
-
-/*** @description Item name -> Item metadata */
-export const Items = <Record<keyof typeof ItemIds, BlockData>>{};
-
-/*** @description Uppercase item name -> Full id */
-export const FullIds = <Record<keyof typeof ItemIds, number>>{};
-
-/*** @description Maps item identifiers to item metadata */
-export const ItemIdentifiers: Record<string, BlockData> = {};
-
-for (let id = 0; id < ItemIds.__MAX__; id++) {
-    ItemIds[ItemIds[id]] = id;
-    FullIds[ItemIds[id]] = id << ItemMetaBits;
 }

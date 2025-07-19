@@ -11,44 +11,63 @@
     "lint": "eslint src",
     "build:client": "vite build",
     "build:desktop": "cd src/desktop && npm run build && cd ../../",
-    "build:docs": "typedoc"
+    "build:docs": "typedoc",
+    "prepublishOnly": "tsx ./scripts/publish.ts"
   },
-  "keywords": [],
+  "keywords": [
+    "explorio",
+    "explorion",
+    "block",
+    "game",
+    "block-game",
+    "block game"
+  ],
   "author": "OguzhanUmutlu",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OguzhanUmutlu/explorio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OguzhanUmutlu/explorio/issues"
+  },
+  "homepage": "https://github.com/OguzhanUmutlu/explorio#readme",
   "dependencies": {
     "@oneidentity/zstd-js": "^1.0.3",
-    "@zenfs/core": "^2.2.0",
-    "@zenfs/dom": "^1.1.7",
+    "@zenfs/core": "^2.3.3",
+    "@zenfs/dom": "^1.1.8",
     "alea": "^1.0.1",
+    "bson": "^6.10.4",
     "buffer": "^6.0.3",
-    "express": "^4.21.1",
-    "express-rate-limit": "^7.5.0",
-    "fancy-printer": "^1.2.65",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.1",
+    "fancy-printer": "^2.1.1",
+    "fast-glob": "^3.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "simplex-noise": "^4.0.3",
-    "stramp": "^1.8.3",
-    "ws": "^8.18.0",
-    "zod": "^3.23.8"
+    "stramp": "^1.9.7",
+    "ws": "^8.18.3",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-decorators": "^7.25.9",
-    "@babel/plugin-syntax-decorators": "^7.25.9",
-    "@eslint/js": "^9.16.0",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.9.0",
+    "@babel/plugin-proposal-decorators": "^7.27.1",
+    "@babel/plugin-syntax-decorators": "^7.27.1",
+    "@eslint/js": "^9.30.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.10",
     "@types/react-dom": "^18.3.1",
-    "@types/ws": "^8.5.13",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^4.6.0",
     "archiver": "^7.0.1",
-    "eslint": "^9.16.0",
-    "tsx": "^4.19.3",
-    "typedoc": "^0.27.2",
-    "typescript": "^5.6.3",
-    "typescript-eslint": "^8.16.0",
-    "vite": "^6.2.6",
+    "cheerio": "^1.1.0",
+    "eslint": "^9.30.1",
+    "tsx": "^4.20.3",
+    "typedoc": "^0.28.7",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.35.1",
+    "vite": "^7.0.0",
     "vite-plugin-copy": "^0.1.6",
-    "vite-tsconfig-paths": "^5.1.3"
+    "vite-tsconfig-paths": "^5.1.4"
   }
 }

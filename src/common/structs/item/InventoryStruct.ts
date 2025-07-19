@@ -4,6 +4,7 @@ import Item from "@/item/Item";
 import {InventoryContentStruct} from "@/structs/item/ItemStruct";
 
 export default class InventoryStruct extends Bin<Inventory> {
+    isOptional = false as const;
     name: string;
     listBin: Bin<Item[]>;
 

@@ -4,7 +4,7 @@ import World from "@/world/World";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
 import DefaultGenerator from "@/world/generators/DefaultGenerator";
-import {im2f} from "@/meta/Items";
+import {im2f} from "@/meta/ItemInformation";
 import {ChunkLength} from "@/meta/WorldConstants";
 
 export default class CustomGenerator extends Generator {
