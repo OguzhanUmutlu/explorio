@@ -173,11 +173,17 @@ export function updateMouse() {
 let intervalId: ReturnType<typeof setTimeout>;
 let frameId = 0;
 let _fps = [];
+let lastBlur = 2;
 
 function render() {
     frameId = requestAnimationFrame(render);
 
     if (!chatBox || !canvas) return;
+
+    if (lastBlur !== Options.blur_px) {
+        lastBlur = Options.blur_px;
+        document.documentElement.style.setProperty("--blur", `${lastBlur}px`);
+    }
 
     if (!chatContainer[0] && chatBox.scrollTop !== chatBox.scrollHeight) {
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -358,7 +364,7 @@ let chatIndex = 0;
 let lastRender = Date.now() - 1;
 
 function onWheel(e: WheelEvent) {
-    if (isAnyUIOpen()) return;
+    if (isAnyUIOpen() || !Options.dynamic_zoom) return;
 
     if (e.altKey) {
         if (e.deltaY > 0) cameraZoomMultiplier *= 0.9;
@@ -811,6 +817,7 @@ export function saveAndQuit() {
 // todo: add and implement shield in Damage.ts
 // todo: desktop singleplayer should be automatically hosted on a random port, there should be a switch to allow outside connections
 // todo: seas no longer generate?
+// todo: in mobile: cannot break blocks, cannot move because there's no movement buttons
 
 function isInChat() {
     return chatContainer[0];

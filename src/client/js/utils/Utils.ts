@@ -213,6 +213,7 @@ export type OptionsType = {
     brightness: number;
     dynamic_zoom: number;
     dynamic_lights: 0 | 1 | 2; // off, fast fancy
+    blur_px: number;
 
     subtitles: 0 | 1;
     high_contrast: 0 | 1;
@@ -301,6 +302,7 @@ export const DefaultOptions: OptionsType = {
     brightness: 100,
     dynamic_zoom: 1,
     dynamic_lights: 0,
+    blur_px: 0,
 
     subtitles: 0,
     high_contrast: 0,

@@ -244,7 +244,8 @@ export const Menus: Record<OptionPages, Menu> = {
         new OptionGroup([
             new ToggleOption("dynamic_lights", "Dynamic Lights"),
             new ButtonOption("Animations...", "animations"),
-        ])
+        ]),
+        new NumberOption("blur_px", "Blur", "Gaussian blur px value", 0, 30, 1)
     ]),
     controls: new NormalMenu("Controls", "main", [
         new OptionGroup([

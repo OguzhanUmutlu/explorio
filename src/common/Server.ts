@@ -756,7 +756,6 @@ export default class Server {
             player.serverUpdate(dt);
         }
 
-        console.time();
         this.tickAccumulator += dt;
         const df = 1 / this.targetTickRate;
         if (this.tickAccumulator > df || this.tickNow > 0) {
@@ -764,7 +763,6 @@ export default class Server {
             this.tickAccumulator %= df;
             this.tick();
         }
-        console.timeEnd();
     };
 
     tick() {
