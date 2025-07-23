@@ -8,7 +8,6 @@ import Position from "@/utils/Position";
 
 import TeleportCommand from "@/command/defaults/TeleportCommand";
 import {
-    checkLag,
     ClassOf,
     SelectorSorters,
     setServer,
@@ -163,6 +162,7 @@ export default class Server {
     closed = false;
     closeReason = "";
     terminalHistory: string[] = [];
+    tickCooldown = 0;
 
     entityNameToId: Record<string, number> = {};
     entityIdToName = <Record<number, string>>{};
@@ -746,25 +746,17 @@ export default class Server {
 
     update(dt: number) {
         if (this.pausedUpdates) return;
-        checkLag("server worlds update");
 
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
         }
-
-        checkLag("server worlds update", 5);
-
-        checkLag("server update players");
 
         for (const playerName in this.players) {
             const player = this.players[playerName];
             player.serverUpdate(dt);
         }
 
-        checkLag("server update players", 5);
-
-        checkLag("server tick");
-
+        console.time();
         this.tickAccumulator += dt;
         const df = 1 / this.targetTickRate;
         if (this.tickAccumulator > df || this.tickNow > 0) {
@@ -772,19 +764,22 @@ export default class Server {
             this.tickAccumulator %= df;
             this.tick();
         }
-
-        checkLag("server tick", 500);
+        console.timeEnd();
     };
 
     tick() {
         if (this.tickFrozen && this.stepTicks <= 0) return;
         this.stepTicks = 0;
-
         this.ticks++;
-
-        this._ticksLastSecond = this._ticksLastSecond.filter(i => i > Date.now() - 1000);
-        this._ticksLastSecond.push(Date.now());
+        const now = Date.now();
+        this._ticksLastSecond = this._ticksLastSecond.filter(i => i > now - 1000);
+        this._ticksLastSecond.push(now);
         this.tickRate = this._ticksLastSecond.length;
+
+        if (this.tickRate < 15 && this.ticks > 20 && this.tickCooldown < now) {
+            printer.warn(`Lag detected: ${this.tickRate} TPS`);
+            this.tickCooldown = now + 3000;
+        }
 
         if (++this.saveCounter > this.config.saveIntervalTicks) {
             this.saveAll();

@@ -91,7 +91,11 @@ const logOptions: Partial<ItemMetaDataConfig> = {
 I[ItemIds.LOG] = logOptions;
 I[ItemIds.NATURAL_LOG] = {
     ...logOptions,
-    metas: logOptions.metas.map(i => ({...i, texture: i.identifier, identifier: i.identifier + "_natural"})),
+    metas: logOptions.metas.map(i => ({
+        ...i,
+        texture: i.texture ?? i.identifier,
+        identifier: i.identifier + "_natural"
+    })),
     name: "Natural Log", canBePhased: true, isOpaque: false
 };
 
@@ -144,7 +148,7 @@ const coalOre: Partial<ItemMetaDataConfig> = {
 };
 const copperOre: Partial<ItemMetaDataConfig> = {
     breakTime: 15, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone, smeltXP: 0.7,
-    dropsWithToolTypes: ["pickaxe"], drops: [[new ID(ItemIds.RAW_COPPER)]], requiredToolLevel: ToolLevels.STONE,
+    dropsWithToolTypes: ["pickaxe"], drops: [[new ID(ItemIds.RAW_COPPER, 0, [1,3])]], requiredToolLevel: ToolLevels.STONE,
     smeltsTo: new ID(ItemIds.COPPER_INGOT), breakTimes: {pickaxe: [7.5, 1.15, 0.9, 0.75, 1.25, 0.6, 0.5]}
 };
 const ironOre: Partial<ItemMetaDataConfig> = {
@@ -270,6 +274,10 @@ I[ItemIds.COAL] = {
 
 I[ItemIds.COPPER_INGOT] = {
     identifier: "copper_ingot", name: "Copper Ingot", isBlock: false
+};
+
+I[ItemIds.RAW_COPPER] = {
+    identifier: "raw_copper", name: "Raw Copper", isBlock: false, smeltsTo: new ID(ItemIds.COPPER_INGOT), smeltXP: 0.2
 };
 
 I[ItemIds.RAW_IRON] = {

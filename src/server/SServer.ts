@@ -106,6 +106,7 @@ export default class SServer extends Server {
         const listenForTerminal = async () => {
             const cmd = await printer.readline("> ", {allowClear: true, history: this.terminalHistory});
             if (!cmd) return exit();
+            this.terminalHistory.push(cmd);
             this.executeCommandLabel(this.sender, this.sender, this.sender, cmd);
             setTimeout(listenForTerminal);
         };

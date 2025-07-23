@@ -313,13 +313,11 @@ export default class World {
 
                 for (const entity of chunkData.entities) {
                     (<Position>entity).world = this;
-                    entity.init(false);
-                    entity.despawn(false);
+                    chunk.entities.add(entity);
                 }
                 for (const tile of chunkData.tiles) {
                     (<Position>tile).world = this;
-                    tile.init();
-                    tile.despawn();
+                    chunk.tiles.add(tile);
                 }
 
                 Object.assign(chunk.updateSchedules, chunkData.updateSchedules);
