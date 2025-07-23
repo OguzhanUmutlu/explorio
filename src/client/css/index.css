@@ -10,7 +10,7 @@ body {
     background-image: url("../assets/textures/gui/panorama.png");
     background-size: 100% 100%;
     aspect-ratio: 1479 / 908;
-    filter: blur(5px);
+    filter: blur(2px);
     z-index: -1;
     animation: panorama 20s infinite alternate linear;
 }
