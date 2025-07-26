@@ -1,5 +1,6 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
+import Player from "@/entity/defaults/Player";
 
 export default class KillCommand extends DefinitiveCommand {
     constructor() {
@@ -20,6 +21,16 @@ export default class KillCommand extends DefinitiveCommand {
                 }
 
                 sender.sendMessage(`Killed ${entities.length} entities: ${entities.map(p => p.name).join(", ")}`);
+            }),
+        new CommandDefinition()
+            .then(sender => {
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("You must be a player to use this command.");
+                    return;
+                }
+
+                sender.sendMessage(`Killed ${sender.name}`);
+                sender.kill();
             })
     ];
 }

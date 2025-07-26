@@ -309,6 +309,7 @@ export default class Player extends Entity implements CommandSender {
             }
             this.clearInventories();
             this.network.sendInventories();
+            if (this.xpLevels > 0) this.world.dropXP(this.x, this.y, Math.min(100, this.xpLevels * 7))
         }
         super.kill(broadcast);
         this.breaking = null;

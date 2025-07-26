@@ -812,7 +812,6 @@ export function saveAndQuit() {
 // todo: render health/food/armor/breathe/xp
 // todo: make disconnect screen better, add a back button
 // todo: items disappear on restart, I think every entity does?
-// todo: on death the xp should be decreased
 // todo: item/block states and maybe rename meta to variant?
 // todo: add and implement shield in Damage.ts
 // todo: desktop singleplayer should be automatically hosted on a random port, there should be a switch to allow outside connections

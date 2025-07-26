@@ -446,7 +446,8 @@ export default abstract class Entity extends EntityTileBase {
 
     kill(broadcast = true) {
         for (const drop of this.getDrops()) this.world.dropItem(this.x, this.y, drop);
-        this.world.dropXP(this.x, this.y, this.getXPDrops());
+        const xpDrops = this.getXPDrops();
+        if (xpDrops > 0) this.world.dropXP(this.x, this.y, xpDrops);
         this.broadcastPacketHere(new Packets.SEntityAnimation({
             entityId: this.id,
             animation: {id: AnimationIds.DEATH, data: null}
