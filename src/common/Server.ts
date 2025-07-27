@@ -833,32 +833,34 @@ export default class Server {
         this.broadcastMessage(sender.name + " > " + message);
     };
 
-    executeCommandLabel(sender: CommandSender, as: CommandAs, at: Position, label: string) {
+    executeCommandLabel(sender: CommandSender, as: CommandAs, at: Position, label: string): CommandError | number {
         const split = label.split(" ");
         const commandLabel = split[0].toLowerCase();
         const command = this.commands[commandLabel];
 
-        if (!command || (command.permission && !sender.hasPermission(command.permission))) {
-            const allowed: string[] = [];
-            for (const cmd in this.commands) {
-                const c = this.commands[cmd];
-                if (!c.permission || sender.hasPermission(c.permission)) allowed.push(cmd, ...c.aliases);
-            }
-
-            allowed.sort((a, b) => a.localeCompare(b));
-
-            const suggested = suggestString(commandLabel, allowed.filter(i => i !== "help" && /^[a-zA-Z\d]+$/.test(i)));
-            if (suggested) {
-                sender.sendMessage(`§cUnknown command: ${commandLabel}. Did you mean §e${suggested}§c? Type /help for a list of commands`);
-                return;
-            }
-
-            sender.sendMessage(`§cUnknown command: ${commandLabel}. Type /help for a list of commands`);
-            return;
-        }
-
-        const args = split.slice(1);
         try {
+            if (!command || (command.permission && !sender.hasPermission(command.permission))) {
+                const allowed: string[] = [];
+                for (const cmd in this.commands) {
+                    const c = this.commands[cmd];
+                    if (!c.permission || sender.hasPermission(c.permission)) allowed.push(cmd, ...c.aliases);
+                }
+
+                allowed.sort((a, b) => a.localeCompare(b));
+
+                const suggested = suggestString(commandLabel, allowed.filter(i => i !== "help" && /^[a-zA-Z\d]+$/.test(i)));
+                if (suggested) {
+                    const err = new CommandError(`§cUnknown command: ${commandLabel}. Did you mean §e${suggested}§c? Type /help for a list of commands`);
+                    sender.sendMessage(`§c${err.message}`);
+                    return err;
+                }
+
+                const err = new CommandError(`Unknown command: ${commandLabel}. Type /help for a list of commands`);
+                sender.sendMessage(`§c${err.message}`);
+                return err;
+            }
+
+            const args = split.slice(1);
             return command.execute(sender, as, at, args, label);
         } catch (e) {
             if (e instanceof CommandError) {
@@ -867,8 +869,8 @@ export default class Server {
                 printer.error(e);
                 if (as instanceof Player) as.kick("§cAn error occurred while executing this command.");
             }
+            return e;
         }
-        return Error;
     };
 
     processMessage(player: Player, message: string) {

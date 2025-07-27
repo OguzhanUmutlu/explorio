@@ -1,13 +1,13 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
-import {accessPathSafely, formatDataForChat, operatePathSafely, splitPathSafely} from "@/utils/Utils";
+import {accessPathSafely, anyToNumber, formatDataForChat, operatePathSafely, splitPathSafely} from "@/utils/Utils";
 import CommandError from "@/command/CommandError";
 import NumberArgument from "@/command/arguments/NumberArgument";
 import TextArgument from "@/command/arguments/TextArgument";
 import ArrayArgument from "@/command/arguments/ArrayArgument";
 import ObjectArgument from "@/command/arguments/ObjectArgument";
 
-function dataAccess(data: unknown, path: string, scale: number) {
+export function dataAccess(data: unknown, path: string, scale: number) {
     try {
         data = path ? accessPathSafely(data, splitPathSafely(path)) : data;
     } catch (e) {
@@ -22,7 +22,7 @@ function dataAccess(data: unknown, path: string, scale: number) {
     return data;
 }
 
-function dataOperate(data: unknown, path: string, operator: string, value: unknown) {
+export function dataOperate(data: unknown, path: string, operator: string, value: unknown) {
     try {
         operatePathSafely(data, path, operator, value);
     } catch (e) {
@@ -45,6 +45,7 @@ export default class DataCommand extends DefinitiveCommand {
             .then((sender, _, __, entity, path, scale) => {
                 const data = dataAccess(entity.data, path, scale);
                 sender.sendMessage("Entity §a" + entity.name + "§r's data" + (path ? " for §a" + path + " §ris" : "") + ":\n" + formatDataForChat(data));
+                return anyToNumber(data);
             }),
         new CommandDefinition()
             .addLabelArgument("get")
@@ -54,6 +55,7 @@ export default class DataCommand extends DefinitiveCommand {
             .then((sender, _, __, path, scale) => {
                 const data = dataAccess(sender.server.storage, path, scale);
                 sender.sendMessage("Storage's data" + (path ? " for §a" + path + " §ris" : "") + ":\n" + formatDataForChat(data));
+                return anyToNumber(data);
             }),
         new CommandDefinition()
             .addLabelArgument("set")
@@ -79,6 +81,7 @@ export default class DataCommand extends DefinitiveCommand {
                 const value = dataAccess(sender.server.storage, path2, null);
                 dataOperate(sender.server.storage, path1, op, value);
                 sender.sendMessage("Storage's data" + " for §a" + path1 + " §ris set to" + ": " + formatDataForChat(value));
+                return anyToNumber(value);
             }),
         new CommandDefinition()
             .addLabelArgument("append")
@@ -89,6 +92,7 @@ export default class DataCommand extends DefinitiveCommand {
                 const value = dataAccess(sender.server.storage, path2, null);
                 dataOperate(sender.server.storage, path1, "append", value);
                 sender.sendMessage("Storage's data" + " for §a" + path1 + " §ris set to" + ": " + formatDataForChat(value));
+                return anyToNumber(value);
             })
     ];
 }

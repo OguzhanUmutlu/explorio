@@ -16,9 +16,7 @@ export default class GiveCommand extends DefinitiveCommand {
             .addItemArgument("item")
             .addNumberArgument("count", o => o.setDefault(1).setOptional())
             .then((sender, _, __, players, item, count) => {
-                if (players.length === 0) {
-                    throw new CommandError("No players given.");
-                }
+                if (players.length === 0) throw new CommandError("No players given.");
 
                 for (const player of players) {
                     player.addItem(item.toItem(count));

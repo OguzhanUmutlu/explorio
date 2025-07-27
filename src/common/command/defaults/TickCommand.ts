@@ -12,6 +12,7 @@ export default class TickCommand extends DefinitiveCommand {
             .setPermission("command.tick.query")
             .then(sender => {
                 sender.sendMessage("Server's current tick rate is: " + sender.server.tickRate.toFixed(2) + "TPS");
+                return sender.server.tickRate;
             }),
         new CommandDefinition()
             .addLabelArgument("freeze")
@@ -34,7 +35,7 @@ export default class TickCommand extends DefinitiveCommand {
             .then((sender, _, __, rate) => {
                 if (!rate) {
                     sender.sendMessage("Server's current target tick rate is: " + sender.server.targetTickRate.toFixed(2) + "TPS");
-                    return;
+                    return sender.server.targetTickRate;
                 }
 
                 sender.server.targetTickRate = rate;

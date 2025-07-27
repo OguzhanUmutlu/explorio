@@ -1,6 +1,7 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
 import Player from "@/entity/defaults/Player";
+import CommandError from "@/command/CommandError";
 
 export default class KickCommand extends DefinitiveCommand {
     constructor() {
@@ -15,9 +16,9 @@ export default class KickCommand extends DefinitiveCommand {
                 .setMin(1))
             .addTextArgument("reason", o => o.setOptional().setDefault("Kicked by an operator"))
             .then((sender, _, __, players, reason) => {
-                for (const player of players) {
-                    player.kick(reason);
-                }
+                if (players.length === 0) throw new CommandError("No players given.");
+
+                for (const player of players) player.kick(reason);
 
                 sender.sendMessage(`Kicked ${players.length} players: ${players.map(p => p.name).join(", ")}`);
             })

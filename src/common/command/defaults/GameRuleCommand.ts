@@ -3,6 +3,7 @@ import CommandDefinition from "@/command/CommandDefinition";
 import {ZWorldMetaData} from "@/world/World";
 import CommandSender from "@/command/CommandSender";
 import {ChunkBlockAmount} from "@/meta/WorldConstants";
+import CommandError from "@/command/CommandError";
 
 const gameRules = ZWorldMetaData.shape.gameRules.shape;
 const gameRuleNames = Object.keys(gameRules);
@@ -11,20 +12,17 @@ const boolGameRules = gameRuleNames.filter(rule => gameRules[rule]._def.typeName
 
 function handleRuleSet(sender: CommandSender, rule: string, value: number | boolean) {
     if (!(rule in sender.world.gameRules)) {
-        sender.sendMessage("§cUnknown game rule: " + rule);
-        return;
+        throw new CommandError("Unknown game rule: " + rule);
     }
 
     const oldValue = sender.world.gameRules[rule];
 
     if (rule === "randomTickSpeed" && (+value < 0 || +value > ChunkBlockAmount)) {
-        sender.sendMessage("Random tick speed must be between 0 and " + ChunkBlockAmount);
-        return;
+        throw new CommandError("Random tick speed must be between 0 and " + ChunkBlockAmount);
     }
 
     if (oldValue === value) {
-        sender.sendMessage("Game rule " + rule + " is already set to " + value);
-        return;
+        throw new CommandError("Game rule " + rule + " is already set to " + value);
     }
 
     sender.world.gameRules[rule] = value;
@@ -52,13 +50,8 @@ export default class GameRuleCommand extends DefinitiveCommand {
         new CommandDefinition()
             .addTextArgument("rule", o => o.addChoices(gameRuleNames))
             .then((sender, _, __, rule) => {
-                if (!(rule in sender.world.gameRules)) {
-                    sender.sendMessage("§cUnknown game rule: " + rule);
-                    return;
-                }
-
+                if (!(rule in sender.world.gameRules)) throw new CommandError("Unknown game rule: " + rule);
                 const value = sender.world.gameRules[rule];
-
                 sender.sendMessage("Game rule " + rule + ": " + value);
             })
     ];

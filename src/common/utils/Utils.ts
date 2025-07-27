@@ -629,3 +629,28 @@ export function suggestString(input: string, strings: string[], maxDistance = 2)
 
     return best && best.score <= maxDistance ? best.str : null;
 }
+
+export function anyToNumber(data: unknown) {
+    switch (typeof data) {
+        case "number":
+            return data;
+        case "string":
+            return data.length;
+        case "bigint":
+            return Number(data);
+        case "boolean":
+            return data ? 1 : 0;
+        case "object":
+            if (data === null) return 0;
+            if (Array.isArray(data) || data instanceof Uint8Array || data instanceof Uint16Array || data instanceof Uint32Array ||
+                data instanceof Int8Array || data instanceof Int16Array || data instanceof Int32Array ||
+                data instanceof Float32Array || data instanceof Float64Array) return data.length;
+            if (data instanceof Map || data instanceof Set) return data.size;
+            if (data instanceof Date) return data.getTime();
+            return Object.keys(data).length;
+        case "function":
+        case "symbol":
+        case "undefined":
+            return 0;
+    }
+}

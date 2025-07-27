@@ -22,8 +22,9 @@ export default class ListCommand extends DefinitiveCommand {
         new CommandDefinition()
             .addEntitiesArgument("entities")
             .then((sender, _, __, entities) => {
-                sender.sendMessage(`Found ${entities.length} ${entities.length === 1 ? "entities" : "entities"}: ${entities.join(", ")}`);
-
+                sender.sendMessage(
+                    `Found ${entities.length} ${entities.length === 1 ? "entities" : "entities"}: ${entities.join(", ")}`
+                );
                 return entities.length;
             })
     ];

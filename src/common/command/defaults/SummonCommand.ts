@@ -1,6 +1,7 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
 import Vector2 from "@/utils/Vector2";
+import CommandError from "@/command/CommandError";
 
 export default class SummonCommand extends DefinitiveCommand {
     constructor() {
@@ -17,9 +18,11 @@ export default class SummonCommand extends DefinitiveCommand {
 
                 const typeName = sender.server.registeredEntities[entityId].name;
 
-                if (sender.world.summonEntity(entityId, position.x, position.y, nbt)) {
-                    sender.sendMessage(`§cSummoned ${typeName} at (${position.x}, ${position.y}).`);
-                } else sender.sendMessage(`§cFailed to summon an ${typeName}.`);
+                if (!sender.world.summonEntity(entityId, position.x, position.y, nbt)) {
+                    throw new CommandError(`§cFailed to summon an ${typeName}.`);
+                }
+
+                sender.sendMessage(`§cSummoned ${typeName} at (${position.x}, ${position.y}).`);
             })
     ];
 }

@@ -5,6 +5,10 @@ import SelectorToken from "@/command/token/SelectorToken";
 import PositionArgument from "@/command/arguments/PositionArgument";
 import CommandSender, {CommandAs} from "@/command/CommandSender";
 import Position from "@/utils/Position";
+import {dataOperate} from "@/command/defaults/DataCommand";
+
+type StoreStorage = string; // just path
+type StoreEntity = { selector: SelectorToken, path: string };
 
 export default class ExecuteCommand extends Command {
     posArg = new PositionArgument("position");
@@ -16,26 +20,42 @@ export default class ExecuteCommand extends Command {
     execute(sender: CommandSender, as: CommandAs, at: Position, __: string[], label: string) {
         const tokens = splitParameters(label.split(" ").slice(1).join(" "));
 
-        if (tokens.length === 0) {
-            throw new CommandError("No instruction to execute. Try:\n" +
-                "§c/execute run <...command>\n" +
-                "§c/execute as <selector>\n" +
-                "§c/execute at <position>\n" +
-                "§c/execute align x|y|xy\n" +
-                "§c/execute anchored feet|eyes\n" +
-                "§c/execute facing <selector>\n" +
-                "§c/execute facing <position>\n" +
-                "§c/execute in <world>\n" +
-                "§c/execute rotated <selector>\n" +
-                "§c/execute rotated <degrees>\n" +
-                "§c/execute store <storage_path>\n" +
-                "§c/execute if|unless block <position> <block>\n" +
-                "§c/execute if|unless blocks <start: position> <end: position> <target: position>\n" +
-                "§c/execute if|unless entity <selector>\n" +
-                "§c/execute if|unless loaded <chunkX>\n" +
-                "§c/execute if|unless world <world>");
-        }
+        if (tokens.length === 0) throw new CommandError("No instruction to execute. Try:\n" +
+            "§c/execute run <...command>\n" +
+            "§c/execute as <selector>\n" +
+            "§c/execute at <position>\n" +
+            "§c/execute align x|y|xy\n" +
+            "§c/execute anchored feet|eyes\n" +
+            "§c/execute facing <selector>\n" +
+            "§c/execute facing <position>\n" +
+            "§c/execute in <world>\n" +
+            "§c/execute rotated <selector>\n" +
+            "§c/execute rotated <degrees>\n" +
+            "§c/execute store result storage <path>\n" +
+            "§c/execute store result entity <entity> <path>\n" +
+            "§c/execute store success storage <path>\n" +
+            "§c/execute store success entity <entity> <path>\n" +
+            "§c/execute if block <position> <block>\n" +
+            "§c/execute if blocks <start: position> <end: position> <target: position>\n" +
+            "§c/execute if entity <selector>\n" +
+            "§c/execute if loaded <chunkX>\n" +
+            "§c/execute if world <world>\n" +
+            "§c/execute unless block <position> <block>\n" +
+            "§c/execute unless blocks <start: position> <end: position> <target: position>\n" +
+            "§c/execute unless entity <selector>\n" +
+            "§c/execute unless loaded <chunkX>\n" +
+            "§c/execute unless world <world>");
 
+        const store = {
+            result: {
+                storage: [] as StoreStorage[],
+                entity: [] as StoreEntity[]
+            },
+            success: {
+                storage: [] as StoreStorage[],
+                entity: [] as StoreEntity[]
+            }
+        };
         let entities: CommandAs[] = [as];
         let positions: Record<number, Position> = {};
         positions[as.id] = at.copy();
@@ -43,13 +63,48 @@ export default class ExecuteCommand extends Command {
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i++];
             if (token.rawText === "run") {
-                let last: unknown;
+                if (entities.length === 0) return;
+
+                let last: number;
 
                 for (const entity of entities) {
-                    last = sender.server.executeCommandLabel(sender, entity, positions[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
+                    const response = sender.server.executeCommandLabel(sender, entity, positions[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
+                    if (response instanceof CommandError) {
+                        for (const {selector, path} of store.success.entity) {
+                            // todo: entity data operate
+                        }
+                        for (const path of store.success.storage) {
+                            dataOperate(sender.server.storage, path, "=", 0);
+                        }
+
+                        if (last !== undefined) {
+                            for (const {selector, path} of store.result.entity) {
+                                // todo: entity data operate
+                            }
+                            for (const path of store.result.storage) {
+                                dataOperate(sender.server.storage, path, "=", last);
+                            }
+                        }
+
+                        throw response;
+                    }
+                    last = response;
                 }
 
-                return last;
+                for (const {selector, path} of store.success.entity) {
+                    // todo: entity data operate
+                }
+                for (const path of store.success.storage) {
+                    dataOperate(sender.server.storage, path, "=", 1);
+                }
+                for (const {selector, path} of store.result.entity) {
+                    // todo: entity data operate
+                }
+                for (const path of store.result.storage) {
+                    dataOperate(sender.server.storage, path, "=", last);
+                }
+
+                return;
             } else if (token.rawText === "as") {
                 const selector = tokens[i];
                 if (!(selector instanceof SelectorToken)) throw new CommandError("Expected a selector after the 'as' keyword.");
@@ -317,7 +372,34 @@ export default class ExecuteCommand extends Command {
                     throw new CommandError(`Unknown condition type 'if ${comparator}'.`);
                 }
             } else if (token.rawText === "store") {
-                // todo: /execute store
+                const type = tokens[i++].rawText;
+                if (type !== "result" && type !== "success") {
+                    throw new CommandError(`Unknown store type '${type}'.`);
+                }
+
+                const storageType = tokens[i++].rawText;
+                if (storageType !== "storage" && storageType !== "entity") {
+                    throw new CommandError(`Unknown storage type '${storageType}'.`);
+                }
+
+                if (storageType === "storage") {
+                    if (this.posArg.blindCheck(tokens, i).error) {
+                        throw new CommandError("Expected a storage path after the 'store' keyword.");
+                    }
+                    const path = tokens[i++].rawText;
+                    store[type].storage.push(path);
+                } else {
+                    const selector = tokens[i];
+                    if (!(selector instanceof SelectorToken)) {
+                        throw new CommandError("Expected a selector after the 'store entity' keyword.");
+                    }
+                    i++;
+                    if (this.posArg.blindCheck(tokens, i).error) {
+                        throw new CommandError("Expected a storage path after the 'store entity' keyword.");
+                    }
+                    const path = tokens[i++].rawText;
+                    store[type].entity.push({selector, path});
+                }
             } else {
                 throw new CommandError(`Unknown subcommand '${token.rawText}'.`);
             }

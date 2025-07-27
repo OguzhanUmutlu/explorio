@@ -8,6 +8,7 @@ export default class SayCommand extends Command {
     };
 
     execute(_: CommandSender, as: CommandAs, __: Position, args: string[]) {
-        as.server.broadcastMessage(`§d[${as.name}] ` + args.join(" "));
+        as.server.broadcastMessage(`§d[${as.name}] ${args.join(" ")}`);
+        return 0;
     };
 }

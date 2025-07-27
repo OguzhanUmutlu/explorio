@@ -106,6 +106,6 @@ export default abstract class DefinitiveCommand extends Command {
             return null;
         }
 
-        return validCmd.run(sender, as, at, ...resultArgs);
+        return validCmd.run(sender, as, at, ...resultArgs) || 0;
     };
 }

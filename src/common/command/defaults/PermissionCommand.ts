@@ -50,11 +50,13 @@ export default class PermissionCommand extends DefinitiveCommand {
             .addEntityArgument("player", o => o.setFilter(i => i instanceof Player))
             .addTextArgument("permission")
             .then((sender, _, __, player, permission) => {
-                if (player.permissions.has(permission)) {
+                const hasPerm = player.permissions.has(permission);
+                if (hasPerm) {
                     sender.sendMessage("§aThe player " + player.name + " has the permission '" + permission + "'!");
                 } else {
                     sender.sendMessage("§cThe player " + player.name + " doesn't have the permission '" + permission + "'!");
                 }
+                return hasPerm ? 1 : 0;
             })
     ];
 }

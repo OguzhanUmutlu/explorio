@@ -1,5 +1,6 @@
 import DefinitiveCommand from "@/command/DefinitiveCommand";
 import CommandDefinition from "@/command/CommandDefinition";
+import CommandError from "@/command/CommandError";
 
 export default class TeleportCommand extends DefinitiveCommand {
     constructor() {
@@ -11,9 +12,7 @@ export default class TeleportCommand extends DefinitiveCommand {
             .addEntitiesArgument("entities")
             .addPositionArgument("position")
             .then((sender, _, __, entities, pos) => {
-                entities.forEach(e => {
-                    e.teleport(pos.x, pos.y);
-                });
+                for (const entity of entities) entity.teleport(pos.x, pos.y);
 
                 sender.sendMessage(
                     `${entities.length} entities have been teleported to `
@@ -23,10 +22,7 @@ export default class TeleportCommand extends DefinitiveCommand {
         new CommandDefinition()
             .addPositionArgument("position")
             .then((sender, as, _, pos) => {
-                if (!as || !("teleport" in as)) {
-                    sender.sendMessage("No entities given");
-                    return;
-                }
+                if (!as || !("teleport" in as)) throw new CommandError("No entities given");
 
                 as.teleport(pos.x, pos.y);
 
@@ -37,10 +33,7 @@ export default class TeleportCommand extends DefinitiveCommand {
         new CommandDefinition()
             .addEntityArgument("target")
             .then((sender, as, _, target) => {
-                if (!as || !("teleport" in as)) {
-                    sender.sendMessage("No entities given");
-                    return;
-                }
+                if (!as || !("teleport" in as)) throw new CommandError("No entities given");
 
                 as.teleport(target.x, target.y);
 
@@ -52,9 +45,7 @@ export default class TeleportCommand extends DefinitiveCommand {
             .addEntitiesArgument("entities")
             .addEntityArgument("target")
             .then((sender, _, __, entities, target) => {
-                entities.forEach(entity => {
-                    entity.teleport(target.x, target.y);
-                });
+                for (const entity of entities) entity.teleport(target.x, target.y);
 
                 sender.sendMessage(
                     `${entities.length} ${entities.length === 1 ? "entity has" : "entities have"} been teleported to `

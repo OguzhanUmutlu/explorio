@@ -24,7 +24,7 @@ export type CommandDefinitionType = CommandDefinition<CommandArgument[]>;
 export default class CommandDefinition<T extends CommandArgument[] = []> {
     permission: string | false = false;
     arguments = <CommandArgument[]>[];
-    run: (sender: CommandSender, as: CommandAs | null, at: Position, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => unknown;
+    run: (sender: CommandSender, as: CommandAs | null, at: Position, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => number | void;
 
     addArgumentViaClass<V extends CommandArgument>(clazz: new (name: string) => V, name: string, fn?: (n: V) => V) {
         const arg = new clazz(name);
