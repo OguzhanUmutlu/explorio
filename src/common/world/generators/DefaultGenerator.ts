@@ -205,29 +205,28 @@ export default class DefaultGenerator extends Generator {
 
             const hasTree = x === treeX && height >= SurfaceHeight && x != ChunkLength - 1;
 
-            if (height < SurfaceHeight) {
-                for (let y = height; y < SurfaceHeight; y++) {
-                    chunk[x + y * ChunkLength] = FullIds.WATER;
-                }
+            for (let y = height + 1; y < SurfaceHeight; y++) {
+                chunk[x + y * ChunkLength] = FullIds.WATER;
             }
 
             for (let y = height; y >= 1; y--) {
-                if (this.isBubble(worldX, y)) {
-                    if (y < 12) chunk[x + y * ChunkLength] = FullIds.LAVA;
-                    continue;
-                }
-
-                if (this.isConnector(worldX, y)) {
-                    if (y < 12) chunk[x + y * ChunkLength] = FullIds.LAVA;
-                    //chunk[x + y * ChunkLength] = FullIds.AIR;
-                    continue;
-                }
+                const i = x + y * ChunkLength;
 
                 let id = FullIds.AIR;
                 if (y > height - 5) {
                     if (y !== height) id = FullIds.DIRT;
                     if (height < SurfaceHeight) id = FullIds.SAND;
                     else if (height < SurfaceHeight + 5) id = FullIds.GRAVEL;
+                } else {
+                    if (this.isBubble(worldX, y)) {
+                        if (y < 12) chunk[i] = FullIds.LAVA;
+                        continue;
+                    }
+
+                    if (this.isConnector(worldX, y)) {
+                        if (y < 12) chunk[i] = FullIds.LAVA;
+                        continue;
+                    }
                 }
                 if (y === height && id === FullIds.AIR) id = hasTree ? FullIds.DIRT : FullIds.GRASS_BLOCK;
                 if (y <= height - 5) {
@@ -252,7 +251,9 @@ export default class DefaultGenerator extends Generator {
                         if (noiDiamond >= 0.9) id = deepslate ? FullIds.DEEPSLATE_DIAMOND_ORE : FullIds.DIAMOND_ORE;
                     }
                 }
-                chunk[x + y * ChunkLength] = id;
+
+                if (id === FullIds.AIR) continue;
+                chunk[i] = id;
             }
 
             if (x === treeX && height >= SurfaceHeight) {

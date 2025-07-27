@@ -5,7 +5,7 @@ import GrassBlock from "@/block/GrassBlock";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
 
-const I = {};
+const I = <Record<ItemIds, Partial<ItemMetaDataConfig>>>{};
 
 I[ItemIds.AIR] = {
     identifier: "air",
@@ -148,8 +148,9 @@ const coalOre: Partial<ItemMetaDataConfig> = {
 };
 const copperOre: Partial<ItemMetaDataConfig> = {
     breakTime: 15, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone, smeltXP: 0.7,
-    dropsWithToolTypes: ["pickaxe"], drops: [[new ID(ItemIds.RAW_COPPER, 0, [1,3])]], requiredToolLevel: ToolLevels.STONE,
-    smeltsTo: new ID(ItemIds.COPPER_INGOT), breakTimes: {pickaxe: [7.5, 1.15, 0.9, 0.75, 1.25, 0.6, 0.5]}
+    dropsWithToolTypes: ["pickaxe"], drops: [[new ID(ItemIds.RAW_COPPER, 0, [1, 3])]],
+    requiredToolLevel: ToolLevels.STONE, smeltsTo: new ID(ItemIds.COPPER_INGOT),
+    breakTimes: {pickaxe: [7.5, 1.15, 0.9, 0.75, 1.25, 0.6, 0.5]}
 };
 const ironOre: Partial<ItemMetaDataConfig> = {
     breakTime: 15, step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone, smeltXP: 0.7,

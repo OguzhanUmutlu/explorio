@@ -35,16 +35,11 @@ export default class ExecuteCommand extends Command {
             "§c/execute store result entity <entity> <path>\n" +
             "§c/execute store success storage <path>\n" +
             "§c/execute store success entity <entity> <path>\n" +
-            "§c/execute if block <position> <block>\n" +
-            "§c/execute if blocks <start: position> <end: position> <target: position>\n" +
-            "§c/execute if entity <selector>\n" +
-            "§c/execute if loaded <chunkX>\n" +
-            "§c/execute if world <world>\n" +
-            "§c/execute unless block <position> <block>\n" +
-            "§c/execute unless blocks <start: position> <end: position> <target: position>\n" +
-            "§c/execute unless entity <selector>\n" +
-            "§c/execute unless loaded <chunkX>\n" +
-            "§c/execute unless world <world>");
+            "§c/execute if|unless block <position> <block>\n" +
+            "§c/execute if|unless blocks <start: position> <end: position> <target: position>\n" +
+            "§c/execute if|unless entity <selector>\n" +
+            "§c/execute if|unless loaded <chunkX>\n" +
+            "§c/execute if|unless world <world>");
 
         const store = {
             result: {

@@ -110,7 +110,7 @@ export function resetKeyboard() {
 }
 
 function updateTileSize() {
-    TileSize.value = Math.round(innerWidth / 21) * cameraZoomRender;
+    return TileSize.value = Math.round(innerWidth / 21) * cameraZoomRender;
 }
 
 export function setConnectionText(text: string) {
@@ -200,7 +200,7 @@ function render() {
     cameraZoom = Keyboard.shift ? 0.9 : 1;
     cameraZoom *= cameraZoomMultiplier;
 
-    updateTileSize();
+    const tileSize = updateTileSize();
 
     if (!f3Menu.hidden) {
         f3.fps[1](Math.floor(_fps.length));
@@ -219,16 +219,16 @@ function render() {
     updateCamera();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const minX = Math.floor(camera.x - innerWidth / TileSize.value / 2);
-    const minY = Math.max(0, Math.floor(camera.y - innerHeight / TileSize.value / 2));
-    const maxX = Math.ceil(camera.x + innerWidth / TileSize.value / 2);
-    const maxY = Math.min(WorldHeight - 1, Math.ceil(camera.y + innerHeight / TileSize.value / 2));
+    const minX = Math.floor(camera.x - innerWidth / tileSize / 2);
+    const minY = Math.max(0, Math.floor(camera.y - innerHeight / tileSize / 2));
+    const maxX = Math.ceil(camera.x + innerWidth / tileSize / 2);
+    const maxY = Math.min(WorldHeight - 1, Math.ceil(camera.y + innerHeight / tileSize / 2));
 
     const minSubX = x2cx(minX) - 1;
     const minSubY = Math.max(0, y2cy(minY) - 1);
     const maxSubX = x2cx(maxX) + 1;
     const maxSubY = Math.min(SubChunkAmount - 1, y2cy(maxY) + 1);
-    const subLength = TileSize.value * ChunkLength;
+    const subLength = tileSize * ChunkLength;
 
     const world = clientPlayer.world as CWorld;
 
@@ -252,9 +252,9 @@ function render() {
                 ctx.strokeStyle = "#ff0000";
                 ctx.strokeRect(pos.x, pos.y, subLength + 0.5, -subLength - 0.5);
                 // ctx.strokeStyle = "#00ff00";
-                // ctx.strokeRect(pos.x + TileSize.value / 2, pos.y - TileSize.value / 2, subLength + 0.5, -subLength - 0.5);
+                // ctx.strokeRect(pos.x + tileSize / 2, pos.y - tileSize / 2, subLength + 0.5, -subLength - 0.5);
                 ctx.fillStyle = "#0000ff";
-                ctx.fillRect(pos.x - TileSize.value / 2, 0, 1, canvas.height);
+                ctx.fillRect(pos.x - tileSize / 2, 0, 1, canvas.height);
             }
         }
     }
@@ -270,8 +270,7 @@ function render() {
                 const blockPos = getClientPosition(entity.breaking[0], entity.breaking[1]);
                 ctx.drawImage(
                     Texture.get(`assets/textures/destroy/${Math.max(0, Math.min(9, Math.floor(ratio * 10)))}.png`).image,
-                    blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2,
-                    TileSize.value, TileSize.value
+                    blockPos.x - tileSize / 2, blockPos.y - tileSize / 2, tileSize, tileSize
                 );
             }
         }
@@ -810,12 +809,9 @@ export function saveAndQuit() {
 // todo: add support for using the virtual file system for assets, uploadable via a zip file (resource pack)
 // todo: add title, subtitle, actionbar support with -> timings <-
 // todo: render health/food/armor/breathe/xp
-// todo: make disconnect screen better, add a back button
-// todo: items disappear on restart, I think every entity does?
 // todo: item/block states and maybe rename meta to variant?
 // todo: add and implement shield in Damage.ts
 // todo: desktop singleplayer should be automatically hosted on a random port, there should be a switch to allow outside connections
-// todo: seas no longer generate?
 // todo: in mobile: cannot break blocks, cannot move because there's no movement buttons
 
 function isInChat() {

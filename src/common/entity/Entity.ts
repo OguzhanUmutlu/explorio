@@ -16,7 +16,7 @@ import Player from "@/entity/defaults/Player";
 import {AnimationIds} from "@/meta/Animations";
 
 export const DefaultWalkSpeed = 5;
-export const DefaultFlySpeed = 7;
+export const DefaultFlySpeed = 10;
 export const DefaultJumpVelocity = 7;
 export const DefaultGravity = 18;
 export const GroundHeight = 0.05;

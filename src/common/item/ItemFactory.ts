@@ -73,27 +73,26 @@ class ItemFactory {
         ItemFactory.f2name[fullId] = identifier;
         ItemFactory.name2f[identifier] = fullId;
 
-        MetaLengthMap[id] = O.metas.length;
-
-        if (O.isLiquid) for (let i = 0; i <= O.liquidSpread; i++) O.metas.push({
+        if (O.isLiquid) for (let i = 0; i < O.liquidSpread; i++) O.metas.push({
             identifier: identifier + "_flowing_state_" + i,
-            name: "",
+            name: O.name + " Flowing State " + i,
             texture: () => new Texture("", new Promise(r => {
                 const texture = baseMeta.getTexture(null, 0);
                 texture.wait().then(() => {
-                    const realHeight = texture.image.height;
-                    const width = texture.image.width;
+                    const image = texture.image;
+                    const realHeight = image.height;
+                    const width = image.width;
                     const height = realHeight * i / O.liquidSpread;
-
                     const canvas = createCanvas(width, realHeight);
                     const ctx = canvas.getContext("2d");
-                    ctx.drawImage(texture.image, 0, 0);
+                    ctx.drawImage(image, 0, 0);
                     ctx.clearRect(0, 0, width, height);
-
                     r(canvas);
                 });
             }))
         });
+
+        MetaLengthMap[id] = O.metas.length;
 
         for (let meta = 1; meta < O.metas.length; meta++) {
             O.metas[meta].texture ??= O.metas[meta].identifier;

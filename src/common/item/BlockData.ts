@@ -26,8 +26,6 @@ export default class BlockData extends ext {
     bbs: BoundingBox[];
     blockRotation: number;
     nonRotatedMeta: number;
-    postProcessesTexture = false;
-    hasBiomeTextures = false;
 
     constructor(public id: number, public meta: number, O: ItemMetaDataConfig) {
         super();

@@ -1,10 +1,11 @@
-import Texture, {Canvas} from "@/utils/Texture";
+import Texture, {Canvas, createCanvas, Image} from "@/utils/Texture";
 import {default as ID} from "@/item/ItemDescriptor";
 import {default as IPool} from "@/item/ItemPool";
 import {ItemIds, ItemMetaBits, ItemMetaMax, ItemMetaMaxN} from "@/meta/ItemIds";
 import {ClassOf} from "@/utils/Utils";
 import BlockData from "@/item/BlockData";
 import {MetaLengthMap} from "@/item/ItemFactory";
+import World from "@/world/World";
 
 export enum TreeType {
     Oak,
@@ -77,7 +78,12 @@ export interface ItemMetaDataConfig {
     isOpaque: boolean,
     isSlab: boolean,
     isStairs: boolean,
-    ticksRandomly: boolean
+    ticksRandomly: boolean,
+    postProcessesTexture: boolean,
+    hasBiomeTextures: boolean,
+    postProcessTexture?(ctx: CanvasRenderingContext2D, biome: number, block: boolean): Promise<void>,
+    beginPostProcessTexture(image: Image, biome: number, block: boolean): CanvasRenderingContext2D,
+    randomTick?(world: World, x: number, y: number): unknown
 }
 
 
@@ -186,7 +192,15 @@ export const DefaultItemOptions = (O: Partial<ItemMetaDataConfig>) => {
         makeStairs: null,
         isOpaque: true,
         isSlab: false,
-        isStairs: false
+        isStairs: false,
+        postProcessesTexture: false,
+        hasBiomeTextures: false,
+        beginPostProcessTexture(image: Image, _biome: number, _block: boolean) {
+            const canvas = createCanvas(image.width, image.height);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(image, 0, 0);
+            return ctx;
+        }
     };
 
     return ret;
