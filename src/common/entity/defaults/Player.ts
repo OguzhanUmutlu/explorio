@@ -17,7 +17,6 @@ import WorldStruct from "@/structs/world/WorldStruct";
 import X from "stramp";
 import InventoryStruct from "@/structs/item/InventoryStruct";
 import Entity from "@/entity/Entity";
-import Position from "@/utils/Position";
 import {FallDamage} from "@/entity/damage/FallDamage";
 import {Block} from "@/block/Block";
 
@@ -291,7 +290,7 @@ export default class Player extends Entity implements CommandSender {
 
         if (!wasOnGround && isOnGround) {
             const fallDistance = this.fallY - this.y;
-            this.damage(new FallDamage(this, new Block(new Position(collision.x, collision.y, 0, this.world), collision.block), fallDistance));
+            this.damage(new FallDamage(this, new Block(this.world, collision.x, collision.y, collision.block), fallDistance));
             this.fallY = this.y;
         } else if (!isOnGround) {
             if (this.y > this.fallY) this.fallY = this.y;

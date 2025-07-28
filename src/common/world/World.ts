@@ -124,7 +124,7 @@ export default class World {
     };
 
     getSpawnPoint() {
-        const spawnPoint = this.spawnPoint.copy();
+        const spawnPoint = this.spawnPoint.copyPosition();
         if (spawnPoint.y < 0) spawnPoint.y = this.getHighHeight(spawnPoint.x);
         return spawnPoint;
     };

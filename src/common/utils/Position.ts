@@ -8,15 +8,18 @@ export function getRotationTowards(x1: number, y1: number, x2: number, y2: numbe
 }
 
 export default class Position extends Vector2 {
+    readonly = false;
+
     constructor(x: number, y: number, public rotation: number = 0, public world: World) {
         super(x, y);
     };
 
-    copy() {
+    copyPosition() {
         return new Position(this.x, this.y, this.rotation, this.world);
     };
 
-    copyFrom(loc: Position) {
+    setPositionFrom(loc: Position) {
+        if (this.readonly) throw new Error("Cannot modify readonly Position");
         this.x = loc.x;
         this.y = loc.y;
         this.rotation = loc.rotation;

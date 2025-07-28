@@ -53,7 +53,7 @@ export default class CSubChunk {
             if (!block.isOpaque) {
                 ctx.clearRect(dx, dy, dw, dh);
             }
-            block.renderBlock(ctx, this.world, cx2x(this.x, relX), dx, dy, dw, dh);
+            block.renderBlock(ctx, dx, dy, dw, dh, true, this.world, cx2x(this.x, relX));
             // todo: block.renderBlockDetail(dCtx, dx, dy, dw, dh);
         } else if (clear) {
             ctx.clearRect(dx, dy, dw, dh);

@@ -30,10 +30,6 @@ export default abstract class EntityTileBase<Save extends Record<string, Bin> = 
         return this.saveStruct.adapt(this);
     };
 
-    copyPosition() {
-        return super.copy();
-    };
-
     toString() {
         return this.name;
     };

@@ -1,6 +1,6 @@
 import Particle from "@c/particle/Particle";
 import BlockData from "@/item/BlockData";
-import {clientPlayer} from "@dom/Client";
+import World from "@/world/World";
 
 export default class LittleBlockParticle extends Particle {
     tm = 1.5;
@@ -10,8 +10,8 @@ export default class LittleBlockParticle extends Particle {
     // pixel: Canvas;
     // color: string;
 
-    constructor(x: number, y: number, public block: BlockData) {
-        super(x, y);
+    constructor(x: number, y: number, world: World, public block: BlockData) {
+        super(x, y, world);
 
         const cx = x - Math.round(x);
         const cy = Math.abs(y - Math.round(y));
@@ -47,7 +47,7 @@ export default class LittleBlockParticle extends Particle {
         // console.log(this.color)
         // ctx.drawImage(this.pixel, x0, y0, r, r);
         // ctx.fillRect(x0, y0, r, r);
-        this.block.renderBlock(ctx, clientPlayer.world, this.x, x0, y0, r, r);
+        this.block.renderBlock(ctx, x0, y0, r, r, false, this.world, this.x, this.y);
         ctx.restore();
     };
 }

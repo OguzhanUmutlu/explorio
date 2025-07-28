@@ -55,7 +55,7 @@ export default class Vector2 {
         return x2cx(this.x);
     };
 
-    copy() {
+    copyVector() {
         return new Vector2(this.x, this.y);
     };
 }

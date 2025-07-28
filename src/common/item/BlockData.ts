@@ -103,7 +103,7 @@ export default class BlockData extends ext {
     async postProcessTexture(_ctx: CanvasRenderingContext2D, _biome: number, _block: boolean) {
     };
 
-    getTexture(world: World, x: number, meta = this.meta, block = false): Texture {
+    getTexture(meta = this.meta, block = false, world?: World, x = 0, _y = 0): Texture {
         if (this.id === ItemIds.AIR) return texturePlaceholder;
         const url = this.metas[meta % this.metas.length];
         if (!url) return texturePlaceholder;
@@ -138,11 +138,11 @@ export default class BlockData extends ext {
     };
 
     getItemTexture(meta = this.meta) {
-        return this.getTexture(null, 0, meta, false);
+        return this.getTexture(meta, false);
     };
 
     getBlockTexture(world: World, x: number, y: number, meta = this.meta) {
-        return this.getTexture(world, x, meta, true);
+        return this.getTexture(meta, true, world, x, y);
     };
 
     getBreakTime(item: Item | null) {
@@ -166,9 +166,9 @@ export default class BlockData extends ext {
         return this.metas.length > 0;
     };
 
-    render(ctx: CanvasRenderingContext2D, world: World, WX: number, x: number, y: number, w: number, h: number, waitToLoad = true, block = false) {
+    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true, block = false, world?: World, WX = 0, WY = 0) {
         if (!this.hasTexture()) return;
-        const texture = this.getTexture(world, WX, this.meta, block);
+        const texture = this.getTexture(this.meta, block, world, WX, WY);
         if (!texture.loaded) {
             if (waitToLoad) return texture.wait().then(() => ctx.drawImage(texture.image, x, y, w, h));
             return false;
@@ -178,11 +178,11 @@ export default class BlockData extends ext {
     };
 
     renderItem(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true) {
-        return this.render(ctx, null, 0, x, y, w, h, waitToLoad, false);
+        return this.render(ctx, x, y, w, h, waitToLoad, false, null, 0, 0);
     };
 
-    renderBlock(ctx: CanvasRenderingContext2D, world: World, WX: number, x: number, y: number, w: number, h: number, waitToLoad = true) {
-        return this.render(ctx, world, WX, x, y, w, h, waitToLoad, true);
+    renderBlock(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, waitToLoad = true, world?: World, WX = 0, WY = 0) {
+        return this.render(ctx, x, y, w, h, waitToLoad, true, world, WX, WY);
     };
 
     getDrops(item: Item | null = null) {

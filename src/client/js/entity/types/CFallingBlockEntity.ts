@@ -16,6 +16,6 @@ export default class CFallingBlockEntity extends FallingBlockEntity implements C
         const bb = this.bb;
         const pos = getClientPosition(bb.x, bb.y);
         const s = bb.width * TileSize.value;
-        this.getBlock()?.renderBlock(ctx, this.world, this.x, pos.x, pos.y - s, s, s, false);
+        this.getBlock()?.renderBlock(ctx, pos.x, pos.y - s, s, s, false, this.world, this.x, this.y);
     };
 }

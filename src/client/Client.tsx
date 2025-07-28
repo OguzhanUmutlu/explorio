@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import "./css/client.css";
 import {
     Div,
@@ -83,6 +83,7 @@ export let serverNetwork: PlayerNetwork;
 export let clientPlayer: OriginPlayer;
 export let clientNetwork: ClientNetwork;
 export const camera = {x: 0, y: 0};
+export const cameraTarget = {x: 0, y: 0};
 export let ServerInfo: ServerData;
 export let WorldInfo: WorldData;
 export let isMultiPlayer: boolean;
@@ -130,13 +131,17 @@ function onResize() {
 
 export function updateCamera() {
     const cameraPan = 1;
+    const tileSize = TileSize.value;
+    const smoothness = 0; // no smoothing for now
 
-    camera.x = clientPlayer.x + (Mouse._xSmooth / innerWidth * 2 - 1) * 45 * cameraPan / TileSize.value;
-    camera.y = clientPlayer.y + clientPlayer.bb.height - 1 - (Mouse._ySmooth / innerHeight * 2 - 1) * 45 * cameraPan / TileSize.value;
+    cameraTarget.x = clientPlayer.x + (Mouse._xSmooth / innerWidth * 2 - 1) * 45 * cameraPan / tileSize;
+    cameraTarget.y = clientPlayer.y + clientPlayer.bb.height - 1 - (Mouse._ySmooth / innerHeight * 2 - 1) * 45 * cameraPan / tileSize;
+    camera.x += (cameraTarget.x - camera.x) * (1 - smoothness);
+    camera.y += (cameraTarget.y - camera.y) * (1 - smoothness);
     /*
     // camera shake support no one asked for:
-    camera.x += Math.sin(Date.now() * 1000) / TILE_SIZE * 6;
-    camera.y += Math.sin(Date.now() * 1000) / TILE_SIZE * 6;
+    camera.x += Math.sin(Date.now() * 1000) / tileSize * 6;
+    camera.y += Math.sin(Date.now() * 1000) / tileSize * 6;
     */
 }
 
@@ -304,7 +309,7 @@ function render() {
             const rotated = rotateMeta(item.id, item.meta, Mouse.rotation);
             const block = im2data(item.id, rotated);
             if (block && clientPlayer.canPlaceBlock()) {
-                block.renderBlock(ctx, world, Mouse.rx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false);
+                block.renderBlock(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, false, world, Mouse.rx, Mouse.ry);
                 drawShadow(ctx, blockPos.x - TileSize.value / 2, blockPos.y - TileSize.value / 2, TileSize.value, TileSize.value, shadow / 2);
             }
         }
@@ -904,7 +909,7 @@ export default function Client(O: {
 
     return <>
         {/* F3 Menu */}
-        {React.useMemo(() => <div className="f3-menu" ref={el => f3Menu = el} hidden={true}>
+        {useMemo(() => <div className="f3-menu" ref={el => f3Menu = el} hidden={true}>
             FPS: <F3Component ikey="fps"/><br/>
             X: <F3Component ikey="x"/><br/>
             Y: <F3Component ikey="y"/><br/>
@@ -915,7 +920,7 @@ export default function Client(O: {
 
 
         {/* The game's canvas */}
-        {React.useMemo(() => <canvas id="game" ref={el => canvas = el}></canvas>, [])}
+        {useMemo(() => <canvas id="game" ref={el => canvas = el}></canvas>, [])}
 
 
         {/* Title text */}
@@ -925,7 +930,7 @@ export default function Client(O: {
 
 
         {/* Chat Container */}
-        {React.useMemo(() => {
+        {useMemo(() => {
             return <div className={chatContainer[0] ? "full-chat-container" : "chat-container"}
                         style={f1On[0] && !chatContainer[0] ? {opacity: "0"} : {}}>
                 <div className="chat-messages" ref={el => chatBox = el}>
@@ -1027,27 +1032,29 @@ export default function Client(O: {
 
 
         {/* Options */}
-        {React.useMemo(() => {
+        {useMemo(() => {
             return <>{...getMenus("client", optionPopup)}</>;
         }, [optionPopup[0]])}
 
 
         {/* Mobile Control Buttons */}
-        <div className="mobile-controls" hidden={!isMobile}>
-            <div className="mobile-up"
-                 onTouchStart={() => Keyboard.w = true}
-                 onTouchEnd={() => Keyboard.w = false}></div>
-            <div className="mobile-left"
-                 onTouchStart={() => Keyboard.a = true}
-                 onTouchEnd={() => Keyboard.a = false}></div>
-            <div className="mobile-right"
-                 onTouchStart={() => Keyboard.d = true}
-                 onTouchEnd={() => Keyboard.d = false}></div>
-        </div>
+        {useMemo(() => {
+            return <div className="mobile-controls" hidden={!isMobile}>
+                <div className="mobile-up"
+                     onTouchStart={() => Keyboard.w = true}
+                     onTouchEnd={() => Keyboard.w = false}></div>
+                <div className="mobile-left"
+                     onTouchStart={() => Keyboard.a = true}
+                     onTouchEnd={() => Keyboard.a = false}></div>
+                <div className="mobile-right"
+                     onTouchStart={() => Keyboard.d = true}
+                     onTouchEnd={() => Keyboard.d = false}></div>
+            </div>;
+        }, [isMobile])}
 
 
         {/* The screen that pops up on death */}
-        <div className="death-screen" style={
+        {useMemo(() => <div className="death-screen" style={
             deathScreen[0] ? {
                 opacity: "1",
                 pointerEvents: "auto"
@@ -1060,22 +1067,22 @@ export default function Client(O: {
             }}>Respawn
             </div>
             <div className="btn" onClick={() => saveAndQuit()}>Title Screen</div>
-        </div>
+        </div>, [deathScreen[0]])}
 
 
         {/* The screen that only pops up when saving */}
-        <div className="save-screen" style={
+        {useMemo(() => <div className="save-screen" style={
             saveScreen[0] ? {
                 opacity: "1",
                 pointerEvents: "auto"
             } : {}
         }>
             Saving the world...
-        </div>
+        </div>, [saveScreen[0]])}
 
 
         {/* The screen used to display the connection or disconnection text */}
-        <div className="connection-text" style={
+        {useMemo(() => <div className="connection-text" style={
             connectionText[0] ? {
                 opacity: "1",
                 pointerEvents: "auto"
@@ -1083,6 +1090,6 @@ export default function Client(O: {
         }>
             <h3>{connectionText[0]}</h3>
             <div className="btn" onClick={() => saveAndQuit()}>Title Screen</div>
-        </div>
+        </div>, [connectionText[0]])}
     </>;
 }

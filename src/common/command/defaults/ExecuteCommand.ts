@@ -53,7 +53,7 @@ export default class ExecuteCommand extends Command {
         };
         let entities: CommandAs[] = [as];
         let positions: Record<number, Position> = {};
-        positions[as.id] = at.copy();
+        positions[as.id] = at.copyPosition();
 
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i++];
@@ -122,7 +122,7 @@ export default class ExecuteCommand extends Command {
                     for (const entity of entities) {
                         const loc = positions[entity.id];
                         const val = sender.server.executeSelector(entity, loc, token)[0];
-                        loc.copyFrom(val);
+                        loc.setPositionFrom(val);
                     }
                 } else {
                     if (this.posArg.blindCheck(tokens, i).error) {
@@ -255,7 +255,7 @@ export default class ExecuteCommand extends Command {
                         const block = entity.world.getBlock(blockPos.x, blockPos.y);
                         if (b - +(block.getIdentifier() === blockName)) {
                             entities.push(entity);
-                            positions[entity.id] ??= loc.copy();
+                            positions[entity.id] ??= loc.copyPosition();
                         } else delete positions[entity.id];
                     }
                 } else if (comparator === "blocks") {
@@ -307,7 +307,7 @@ export default class ExecuteCommand extends Command {
                             delete positions[entity.id];
                         } else {
                             entities.push(entity);
-                            positions[entity.id] ??= loc.copy();
+                            positions[entity.id] ??= loc.copyPosition();
                         }
                     }
                 } else if (comparator === "entity") {
@@ -325,7 +325,7 @@ export default class ExecuteCommand extends Command {
                         const hasMatch = !!sender.server.executeSelector(entity, loc, selector)[0];
                         if (b - +hasMatch) {
                             entities.push(entity);
-                            positions[entity.id] ??= loc.copy();
+                            positions[entity.id] ??= loc.copyPosition();
                         } else {
                             delete positions[entity.id];
                         }
@@ -342,7 +342,7 @@ export default class ExecuteCommand extends Command {
                         const loc = positions[entity.id];
                         if (b + +!loc.world.chunks[x]) {
                             entities.push(entity);
-                            positions[entity.id] ??= loc.copy();
+                            positions[entity.id] ??= loc.copyPosition();
                         } else delete positions[entity.id];
                     }
                 } else if (comparator === "world") {
@@ -360,7 +360,7 @@ export default class ExecuteCommand extends Command {
                         const loc = positions[entity.id];
                         if (b - +(loc.world.folder === folder)) {
                             entities.push(entity);
-                            positions[entity.id] ??= loc.copy();
+                            positions[entity.id] ??= loc.copyPosition();
                         } else delete positions[entity.id];
                     }
                 } else {

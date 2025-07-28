@@ -7,6 +7,7 @@ export default abstract class Tile extends EntityTileBase {
     declare readonly y: number;
     declare readonly world: World;
     readonly rotation = 0;
+    readonly = true;
 
     init() {
         const problem = !this.isClient && this.saveStruct.findProblem(this);

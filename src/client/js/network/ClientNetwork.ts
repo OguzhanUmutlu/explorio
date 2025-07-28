@@ -289,7 +289,7 @@ export default class ClientNetwork {
         clientPlayer.playSoundAt(block.randomBreak(), x, y);
         const particleAmount = [0, 5, 25, 100][Options.particles];
         for (let i = 0; i < particleAmount; i++) {
-            particleManager.add(new LittleBlockParticle(x + Math.random() / 10 - 0.05, y + Math.random() / 10 - 0.05, block));
+            particleManager.add(new LittleBlockParticle(x + Math.random() / 10 - 0.05, y + Math.random() / 10 - 0.05, clientPlayer.world, block));
         }
     };
 

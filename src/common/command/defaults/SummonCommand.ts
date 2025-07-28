@@ -14,7 +14,7 @@ export default class SummonCommand extends DefinitiveCommand {
             .addPositionArgument("position", o => o.setOptional().setDefault(new Vector2(Infinity, 0)))
             .addObjectArgument("nbt", o => o.setOptional())
             .then((sender, _, loc, entityId, position, nbt) => {
-                if (position.x === Infinity) position = loc.copy();
+                if (position.x === Infinity) position = loc.copyPosition();
 
                 const typeName = sender.server.registeredEntities[entityId].name;
 

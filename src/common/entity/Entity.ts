@@ -87,7 +87,7 @@ export default abstract class Entity extends EntityTileBase {
 
         if (oldChunk) oldChunk.entities.delete(this);
 
-        (<Position>this).world = world;
+        (<Position><unknown>this).world = world;
 
         const newChunk = world.getChunk(this.chunkX, false);
         newChunk.entities.add(this);

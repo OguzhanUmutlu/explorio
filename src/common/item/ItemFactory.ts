@@ -77,7 +77,7 @@ class ItemFactory {
             identifier: identifier + "_flowing_state_" + i,
             name: O.name + " Flowing State " + i,
             texture: () => new Texture("", new Promise(r => {
-                const texture = baseMeta.getTexture(null, 0);
+                const texture = baseMeta.getTexture();
                 texture.wait().then(() => {
                     const image = texture.image;
                     const realHeight = image.height;
@@ -118,7 +118,7 @@ class ItemFactory {
                     identifier: dat.identifier + adder + (iMod === 0 ? "" : "_" + iMod),
                     name: dat.name + " " + nameAdder,
                     texture: () => new Texture("", new Promise(r => {
-                        const texture = baseMeta.getTexture(null, 0);
+                        const texture = baseMeta.getTexture();
                         texture.wait().then(() => r(texture[fnMatch[iMod % fnMatch.length][1]]()));
                     }))
                 };
