@@ -262,6 +262,7 @@ export default class BlockData extends ext {
 
                 if (blockLeft.id === this.id && blockRight.id === this.id && blockLeft.meta === 0 && blockRight.meta === 0) {
                     // between two water sources, create a water source
+                    if (this.meta === 0) return;
                     world.setBlock(x, y, this.id, 0);
                     return;
                 }
@@ -281,23 +282,6 @@ export default class BlockData extends ext {
                     const canSpreadRight = canReplaceRight && (blockRight.id !== this.id || blockRight.meta > nextMeta);
 
                     if (canSpreadLeft || canSpreadRight) {
-                        /*if (canReplaceLeft && canReplaceRight) for (let i = 1; i <= this.liquidSpread - this.meta; i++) {
-                            const bottomRight = world.getBlock(x + i, y - 1).isReplaceableBy(this.id);
-                            const bottomLeft = world.getBlock(x - i, y - 1).isReplaceableBy(this.id);
-
-                            if (bottomRight && bottomLeft) break;
-
-                            if (bottomRight) {
-                                canSpreadLeft = false;
-                                break;
-                            }
-
-                            if (bottomLeft) {
-                                canSpreadRight = false;
-                                break;
-                            }
-                        }*/
-
                         if (canSpreadLeft) world.setBlock(x - 1, y, this.id, nextMeta);
                         if (canSpreadRight) world.setBlock(x + 1, y, this.id, nextMeta);
 
@@ -316,7 +300,7 @@ export default class BlockData extends ext {
                 const min = Math.min(blockLeft.id === this.id ? blockLeft.meta : Infinity, blockRight.id === this.id ? blockRight.meta : Infinity);
 
                 if (min >= this.meta) {
-                    if (min >= this.liquidSpread + 1) world.setBlock(x, y, ItemIds.AIR);
+                    if (min >= this.liquidSpread) world.setBlock(x, y, ItemIds.AIR);
                     else world.setBlock(x, y, this.id, min + 1);
                 }
             }
