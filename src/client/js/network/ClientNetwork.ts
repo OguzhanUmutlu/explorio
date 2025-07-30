@@ -151,7 +151,7 @@ export default class ClientNetwork {
         clientPlayer.id = entityId;
         clientPlayer.x = x;
         clientPlayer.y = y;
-        clientPlayer.handIndex = handIndex;
+        clientPlayer.setHandIndex(handIndex);
         clientPlayer.init();
 
         if (!isMultiPlayer) {
@@ -324,13 +324,13 @@ export default class ClientNetwork {
     };
 
     processSSetContainer({data: {container, x, y}}: PacketByName<"SSetContainer">) {
-        clientPlayer.containerId = container;
+        clientPlayer.setContainerId(container);
         clientPlayer.containerX = x;
         clientPlayer.containerY = y;
     };
 
     processSSetHandIndex({data}: PacketByName<"SSetHandIndex">) {
-        clientPlayer.handIndex = data;
+        clientPlayer.setHandIndex(data);
     };
 
 
@@ -379,7 +379,7 @@ export default class ClientNetwork {
     };
 
     sendHandIndex(index = clientPlayer.handIndex) {
-        clientPlayer.handIndex = index;
+        clientPlayer.setHandIndex(index);
         this.sendPacket(new Packets.CSetHandIndex(index));
     };
 
@@ -437,12 +437,12 @@ export default class ClientNetwork {
     };
 
     sendOpenInventory() {
-        clientPlayer.containerId = Containers.PlayerInventory;
+        clientPlayer.setContainerId(Containers.PlayerInventory);
         this.sendPacket(new Packets.COpenInventory(null));
     };
 
     sendCloseInventory() {
-        clientPlayer.containerId = Containers.Closed;
+        clientPlayer.setContainerId(Containers.Closed);
         this.sendPacket(new Packets.CCloseInventory(null));
     };
 

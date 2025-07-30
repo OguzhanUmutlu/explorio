@@ -1,12 +1,13 @@
 import CPlayer from "@c/entity/types/CPlayer";
 import {Containers, InventoryName} from "@/meta/Inventories";
-import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse, updateMouse} from "@dom/Client";
+import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse, states, updateMouse} from "@dom/Client";
 import {formatDivText, Options} from "@c/utils/Utils";
 import Sound from "@/utils/Sound";
 
 export default class OriginPlayer extends CPlayer {
+    declare readonly handIndex: number;
     isClient = true;
-    containerId = Containers.Closed;
+    declare readonly containerId = Containers.Closed;
     placeTime = 0;
     interactTime = 0;
     name = "";
@@ -14,6 +15,16 @@ export default class OriginPlayer extends CPlayer {
     hoveringInventory: InventoryName | null = null;
     targetMomentum = 0;
     momentum = 0;
+
+    setHandIndex(index: number) {
+        (<CPlayer>this).handIndex = index;
+        states.handIndex[1](index);
+    };
+
+    setContainerId(id: Containers) {
+        (<CPlayer>this).containerId = id;
+        states.container[1](id);
+    };
 
     teleport(x: number, y: number, world = this.world) {
         return super.teleport(x, y, world, false);

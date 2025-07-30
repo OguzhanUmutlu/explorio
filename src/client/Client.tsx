@@ -41,42 +41,45 @@ import {im2data} from "@/item/ItemFactory";
 Printer.makeGlobal();
 
 declare global {
-    interface Window {
-        bfs: typeof import("fs");
-        bfs_path: string;
-    }
-
     const bfs: typeof import("fs");
     const bfs_path: string;
 }
 
 export const IS_LOCALHOST = location.hostname === "localhost" || location.hostname === "127.0.0.1";
-let containerState: ReactState<Containers>;
-let chatContainer: ReactState<boolean>;
-export let clientUUID: ReactState<string>;
-let optionPopup: ReactState<OptionPages>;
-let saveScreen: ReactState<boolean>;
-let deathScreen: ReactState<boolean>;
-let connectionText: ReactState<string>;
+type PublicStates = {
+    container: Containers, chatOpen: boolean, optionsPage: OptionPages, saveScreen: boolean,
+    deathScreen: boolean, connectionText: string, f1: boolean, handIndex: number, health: number, armor: number,
+    breathe: number, hunger: number, xpProgress: number, xpLevel: number
+};
+const DefaultPublicStates: PublicStates = {
+    container: Containers.Closed,
+    chatOpen: false,
+    optionsPage: "none",
+    saveScreen: false,
+    deathScreen: false,
+    connectionText: "",
+    f1: false,
+    handIndex: 0,
+    health: 20,
+    armor: 0,
+    breathe: 20,
+    hunger: 20,
+    xpProgress: 0,
+    xpLevel: 0
+};
+export const states = {} as { [k in keyof PublicStates]: ReactState<PublicStates[k]> };
+
+type F3States = "fps" | "x" | "y" | "vx" | "vy" | "momentum";
+const f3 = {} as { [k in F3States]: ReactState<number> };
+
 export let canvas: HTMLCanvasElement;
 export let chatBox: Div;
 export let chatInput: Input;
 export let ctx: CanvasRenderingContext2D;
 let f3Menu: Div;
-let f1On: ReactState<boolean>;
 let titleDiv: Div;
 let subTitleDiv: Div;
 let actionbarDiv: Div;
-const f3 = {
-    fps: null as ReactState<number>,
-    x: null as ReactState<number>,
-    y: null as ReactState<number>,
-    vx: null as ReactState<number>,
-    vy: null as ReactState<number>,
-    momentum: null as ReactState<number>
-};
-export let handIndexState: ReactState<number>;
-
 export let clientServer: CServer;
 export let singlePlayerServer: Server;
 export let serverNetwork: PlayerNetwork;
@@ -98,7 +101,7 @@ let cameraZoom = 1;
 let cameraZoomRender = 1;
 
 export function showDeathScreen() {
-    deathScreen[1](true);
+    states.deathScreen[1](true);
 }
 
 export function setTitleText(type: "title" | "subtitle" | "actionbar", text: string) {
@@ -115,7 +118,7 @@ function updateTileSize() {
 }
 
 export function setConnectionText(text: string) {
-    connectionText[1](text);
+    states.connectionText[1](text);
 }
 
 function onResize() {
@@ -190,7 +193,7 @@ function render() {
         document.documentElement.style.setProperty("--blur", `${lastBlur}px`);
     }
 
-    if (!chatContainer[0] && chatBox.scrollTop !== chatBox.scrollHeight) {
+    if (!states.chatOpen[0] && chatBox.scrollTop !== chatBox.scrollHeight) {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
@@ -318,12 +321,6 @@ function render() {
     }
 
     animateInventories();
-
-    if (handIndexState[0] !== clientPlayer.handIndex) {
-        handIndexState[1](clientPlayer.handIndex);
-    }
-
-    if (containerState[0] !== clientPlayer.containerId) containerState[1](clientPlayer.containerId);
 }
 
 function update(dt: number) {
@@ -390,7 +387,7 @@ function onPressKey(e: KeyboardEvent) {
 
     if (isAnyUIOpen()) {
         if (!isInChat() && e.key.toLowerCase() === "e") {
-            clientPlayer.containerId = Containers.Closed;
+            clientPlayer.setContainerId(Containers.Closed);
             clientNetwork.sendCloseInventory();
         }
 
@@ -398,16 +395,16 @@ function onPressKey(e: KeyboardEvent) {
             closeChat();
 
             if (clientPlayer.containerId !== Containers.Closed) {
-                clientPlayer.containerId = Containers.Closed;
+                clientPlayer.setContainerId(Containers.Closed);
                 clientNetwork.sendCloseInventory();
             }
 
-            optionPopup[1]("none");
+            states.optionsPage[1]("none");
         }
 
         const invName = clientPlayer.hoveringInventory;
         const fromInv = clientPlayer.inventories[invName];
-        if (containerState[0] !== Containers.Closed && fromInv) {
+        if (states.container[0] !== Containers.Closed && fromInv) {
             const fromItem = fromInv.get(clientPlayer.hoveringIndex);
             const num = +e.key;
             if (num && num >= 1 && num <= 9 && clientPlayer.hoveringInventory) {
@@ -462,12 +459,12 @@ function onPressKey(e: KeyboardEvent) {
         }
 
         if (e.key.toLowerCase() === "e") {
-            clientPlayer.containerId = Containers.PlayerInventory;
+            clientPlayer.setContainerId(Containers.PlayerInventory);
             clientNetwork.sendOpenInventory();
         }
 
         if (e.key === "Escape") {
-            optionPopup[1]("main");
+            states.optionsPage[1]("main");
         }
 
         if (e.key === "F3") {
@@ -476,7 +473,7 @@ function onPressKey(e: KeyboardEvent) {
         }
 
         if (e.key === "F1") {
-            f1On[1](!f1On[0]);
+            states.f1[1](!states.f1[0]);
             e.preventDefault();
         }
 
@@ -544,7 +541,7 @@ function onLoseFocus() {
     Mouse.right = false;
     Mouse.middle = false;
     if (Options.pauseOnBlur && !isAnyUIOpen()) {
-        optionPopup[1]("main");
+        states.optionsPage[1]("main");
         closeChat();
     }
 }
@@ -648,10 +645,10 @@ function onChatKeyPress(e: KeyboardEvent) {
     }
 }
 
-export function initClient() {
-    connectionText[1]("");
-    saveScreen[1](false);
-    deathScreen[1](false);
+export function initClient(clientUUID: string) {
+    states.connectionText[1]("");
+    states.saveScreen[1](false);
+    states.deathScreen[1](false);
     Mouse = {...DefaultMouse};
     resetKeyboard();
     Error.stackTraceLimit = 50;
@@ -659,8 +656,8 @@ export function initClient() {
     chatHistory.push("");
     chatIndex = 0;
     lastRender = Date.now() - 1;
-    ServerInfo = getServerList().find(i => i.uuid === clientUUID[0]);
-    WorldInfo = getWorldList().find(i => i.uuid === clientUUID[0]);
+    ServerInfo = getServerList().find(i => i.uuid === clientUUID);
+    WorldInfo = getWorldList().find(i => i.uuid === clientUUID);
     isMultiPlayer = !!ServerInfo;
     ctx = canvas.getContext("2d");
     const isMobile = isMobileByAgent();
@@ -696,7 +693,7 @@ export function initClient() {
     clientPlayer.immobile = true;
     clientNetwork = new ClientNetwork;
     if (isMultiPlayer) {
-        connectionText[1]("Connecting...");
+        states.connectionText[1]("Connecting...");
         clientNetwork._connect().then(r => r); // not waiting for it to connect
     } else {
         singlePlayerServer = new Server(bfs, `${bfs_path}${WorldInfo.uuid}`);
@@ -820,16 +817,16 @@ export function saveAndQuit() {
 // todo: in mobile: cannot break blocks, cannot move because there's no movement buttons
 
 function isInChat() {
-    return chatContainer[0];
+    return states.chatOpen[0];
 }
 
 function closeChat() {
-    chatContainer[1](false);
+    states.chatOpen[1](false);
     chatInput.blur();
 }
 
 function openChat() {
-    chatContainer[1](true);
+    states.chatOpen[1](true);
     requestAnimationFrame(() => chatInput.focus());
 }
 
@@ -839,11 +836,13 @@ function toggleChat() {
 }
 
 function isAnyUIOpen() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || deathScreen[0] || connectionText[0] || optionPopup[0] !== "none" || isInChat();
+    return states.container[0] !== Containers.Closed || states.saveScreen[0] || states.deathScreen[0]
+        || states.connectionText[0] || states.optionsPage[0] !== "none" || isInChat();
 }
 
 function hasBlur() {
-    return containerState[0] !== Containers.Closed || saveScreen[0] || deathScreen[0] || connectionText[0] || optionPopup[0] !== "none";
+    return states.container[0] !== Containers.Closed || states.saveScreen[0] || states.deathScreen[0]
+        || states.connectionText[0] || states.optionsPage[0] !== "none";
 }
 
 function F3Component(O: { ikey: string }) {
@@ -857,18 +856,10 @@ export default function Client(O: {
 }) {
     // @ts-expect-error This is for debugging purposes.
     window.dbg = {s: singlePlayerServer, p: clientPlayer};
-    optionPopup = useState<OptionPages>("none");
-    saveScreen = useState(false);
-    deathScreen = useState(false);
-    connectionText = useState("");
-    containerState = useState(Containers.Closed);
-    chatContainer = useState(false);
-    handIndexState = useState(0);
-    clientUUID = O.clientUUID;
-    f1On = useState(false);
+    for (const k in DefaultPublicStates) states[k] = useState(DefaultPublicStates[k]);
     const mouseX = useState(0);
     const mouseY = useState(0);
-    if (singlePlayerServer) singlePlayerServer.pausedUpdates = optionPopup[0] !== "none";
+    if (singlePlayerServer) singlePlayerServer.pausedUpdates = states.optionsPage[0] !== "none";
 
     useEffect(() => {
         loadOptions();
@@ -879,7 +870,7 @@ export default function Client(O: {
         }
 
         try {
-            initClient();
+            initClient(O.clientUUID[0]);
         } catch (e) {
             if (IS_LOCALHOST) throw e;
             console.error(e);
@@ -931,13 +922,13 @@ export default function Client(O: {
 
         {/* Chat Container */}
         {useMemo(() => {
-            return <div className={chatContainer[0] ? "full-chat-container" : "chat-container"}
-                        style={f1On[0] && !chatContainer[0] ? {opacity: "0"} : {}}>
+            return <div className={states.chatOpen[0] ? "full-chat-container" : "chat-container"}
+                        style={states.f1[0] && !states.chatOpen[0] ? {opacity: "0"} : {}}>
                 <div className="chat-messages" ref={el => chatBox = el}>
                 </div>
                 <input className="chat-input" ref={el => chatInput = el}/>
             </div>;
-        }, [chatContainer])}
+        }, [states.f1, states.chatOpen])}
 
 
         {/* Mobile Chat Toggle Button */}
@@ -950,7 +941,7 @@ export default function Client(O: {
         <div className="mobile-options-open" style={isMobile && !hasBlur() ? {} : {scale: "0"}}
              onClick={() => {
                  closeChat();
-                 optionPopup[1]("main");
+                 states.optionsPage[1]("main");
              }}>
             {/* These are three dots. */}
             <div></div>
@@ -962,26 +953,46 @@ export default function Client(O: {
         {/* Background Blur used in UIs */}
         <div className="background-blur" style={hasBlur() ? {
             opacity: "1", pointerEvents: "auto",
-            ...(optionPopup[0] !== "none" ? {background: "rgba(0, 0, 0, 0.5)"} : {})
+            ...(states.optionsPage[0] !== "none" ? {background: "rgba(0, 0, 0, 0.5)"} : {})
         } : {}}
              onClick={() => {
                  const cursorItem = clientPlayer.cursorItem;
-                 if (containerState[0] !== Containers.Closed && cursorItem) {
+                 if (states.container[0] !== Containers.Closed && cursorItem) {
                      const count = clientPlayer.cursorItem.count;
                      clientPlayer.cursorItem = null;
                      clientNetwork.sendDropItem("cursor", 0, count);
                  }
              }}></div>
 
-
-        {/* Hotbar */}
-        <InventoryDiv className="hotbar-inventory inventory"
-                      style={isMobile ? {width: "50%"} : (f1On[0] ? {"opacity": "0"} : {})}
-                      inventoryName={"hotbar"} ikey="hi" handIndex={handIndexState}></InventoryDiv>
+        {/* Hotbar Container */}
+        <div className="hotbar-container"
+             style={isMobile ? {width: "50%"} : (states.f1[0] ? {"opacity": "0"} : {})}>
+            <div className="space-between">
+                <div>
+                    <div className="armor">
+                        <span className="armor-text"></span>
+                    </div>
+                    <div className="health">
+                        <span className="health-text"></span>
+                    </div>
+                </div>
+                <div>
+                    <div className="breathe">
+                        <span className="breathe-text"></span>
+                    </div>
+                    <div className="hunger">
+                        <span className="hunger-text"></span>
+                    </div>
+                </div>
+            </div>
+            <div className="xp-bar"></div>
+            <InventoryDiv className="hotbar-inventory inventory" inventoryName={"hotbar"} ikey="hi"
+                          handIndex={states.handIndex}></InventoryDiv>
+        </div>
 
 
         {/* Player Inventory */}
-        <InventoryContainer containerId={Containers.PlayerInventory} containerState={containerState}
+        <InventoryContainer containerId={Containers.PlayerInventory} containerState={states.container}
                             src="assets/textures/gui/container/inventory.png" className="player-inventory-container">
             <InventoryDiv className="inv-pp inventory" inventoryName={"player"}
                           ikey="pp"></InventoryDiv>
@@ -997,7 +1008,7 @@ export default function Client(O: {
 
 
         {/* Crafting Table Inventory */}
-        <InventoryContainer containerId={Containers.CraftingTable} containerState={containerState}
+        <InventoryContainer containerId={Containers.CraftingTable} containerState={states.container}
                             src="assets/textures/gui/container/crafting_table.png" className="crafting-table-container">
             <InventoryDiv className="inv-cc inventory" inventoryName={"craftingBig"}
                           ikey="cc"></InventoryDiv>
@@ -1010,7 +1021,7 @@ export default function Client(O: {
 
 
         {/* Furnace Inventory */}
-        <InventoryContainer containerId={Containers.Furnace} containerState={containerState}
+        <InventoryContainer containerId={Containers.Furnace} containerState={states.container}
                             src="assets/textures/gui/container/furnace.png" className="furnace-container">
             <InventoryDiv className="inv-ffi inventory" inventoryName={"furnaceInput"}
                           ikey="ffi"></InventoryDiv>
@@ -1033,8 +1044,8 @@ export default function Client(O: {
 
         {/* Options */}
         {useMemo(() => {
-            return <>{...getMenus("client", optionPopup)}</>;
-        }, [optionPopup[0]])}
+            return <>{...getMenus("client", states.optionsPage)}</>;
+        }, [states.optionsPage[0]])}
 
 
         {/* Mobile Control Buttons */}
@@ -1055,7 +1066,7 @@ export default function Client(O: {
 
         {/* The screen that pops up on death */}
         {useMemo(() => <div className="death-screen" style={
-            deathScreen[0] ? {
+            states.deathScreen[0] ? {
                 opacity: "1",
                 pointerEvents: "auto"
             } : {}
@@ -1063,33 +1074,33 @@ export default function Client(O: {
             <h1>You Died!</h1>
             <div className="btn" onClick={() => {
                 clientNetwork.sendRespawn();
-                deathScreen[1](false);
+                states.deathScreen[1](false);
             }}>Respawn
             </div>
             <div className="btn" onClick={() => saveAndQuit()}>Title Screen</div>
-        </div>, [deathScreen[0]])}
+        </div>, [states.deathScreen[0]])}
 
 
         {/* The screen that only pops up when saving */}
         {useMemo(() => <div className="save-screen" style={
-            saveScreen[0] ? {
+            states.saveScreen[0] ? {
                 opacity: "1",
                 pointerEvents: "auto"
             } : {}
         }>
             Saving the world...
-        </div>, [saveScreen[0]])}
+        </div>, [states.saveScreen[0]])}
 
 
         {/* The screen used to display the connection or disconnection text */}
         {useMemo(() => <div className="connection-text" style={
-            connectionText[0] ? {
+            states.connectionText[0] ? {
                 opacity: "1",
                 pointerEvents: "auto"
             } : {}
         }>
-            <h3>{connectionText[0]}</h3>
+            <h3>{states.connectionText[0]}</h3>
             <div className="btn" onClick={() => saveAndQuit()}>Title Screen</div>
-        </div>, [connectionText[0]])}
+        </div>, [states.connectionText[0]])}
     </>;
 }

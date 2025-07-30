@@ -18,7 +18,6 @@ import CFallingBlockEntity from "@c/entity/types/CFallingBlockEntity";
 import {SteveDataURL} from "@dom/assets/Steve";
 
 export type Div = HTMLDivElement;
-export type Span = HTMLSpanElement;
 export type Input = HTMLInputElement;
 
 export type ReactState<T> = ReturnType<typeof useState<T>>;
@@ -132,7 +131,8 @@ export async function initClientThings() {
 }
 
 export async function initBrowserFS() {
-    if (!self.bfs) {
+    const w = self as {bfs?: typeof import("fs"), bfs_path?: string};
+    if (!w.bfs) {
         let electron: unknown;
         if ("electron" in self) electron = self.electron;
         if (typeof electron === "undefined") {
@@ -141,13 +141,13 @@ export async function initBrowserFS() {
                     "/": WebStorage.create({storage: localStorage})
                 }
             });
-            self.bfs = <typeof import("fs")><unknown>ZenFS.fs;
-            self.bfs_path = "./singleplayer/";
+            w.bfs = <typeof import("fs")><unknown>ZenFS.fs;
+            w.bfs_path = "./singleplayer/";
             if (!bfs.existsSync(bfs_path)) bfs.mkdirSync(bfs_path, {recursive: true});
         } else {
             const el = <{ fs: typeof import("fs"), fs_path: string }>electron;
-            self.bfs = el.fs;
-            self.bfs_path = el.fs_path;
+            w.bfs = el.fs;
+            w.bfs_path = el.fs_path;
         }
         self.Buffer = Buffer;
     }

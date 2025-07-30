@@ -8,6 +8,8 @@ import {readdirRecursive, SoundFiles} from "@/utils/Utils";
 import path from "path";
 import {fileURLToPath} from "node:url";
 import {Packets} from "@/network/Packets";
+import * as http from "node:http";
+import express from "express";
 
 export default class SServer extends Server {
     constructor(public fs: typeof import("fs"), public path: string) {
@@ -88,10 +90,17 @@ export default class SServer extends Server {
         await initCommon();
 
         printer.info("Starting server...");
-        const wss = new WebSocketServer({port: 1881});
+        const app = express();
+        const server = http.createServer(app);
+        const wss = new WebSocketServer({server});
         this.socketServer = wss;
         this.init();
+        server.listen(this.config.port);
         if (this.closed) exit();
+
+        app.get("/__explorio__/motd", (_, res) => {
+            res.send(this.config.motd);
+        });
 
         wss.on("connection", (ws, req) => {
             const network = new PlayerNetwork(ws, req);

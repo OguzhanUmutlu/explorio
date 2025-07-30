@@ -57,15 +57,23 @@ body {
     pointer-events: none;
 }
 
-.hotbar-inventory {
+.hotbar-container {
+    transition: opacity 0.3s;
     position: absolute;
     left: 50%;
     bottom: 0;
     width: 37.5%;
-    aspect-ratio: 9 / 1;
     translate: -50%;
     pointer-events: none;
     z-index: 1;
+}
+
+.hotbar-container > div {
+    width: 100%;
+}
+
+.hotbar-inventory {
+    aspect-ratio: 9 / 1;
 }
 
 .hotbar-inventory > .inventory-item {
@@ -89,6 +97,10 @@ body {
 .hotbar-inventory > .inventory-item > div {
     right: 13%;
     bottom: 13%;
+}
+
+.xp-bar {
+
 }
 
 .chat-container {
@@ -468,4 +480,10 @@ body {
     translate: -50%;
     font-size: 20px;
     height: 50px;
+}
+
+.space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
