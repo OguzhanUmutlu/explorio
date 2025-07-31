@@ -60,7 +60,7 @@ body {
 }
 
 .world, .server {
-    width: calc(100% - 60px);
+    width: calc(50vw - 60px);
     margin: 10px;
     background: rgba(0, 0, 0, 0.5);
     padding: 20px;
@@ -148,4 +148,16 @@ canvas {
 
 .upload-skin {
     font-size: 16px;
+}
+
+.motd {
+    margin-top: 4px;
+    font-size: 12px;
+    display: block;
+    word-break: break-all;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
 }

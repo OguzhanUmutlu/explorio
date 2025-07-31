@@ -10,6 +10,7 @@ import {fileURLToPath} from "node:url";
 import {Packets} from "@/network/Packets";
 import * as http from "node:http";
 import express from "express";
+import cors from "cors";
 
 export default class SServer extends Server {
     constructor(public fs: typeof import("fs"), public path: string) {
@@ -97,6 +98,23 @@ export default class SServer extends Server {
         this.init();
         server.listen(this.config.port);
         if (this.closed) exit();
+
+        let corsOrigin = this.config.corsOrigin;
+
+        if (corsOrigin !== "*") {
+            const trusted = ["https://mc.oguzhanumutlu.com"];
+
+            if (!corsOrigin) corsOrigin = trusted;
+            else if (typeof corsOrigin === "string") corsOrigin = [corsOrigin, ...trusted];
+            else if (Array.isArray(corsOrigin)) corsOrigin.push(...trusted);
+            corsOrigin = [...new Set(corsOrigin)];
+        } else {
+            printer.warn("CORS is set to '*', this is not recommended for production servers. " +
+                "It allows any website to force users to join your server. " +
+                "You can set it to a specific origin or an array of origins in the config file.");
+        }
+
+        if (corsOrigin) app.use(cors({origin: this.config.corsOrigin}));
 
         app.get("/__explorio__/motd", (_, res) => {
             res.send(this.config.motd);

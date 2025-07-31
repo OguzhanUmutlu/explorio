@@ -33,11 +33,13 @@
   "homepage": "https://github.com/OguzhanUmutlu/explorio#readme",
   "dependencies": {
     "@oneidentity/zstd-js": "^1.0.3",
+    "@types/cors": "^2.8.19",
     "@zenfs/core": "^2.3.3",
     "@zenfs/dom": "^1.1.8",
     "alea": "^1.0.1",
     "bson": "^6.10.4",
     "buffer": "^6.0.3",
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.1",
     "fancy-printer": "^2.1.4",

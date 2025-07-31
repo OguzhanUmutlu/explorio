@@ -81,7 +81,8 @@ export const ZServerConfig = z.object({
         seconds: z.number().min(0)
     }),
     saveIntervalTicks: z.number().min(0),
-    auth: z.string().nullable().optional()
+    auth: z.string().nullable().optional(),
+    corsOrigin: z.string().or(z.string().array()).nullable().optional()
 });
 
 export type ServerConfig = z.infer<typeof ZServerConfig>;
@@ -114,7 +115,8 @@ export const DefaultServerConfig: ServerConfig = {
         seconds: 5
     },
     saveIntervalTicks: 900,
-    auth: null // "https://127.0.0.1/"
+    auth: null, // "https://127.0.0.1/"
+    corsOrigin: null // null | string | string[]
 };
 
 const banEntryType = z.object({

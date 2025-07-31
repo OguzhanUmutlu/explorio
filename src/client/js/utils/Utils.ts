@@ -131,7 +131,7 @@ export async function initClientThings() {
 }
 
 export async function initBrowserFS() {
-    const w = self as {bfs?: typeof import("fs"), bfs_path?: string};
+    const w = self as { bfs?: typeof import("fs"), bfs_path?: string };
     if (!w.bfs) {
         let electron: unknown;
         if ("electron" in self) electron = self.electron;
@@ -559,7 +559,6 @@ export function drawDotTo(x: number, y: number) {
 }
 
 export function formatDivText(div: Div, text: string) {
-    div.classList.add("message");
     // l = bold
     // u = underline
     // s = strikethrough
@@ -613,5 +612,14 @@ export function formatDivText(div: Div, text: string) {
         } else {
             parent.appendChild(document.createTextNode(part));
         }
+    }
+}
+
+export async function fetchMotd(ip: string, port: number): Promise<string> {
+    try {
+        const res = await fetch(`http://${ip}:${port}/__explorio__/motd`);
+        return await res.text();
+    } catch (_) {
+        return `§cFailed to connect.`;
     }
 }

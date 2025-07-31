@@ -110,11 +110,11 @@ body {
 
 .container {
     position: absolute;
-    left: 50%;
-    top: 50%;
+    left: 50vw;
+    top: 50vh;
     translate: -50% -50%;
-    width: 50%;
-    height: 50%;
+    width: 50vw;
+    height: 50vh;
     background-color: rgba(0, 0, 0, 0.5);
     padding: 15px 15px;
     border-radius: 5px;
