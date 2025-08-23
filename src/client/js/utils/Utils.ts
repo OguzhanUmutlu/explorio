@@ -632,9 +632,9 @@ export function formatDivText(div: Div, text: string) {
     }
 }
 
-export async function fetchMotd(ip: string, port: number): Promise<string> {
+export async function fetchServerDescription(ip: string, port: number): Promise<string> {
     try {
-        const res = await fetch(`http://${ip}:${port}/__explorio__/motd`);
+        const res = await fetch(`http://${ip}:${port}/__explorio__/description`);
         return await res.text();
     } catch {
         return `§cFailed to connect.`;

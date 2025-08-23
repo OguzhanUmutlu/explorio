@@ -1,10 +1,15 @@
 import {StateInput} from "@dom/components/StateInput";
-import {fetchMotd, formatDivText, ReactState, removeServer, ServerData} from "@c/utils/Utils";
+import {fetchServerDescription, formatDivText, ReactState, removeServer, ServerData} from "@c/utils/Utils";
 import {MainMenuPopup} from "@dom/components/MainMenuPopup";
 import React, {useState} from "react";
 
 let fetching = {};
 let fetched = {};
+
+export function clearServerFetchCache() {
+    fetching = {};
+    fetched = {};
+}
 
 export function MultiPlayerPopup(O: {
     mp: ReactState<boolean>,
@@ -37,9 +42,9 @@ export function MultiPlayerPopup(O: {
             {O.servers[0]
                 .filter(s => s.name.toLowerCase().includes(serverSearch[0].toLowerCase()))
                 .map(s => {
-                    if (!fetched[s.uuid] && !fetching[s.uuid]) {
+                    if (!fetched[s.uuid] && !fetching[s.uuid] && O.mp[0]) {
                         fetching[s.uuid] = true;
-                        fetchMotd(s.ip, s.port).then(r => {
+                        fetchServerDescription(s.ip, s.port).then(r => {
                             fetched[s.uuid] = r;
                             delete fetching[s.uuid];
                             refresh[1](r => r + 1);
@@ -61,11 +66,11 @@ export function MultiPlayerPopup(O: {
                             O.refresh();
                         }}>Delete
                         </div>
-                        <div className="motd" ref={el => {
+                        <div className="description" ref={el => {
                             const text = fetching[s.uuid] ? "§7Loading..." : fetched[s.uuid];
                             if (el) {
                                 for (const child of Array.from(el.childNodes)) child.remove();
-                                formatDivText(el, text);
+                                formatDivText(el, text ?? "");
                             }
                         }}></div>
                     </div>;

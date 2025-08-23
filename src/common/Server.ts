@@ -68,7 +68,7 @@ export const ZServerConfig = z.object({
     maxPlayers: z.number().int().min(-1).max(4294967295), // -1 or 4294967295 means unlimited
     renderDistance: z.number().min(0),
     language: z.enum(<[LanguageName, ...LanguageName[]]>Object.keys(Languages)),
-    motd: z.string(),
+    description: z.string(),
     defaultWorld: z.string().default("default"),
     defaultWorlds: z.record(z.string(), ZWorldMetaData),
     packetCompression: z.boolean(),
@@ -92,7 +92,7 @@ export const DefaultServerConfig: ServerConfig = {
     maxPlayers: 20,
     renderDistance: 3,
     language: "en",
-    motd: "My Server",
+    description: "My Server",
     defaultWorld: "default",
     defaultWorlds: {
         default: {

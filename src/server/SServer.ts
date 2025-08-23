@@ -83,8 +83,8 @@ export class SServer extends Server {
 
         if (corsOrigin) app.use(cors({origin: this.config.corsOrigin}));
 
-        app.get("/__explorio__/motd", (_, res) => {
-            res.send(this.config.motd);
+        app.get("/__explorio__/description", (_, res) => {
+            res.send(this.config.description);
         });
 
         wss.on("connection", (ws, req) => {

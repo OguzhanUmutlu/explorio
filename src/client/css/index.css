@@ -154,7 +154,7 @@ canvas {
     font-size: 16px;
 }
 
-.motd {
+.description {
     margin-top: 4px;
     font-size: 12px;
     display: block;

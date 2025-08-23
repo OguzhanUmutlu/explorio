@@ -12,7 +12,7 @@ import {
 } from "@c/utils/Utils";
 import React, {useEffect, useRef, useState} from "react";
 import {SinglePlayerPopup} from "@dom/components/indexPopups/SinglePlayerPopup";
-import {MultiPlayerPopup} from "@dom/components/indexPopups/MultiPlayerPopup";
+import {clearServerFetchCache, MultiPlayerPopup} from "@dom/components/indexPopups/MultiPlayerPopup";
 import {NewWorldPopup} from "@dom/components/indexPopups/NewWorldPopup";
 import {NewServerPopup} from "@dom/components/indexPopups/NewServerPopup";
 import "@dom/css/index.css";
@@ -143,7 +143,11 @@ export function Index(O: {
             <div className="title">Explorio</div>
             <div className="buttons">
                 <div className="singleplayer btn" onClick={() => toggles.sp[1](true)}>Singleplayer</div>
-                <div className="multiplayer btn" onClick={() => toggles.mp[1](true)}>Multiplayer</div>
+                <div className="multiplayer btn" onClick={() => {
+                    clearServerFetchCache();
+                    toggles.mp[1](true);
+                }}>Multiplayer
+                </div>
                 <div className="options btn" onClick={() => page[1]("main")}>Options</div>
             </div>
         </div>
