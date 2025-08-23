@@ -25,6 +25,10 @@ body {
     .player-name {
         font-size: 14px !important;
     }
+
+    .world, .server {
+        width: calc(100% - 60px) !important;
+    }
 }
 
 @keyframes panorama {

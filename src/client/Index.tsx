@@ -79,7 +79,10 @@ export function Index(O: {
         addEventListener("mousemove", updateMouse);
 
         async function render() {
+            animationFrame.current = requestAnimationFrame(render);
             if (!el.parentElement) return;
+
+            document.documentElement.style.setProperty("--blur", `${Options.blur_px}px`);
 
             ctx.clearRect(0, 0, el.width, el.height);
 
@@ -91,8 +94,6 @@ export function Index(O: {
                 texture = new Texture("", img);
                 await promise;
             }
-
-            animationFrame.current = requestAnimationFrame(render);
 
             if (texture.image.width === 0 || texture.image.height === 0) return;
 
