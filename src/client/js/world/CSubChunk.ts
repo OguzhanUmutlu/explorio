@@ -43,7 +43,7 @@ export default class CSubChunk {
         relX: number, relY: number, fullId: number, clear: boolean
     ) {
         const ctx = this.bCtx;
-        const dCtx = this.dCtx;
+        // const dCtx = this.dCtx;
         const block = f2data(fullId);
         const dx = relX * renderScale;
         const dy = renderScale * (ChunkLength - relY);

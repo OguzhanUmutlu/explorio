@@ -65,17 +65,17 @@ export default class ExecuteCommand extends Command {
                 for (const entity of entities) {
                     const response = await sender.server.executeCommandLabel(sender, entity, positions[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
                     if (response instanceof CommandError) {
-                        for (const {selector, path} of store.success.entity) {
+                        /*for (const {selector, path} of store.success.entity) {
                             // todo: entity data operate
-                        }
+                        }*/
                         for (const path of store.success.storage) {
                             dataOperate(sender.server.storage, path, "=", 0);
                         }
 
                         if (last !== undefined) {
-                            for (const {selector, path} of store.result.entity) {
+                            /*for (const {selector, path} of store.result.entity) {
                                 // todo: entity data operate
-                            }
+                            }*/
                             for (const path of store.result.storage) {
                                 dataOperate(sender.server.storage, path, "=", last);
                             }
@@ -86,15 +86,15 @@ export default class ExecuteCommand extends Command {
                     last = response;
                 }
 
-                for (const {selector, path} of store.success.entity) {
+                /*for (const {selector, path} of store.success.entity) {
                     // todo: entity data operate
-                }
+                }*/
                 for (const path of store.success.storage) {
                     dataOperate(sender.server.storage, path, "=", 1);
                 }
-                for (const {selector, path} of store.result.entity) {
+                /*for (const {selector, path} of store.result.entity) {
                     // todo: entity data operate
-                }
+                }*/
                 for (const path of store.result.storage) {
                     dataOperate(sender.server.storage, path, "=", last);
                 }

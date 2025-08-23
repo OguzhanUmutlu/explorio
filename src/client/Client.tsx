@@ -923,7 +923,9 @@ export default function Client(O: {
 
     return <>
         {/* F3 Menu */}
-        {useMemo(() => <div className="f3-menu" ref={el => f3Menu = el} hidden={true}>
+        {useMemo(() => <div className="f3-menu" ref={el => {
+            f3Menu = el;
+        }} hidden={true}>
             FPS: <F3Component ikey="fps"/><br/>
             X: <F3Component ikey="x"/><br/>
             Y: <F3Component ikey="y"/><br/>
@@ -934,22 +936,34 @@ export default function Client(O: {
 
 
         {/* The game's canvas */}
-        {useMemo(() => <canvas id="game" ref={el => canvas = el}></canvas>, [])}
+        {useMemo(() => <canvas id="game" ref={el => {
+            canvas = el;
+        }}></canvas>, [])}
 
 
         {/* Title text */}
-        <div className="text-section title-text-section" ref={el => titleDiv = el}></div>
-        <div className="text-section sub-title-text-section" ref={el => subTitleDiv = el}></div>
-        <div className="text-section actionbar-text-section" ref={el => actionbarDiv = el}></div>
+        <div className="text-section title-text-section" ref={el => {
+            titleDiv = el;
+        }}></div>
+        <div className="text-section sub-title-text-section" ref={el => {
+            subTitleDiv = el;
+        }}></div>
+        <div className="text-section actionbar-text-section" ref={el => {
+            actionbarDiv = el;
+        }}></div>
 
 
         {/* Chat Container */}
         {useMemo(() => {
             return <div className={states.chatOpen[0] ? "full-chat-container" : "chat-container"}
                         style={states.f1[0] && !states.chatOpen[0] ? {opacity: "0"} : {}}>
-                <div className="chat-messages" ref={el => chatBox = el}>
+                <div className="chat-messages" ref={el => {
+                    chatBox = el;
+                }}>
                 </div>
-                <input className="chat-input" ref={el => chatInput = el}/>
+                <input className="chat-input" ref={el => {
+                    chatInput = el;
+                }}/>
             </div>;
         }, [states.f1, states.chatOpen])}
 

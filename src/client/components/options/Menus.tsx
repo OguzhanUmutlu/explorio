@@ -13,7 +13,7 @@ import {saveAndQuit, states} from "@dom/Client";
 import GameOptionComponent from "@dom/components/options/GameOptionComponent";
 import {deleteCookie, getCookie, setCookie} from "@dom/components/CookieHandler";
 import InputOptionComponent from "@dom/components/options/InputOptionComponent";
-import {Versions, VersionString} from "@/Versions";
+import {VersionString} from "@/Versions";
 import ResourcePackComponent from "@dom/components/ResourcePackComponent";
 import {FileAsync} from "ktfile";
 
