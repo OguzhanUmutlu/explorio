@@ -74,7 +74,9 @@ export default React.memo(function InventoryDiv(O: {
     return <div className="inventory" key={O.ikey} {...props}>
         {...new Array(size).fill(null).map((_, i) => {
             return <div key={O.ikey + " " + i}
-                        ref={el => handler.divs[i] = el}
+                        ref={el => {
+                            handler.divs[i] = el;
+                        }}
                         className={O.handIndex && i === O.handIndex[0] ? "inventory-item selected" : "inventory-item"}
                         onMouseEnter={() => {
                             clientPlayer.hoveringIndex = i;
@@ -96,7 +98,9 @@ export default React.memo(function InventoryDiv(O: {
                         ctx.imageSmoothingEnabled = false;
                     }
                 }}></canvas>
-                <div ref={el => handler.counts[i] = el}></div>
+                <div ref={el => {
+                    handler.counts[i] = el;
+                }}></div>
             </div>;
         })}
     </div>;

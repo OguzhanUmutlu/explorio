@@ -84,7 +84,7 @@ export interface ItemMetaDataConfig {
 
 
 /**
- * @description Returns the id of a full id
+ * Returns the id of a full id
  * @example f2meta(im2f(I.LOG, 5)) // I.LOG
  */
 export function f2id(x: number) {
@@ -92,7 +92,7 @@ export function f2id(x: number) {
 }
 
 /**
- * @description Returns the meta of a full id
+ * Returns the meta of a full id
  * @example f2meta(im2f(I.LOG, 5)) // 5
  */
 export function f2meta(x: number) {
@@ -100,7 +100,7 @@ export function f2meta(x: number) {
 }
 
 /**
- * @description Converts an item id and meta to a single number also called as the full id
+ * Converts an item id and meta to a single number also called as the full id
  * @example im2f(I.LOG, 5)
  */
 export function im2f(id: number, meta: number = 0) {

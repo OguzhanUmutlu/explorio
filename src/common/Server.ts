@@ -101,7 +101,8 @@ export const DefaultServerConfig: ServerConfig = {
             generatorOptions: "",
             seed: getRandomSeed().toString(),
             gameRules: {
-                randomTickSpeed: 3
+                randomTickSpeed: 3,
+                keepInventory: false
             }
         }
     },
@@ -119,7 +120,7 @@ export const DefaultServerConfig: ServerConfig = {
 
 const banEntryType = z.object({
     name: z.string(),
-    ip: z.nullable(z.string().ip()),
+    ip: z.nullable(z.ipv4()),
     timestamp: z.number(),
     reason: z.string()
 });
@@ -363,7 +364,7 @@ export default class Server {
                 const r = ZServerConfig.safeParse(got);
                 if (!r.success) {
                     printer.error(`Invalid server.json. Errors:\n${
-                        r.error.errors.map(e => e.path.join(" and ") + ": " + e.message).join("\n")
+                        r.error.issues.map(e => e.path.join(" and ") + ": " + e.message).join("\n")
                     }\nPlease edit it and restart the server.`);
                     this.closeReason = "Invalid server.json, please edit it and restart the server.";
                     return this.close();

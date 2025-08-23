@@ -219,9 +219,7 @@ export default class Player extends Entity implements CommandSender {
         inventory.decreaseItemAt(index, count);
     };
 
-    /**
-     * @description Empties temporary inventories
-     */
+    /** Empties temporary inventories */
     onCloseContainer() {
         for (const name of temporaryInventories) {
             const inv = this.inventories[name];

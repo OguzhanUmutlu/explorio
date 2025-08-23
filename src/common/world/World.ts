@@ -81,7 +81,7 @@ export const ZWorldMetaData = z.object({
     spawnPoint: z.object({
         x: z.number(),
         y: z.number()
-    }).default({x: 0, y: -1})
+    }).default({x: 0, y: -1}).optional()
 });
 
 export type WorldMetaData = z.infer<typeof ZWorldMetaData>;

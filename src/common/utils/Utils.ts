@@ -227,72 +227,72 @@ export function splitByUppercase(str: string) {
 // so rxy means relative x in chunk and world y
 // and rxry would mean relative x and relative y in chunk
 
-/** @description World X to chunkX */
+/** World X to chunkX */
 export function x2cx(x: number) {
     return Math.round(x) >> ChunkLengthBits;
 }
 
-/** @description World X to relX */
+/** World X to relX */
 export function x2rx(x: number) {
     return Math.round(x) & ChunkLengthN;
 }
 
-/** @description Converts Chunk X and Chunk Relative X values to World X */
+/** Converts Chunk X and Chunk Relative X values to World X */
 export function cx2x(chunkX: number, relX = 0) {
     return (chunkX << ChunkLengthBits) + relX;
 }
 
-/** @description World Y to chunkY */
+/** World Y to chunkY */
 export function y2cy(y: number) {
     return Math.round(y) >> ChunkLengthBits;
 }
 
-/** @description World Y to relY */
+/** World Y to relY */
 export function y2ry(y: number) {
     return Math.round(y) & ChunkLengthN;
 }
 
-/** @description ChunkY and relY to world Y */
+/** ChunkY and relY to world Y */
 export function cy2y(chunkY: number, relY = 0) {
     return (chunkY << ChunkLengthBits) + relY;
 }
 
-/** @description Rel x and world y to chunk index */
+/** Rel x and world y to chunk index */
 export function rxy2ci(relX: number, y: number) {
     return relX + (y << ChunkLengthBits);
 }
 
-/** @description Rel X and rel Y to chunk index */
+/** Rel X and rel Y to chunk index */
 export function rxry2ci(relX: number, relY: number) {
     return relX + (relY << ChunkLengthBits);
 }
 
-/** @description World X and world Y to chunk index */
+/** World X and world Y to chunk index */
 export function xy2ci(x: number, y: number) {
     return (x & ChunkLengthN) + (y << ChunkLengthBits);
 }
 
-/** @description Chunk index to chunk relative X */
+/** Chunk index to chunk relative X */
 export function i2rx(i: number) {
     return i & ChunkLengthN;
 }
 
-/** @description Chunk index to chunk relative Y */
+/** Chunk index to chunk relative Y */
 export function i2ry(i: number) {
     return i >> ChunkLengthBits;
 }
 
-/** @description Chunk X to chunk group X */
+/** Chunk X to chunk group X */
 export function cx2cgx(chunkX: number) {
     return chunkX >> ChunkGroupBits;
 }
 
-/** @description Chunk X to chunk group index */
+/** Chunk X to chunk group index */
 export function cx2cgi(chunkX: number) {
     return chunkX & ChunkGroupLengthN;
 }
 
-/** @description Chunk group X to chunk X */
+/** Chunk group X to chunk X */
 export function cgx2cx(chunkGroupX: number) {
     return chunkGroupX << ChunkGroupBits;
 }
