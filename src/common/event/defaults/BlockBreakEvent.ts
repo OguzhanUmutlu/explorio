@@ -1,10 +1,10 @@
-import PluginEvent from "@/event/PluginEvent";
-import Item from "@/item/Item";
+import {PluginEvent} from "@/event/PluginEvent";
+import {Item} from "@/item/Item";
 
-import BlockData from "@/item/BlockData";
-import Entity from "@/entity/Entity";
+import {BlockData} from "@/item/BlockData";
+import {Entity} from "@/entity/Entity";
 
-export default class BlockBreakEvent extends PluginEvent {
+export class BlockBreakEvent extends PluginEvent {
     constructor(
         public readonly entity: Entity,
         public readonly x: number,

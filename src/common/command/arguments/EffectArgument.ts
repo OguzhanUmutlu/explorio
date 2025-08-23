@@ -1,11 +1,11 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
-import Effect from "@/effect/Effect";
-import Server from "@/Server";
+import {Effect} from "@/effect/Effect";
+import {Server} from "@/Server";
 
-export default class EffectArgument extends CommandArgument<Effect> {
+export class EffectArgument extends CommandArgument<Effect> {
     get default(): never {
         throw new Error(`No default value set for the '${this.name}' argument.`);
     };

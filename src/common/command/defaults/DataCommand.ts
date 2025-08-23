@@ -1,11 +1,11 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
 import {accessPathSafely, anyToNumber, formatDataForChat, operatePathSafely, splitPathSafely} from "@/utils/Utils";
-import CommandError from "@/command/CommandError";
-import NumberArgument from "@/command/arguments/NumberArgument";
-import TextArgument from "@/command/arguments/TextArgument";
-import ArrayArgument from "@/command/arguments/ArrayArgument";
-import ObjectArgument from "@/command/arguments/ObjectArgument";
+import {CommandError} from "@/command/CommandError";
+import {NumberArgument} from "@/command/arguments/NumberArgument";
+import {TextArgument} from "@/command/arguments/TextArgument";
+import {ArrayArgument} from "@/command/arguments/ArrayArgument";
+import {ObjectArgument} from "@/command/arguments/ObjectArgument";
 
 export function dataAccess(data: unknown, path: string, scale: number) {
     try {
@@ -30,7 +30,7 @@ export function dataOperate(data: unknown, path: string, operator: string, value
     }
 }
 
-export default class DataCommand extends DefinitiveCommand {
+export class DataCommand extends DefinitiveCommand {
     constructor() {
         super("data", "Allows get, merge, modify, operation, remove on blocks, entities or storages.", [], "command.data");
     };

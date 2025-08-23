@@ -1,6 +1,6 @@
 import React from "react";
 import {isMobileByAgent} from "@c/utils/Utils";
 
-export default function OptionSpacingComponent() {
+export function OptionSpacingComponent() {
     return <div style={isMobileByAgent() ? {} : {height: "5%"}}/>;
 }

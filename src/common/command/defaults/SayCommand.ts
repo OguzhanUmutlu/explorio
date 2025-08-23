@@ -1,8 +1,8 @@
-import Command from "@/command/Command";
-import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Command} from "@/command/Command";
+import {CommandSender, CommandAs} from "@/command/CommandSender";
+import {Position} from "@/utils/Position";
 
-export default class SayCommand extends Command {
+export class SayCommand extends Command {
     constructor() {
         super("say", "Teleport to a position.", "Usage: /say <...raw_text>", [], "command.say");
     };

@@ -1,7 +1,7 @@
-import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {CommandSender, CommandAs} from "@/command/CommandSender";
+import {Position} from "@/utils/Position";
 
-export default abstract class Command {
+export abstract class Command {
     usageMessage: string;
 
     protected constructor(

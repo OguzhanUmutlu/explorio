@@ -1,11 +1,11 @@
 import {TileIds} from "@/meta/Tiles";
-import ContainerTile from "@/tile/defaults/ContainerTile";
+import {ContainerTile} from "@/tile/defaults/ContainerTile";
 import {def} from "stramp";
 import {InventoryContentStruct} from "@/structs/ItemStructs";
 import {InventorySizes} from "@/meta/Inventories";
-import Item from "@/item/Item";
+import {Item} from "@/item/Item";
 
-export default class ChestTile extends ContainerTile {
+export class ChestTile extends ContainerTile {
     typeId = TileIds.CHEST;
     typeName = "chest";
     name = "Chest";

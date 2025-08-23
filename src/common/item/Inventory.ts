@@ -1,9 +1,9 @@
-import Item from "@/item/Item";
-import World from "@/world/World";
+import {Item} from "@/item/Item";
+import {World} from "@/world/World";
 import {im2data} from "@/item/ItemFactory";
-import ItemDescriptor from "@/item/ItemDescriptor";
+import {ItemDescriptor} from "@/item/ItemDescriptor";
 
-export default class Inventory {
+export class Inventory {
     wholeDirty = false;
     dirtyIndexes = new Set<number>;
     // _tile: ContainerTile | null = null;

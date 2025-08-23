@@ -1,9 +1,9 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
-import CommandError from "@/command/CommandError";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
+import {CommandError} from "@/command/CommandError";
 
-export default class ClearCommand extends DefinitiveCommand {
+export class ClearCommand extends DefinitiveCommand {
     constructor() {
         super("clear", "Clears the inventory.", [], "command.clear");
     };

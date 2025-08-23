@@ -1,9 +1,9 @@
 import React from "react";
 import {OptionsType, useOptionSubscription} from "@c/utils/Utils";
-import GameOptionComponent from "@dom/components/options/GameOptionComponent";
-import OptionValueText from "@dom/components/options/OptionValueText";
+import {GameOptionComponent} from "@dom/components/options/GameOptionComponent";
+import {OptionValueText} from "@dom/components/options/OptionValueText";
 
-export default function ToggleOptionComponent(O: {
+export function ToggleOptionComponent(O: {
     option: keyof OptionsType;
     description?: string;
     text?: string | ((v: boolean) => string);

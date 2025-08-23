@@ -1,7 +1,7 @@
-import Server from "@/Server";
-import Plugin from "@/plugin/Plugin";
+import {Server} from "@/Server";
+import {Plugin} from "@/plugin/Plugin";
 
-export default class Interval {
+export class Interval {
     constructor(public server: Server, public plugin: Plugin, public next: number, public period: number, public callback: (interval: Interval) => void) {
     };
 

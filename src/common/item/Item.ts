@@ -6,7 +6,7 @@ export const DefaultItemComponents: ItemComponents = {
     damage: 0
 };
 
-export default class Item {
+export class Item {
     maxStack: number;
     components: ItemComponents;
 

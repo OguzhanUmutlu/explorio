@@ -1,6 +1,6 @@
-import EventManager from "@/event/EventManager";
+import {EventManager} from "@/event/EventManager";
 
-export default abstract class PluginEvent {
+export abstract class PluginEvent {
     protected cancellable = true;
     cancelled = false;
     stopped = false;
@@ -22,4 +22,4 @@ export default abstract class PluginEvent {
     callGetCancel() {
         return EventManager.emit(this);
     };
-};
+}

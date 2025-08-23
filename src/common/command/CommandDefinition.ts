@@ -1,27 +1,27 @@
-import CommandArgument from "@/command/CommandArgument";
-import NumberArgument from "@/command/arguments/NumberArgument";
-import GameModeArgument from "@/command/arguments/GameModeArgument";
-import PositionArgument from "@/command/arguments/PositionArgument";
-import EntitiesArgument from "@/command/arguments/EntitiesArgument";
-import TextArgument from "@/command/arguments/TextArgument";
-import BoolArgument from "@/command/arguments/BoolArgument";
-import ObjectArgument from "@/command/arguments/ObjectArgument";
-import ArrayArgument from "@/command/arguments/ArrayArgument";
-import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
-import EntityArgument from "@/command/arguments/EntityArgument";
-import LabelArgument from "@/command/arguments/LabelArgument";
-import EffectArgument from "@/command/arguments/EffectArgument";
-import ItemArgument from "@/command/arguments/ItemArgument";
-import EntityTypeArgument from "@/command/arguments/EntityTypeArgument";
-import TicksArgument from "@/command/arguments/TicksArgument";
+import {CommandArgument} from "@/command/CommandArgument";
+import {NumberArgument} from "@/command/arguments/NumberArgument";
+import {GameModeArgument} from "@/command/arguments/GameModeArgument";
+import {PositionArgument} from "@/command/arguments/PositionArgument";
+import {EntitiesArgument} from "@/command/arguments/EntitiesArgument";
+import {TextArgument} from "@/command/arguments/TextArgument";
+import {BoolArgument} from "@/command/arguments/BoolArgument";
+import {ObjectArgument} from "@/command/arguments/ObjectArgument";
+import {ArrayArgument} from "@/command/arguments/ArrayArgument";
+import {CommandSender, CommandAs} from "@/command/CommandSender";
+import {Position} from "@/utils/Position";
+import {EntityArgument} from "@/command/arguments/EntityArgument";
+import {LabelArgument} from "@/command/arguments/LabelArgument";
+import {EffectArgument} from "@/command/arguments/EffectArgument";
+import {ItemArgument} from "@/command/arguments/ItemArgument";
+import {EntityTypeArgument} from "@/command/arguments/EntityTypeArgument";
+import {TicksArgument} from "@/command/arguments/TicksArgument";
 import {OneOfArgument} from "@/command/arguments/OneOfArgument";
 
 export type Append<T extends unknown[] | [], V> = T extends [] ? [V] : [...T, V];
 
 export type CommandDefinitionType = CommandDefinition<CommandArgument[]>;
 
-export default class CommandDefinition<T extends CommandArgument[] = []> {
+export class CommandDefinition<T extends CommandArgument[] = []> {
     permission: string | false = false;
     arguments = <CommandArgument[]>[];
     run: (sender: CommandSender, as: CommandAs | null, at: Position, ...args: { [K in keyof T]: T[K]["__TYPE__"] }) => number | void | Promise<number | void>;

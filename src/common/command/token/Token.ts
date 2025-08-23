@@ -1,7 +1,7 @@
 import {checkArray, checkObject} from "@/utils/Utils";
 import {TokenType, TokenValue} from "@/command/CommandProcessor";
 
-export default class Token<T extends TokenType = TokenType> {
+export class Token<T extends TokenType = TokenType> {
     raw: string;
     rawText: string;
     yes = 1;

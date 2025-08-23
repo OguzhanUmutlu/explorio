@@ -1,12 +1,12 @@
-import BoundingBox from "@/entity/BoundingBox";
+import {BoundingBox} from "@/entity/BoundingBox";
 import {EntityIds} from "@/meta/Entities";
-import Player from "@/entity/defaults/Player";
-import Entity from "@/entity/Entity";
+import {Player} from "@/entity/defaults/Player";
+import {Entity} from "@/entity/Entity";
 import X, {def} from "stramp";
 
 const maxStack = 255;
 
-export default class XPOrbEntity extends Entity {
+export class XPOrbEntity extends Entity {
     typeId = EntityIds.XP_ORB;
     typeName = "xp_orb";
     name = "XP Orb";

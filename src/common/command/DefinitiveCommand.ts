@@ -1,11 +1,11 @@
-import Command from "@/command/Command";
+import {Command} from "@/command/Command";
 import {CommandDefinitionType} from "@/command/CommandDefinition";
 import {AnyToken, splitParameters} from "@/command/CommandProcessor";
-import CommandArgument from "@/command/CommandArgument";
-import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {CommandArgument} from "@/command/CommandArgument";
+import {CommandSender, CommandAs} from "@/command/CommandSender";
+import {Position} from "@/utils/Position";
 
-export default abstract class DefinitiveCommand extends Command {
+export abstract class DefinitiveCommand extends Command {
     abstract definitions: CommandDefinitionType[];
 
     protected constructor(

@@ -1,9 +1,9 @@
-import PacketError from "@/network/PacketError";
-import Packet from "@/network/Packet";
+import {PacketError} from "@/network/PacketError";
+import {Packet} from "@/network/Packet";
 import {zstdOptionalDecode} from "@/utils/Utils";
 import {PacketIds} from "@/meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
-import ChunkBlocksBin from "@/structs/ChunkBlocksBin";
+import {ChunkBlocksBin} from "@/structs/ChunkBlocksBin";
 import {GameModeStruct} from "@/command/arguments/GameModeArgument";
 import {InventoryContentStruct, InventoryNameBin, ItemStruct} from "@/structs/ItemStructs";
 import {EntityAnimationStruct} from "@/structs/EntityAnimationStruct";

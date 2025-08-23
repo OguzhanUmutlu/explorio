@@ -1,8 +1,8 @@
 import React from "react";
-import GameOptionComponent from "@dom/components/options/GameOptionComponent";
-import OptionValueText from "@dom/components/options/OptionValueText";
+import {GameOptionComponent} from "@dom/components/options/GameOptionComponent";
+import {OptionValueText} from "@dom/components/options/OptionValueText";
 
-export default function OptionButtonComponent(O: {
+export function OptionButtonComponent(O: {
     text: string;
     description?: string;
     action?: () => unknown;

@@ -14,7 +14,7 @@ function getPalette(value: Uint16Array) {
     return palette;
 }
 
-export default new class ChunkBlocksBin extends Bin<Uint16Array> {
+export const ChunkBlocksBin = new class ChunkBlocksBin extends Bin<Uint16Array> {
     name = "Chunk";
 
     unsafeWrite(bind: BufferIndex, value: Uint16Array) {

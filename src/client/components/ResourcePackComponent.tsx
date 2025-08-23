@@ -1,7 +1,7 @@
 import {ResourcePack} from "@c/utils/Utils";
 import React from "react";
 
-export default function ResourcePackComponent({packs, pack, save, isDefault}: {
+export function ResourcePackComponent({packs, pack, save, isDefault}: {
     packs: ResourcePack[],
     pack: ResourcePack,
     save: () => void,

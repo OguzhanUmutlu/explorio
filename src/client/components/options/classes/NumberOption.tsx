@@ -1,9 +1,9 @@
-import GameOption from "@dom/components/options/classes/GameOption";
-import RangeOptionComponent from "@dom/components/options/RangeOptionComponent";
+import {GameOption} from "@dom/components/options/classes/GameOption";
+import {RangeOptionComponent} from "@dom/components/options/RangeOptionComponent";
 import {OptionsType} from "@c/utils/Utils";
 import React from "react";
 
-export default class NumberOption extends GameOption {
+export class NumberOption extends GameOption {
     constructor(
         key: keyof OptionsType,
         public text: string | ((v: number) => string),

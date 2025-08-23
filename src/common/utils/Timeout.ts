@@ -1,7 +1,7 @@
-import Server from "@/Server";
-import Plugin from "@/plugin/Plugin";
+import {Server} from "@/Server";
+import {Plugin} from "@/plugin/Plugin";
 
-export default class Timeout {
+export class Timeout {
     constructor(public server: Server, public plugin: Plugin, public ticks: number, public callback: (timeout: Timeout) => void) {
     };
 

@@ -1,7 +1,7 @@
 import React, {ReactNode} from "react";
 import {isMobileByAgent} from "@c/utils/Utils";
 
-export default function GameOptionComponent(O: {
+export function GameOptionComponent(O: {
     description: string;
     class: string;
     children: ReactNode;

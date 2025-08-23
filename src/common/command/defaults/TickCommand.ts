@@ -1,7 +1,7 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
 
-export default class TickCommand extends DefinitiveCommand {
+export class TickCommand extends DefinitiveCommand {
     constructor() {
         super("tick", "Manages the server's ticks", [], "command.tick");
     };

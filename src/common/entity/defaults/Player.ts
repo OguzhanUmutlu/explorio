@@ -1,24 +1,24 @@
 import {EntityIds} from "@/meta/Entities";
-import Inventory from "@/item/Inventory";
-import CommandSender from "@/command/CommandSender";
+import {Inventory} from "@/item/Inventory";
+import {CommandSender} from "@/command/CommandSender";
 import {copyBuffer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
-import PlayerNetwork from "@/network/PlayerNetwork";
+import {PlayerNetwork} from "@/network/PlayerNetwork";
 import {Packets} from "@/network/Packets";
 import {Containers, InventoryName, InventorySizes} from "@/meta/Inventories";
-import Item from "@/item/Item";
+import {Item} from "@/item/Item";
 import {EntitySaveStruct} from "@/structs/EntityTileSaveStruct";
-import Packet from "@/network/Packet";
+import {Packet} from "@/network/Packet";
 import {GameMode, GameModeStruct} from "@/command/arguments/GameModeArgument";
-import Effect from "@/effect/Effect";
-import PlayerKickEvent from "@/event/defaults/PlayerKickEvent";
-import BoundingBox from "@/entity/BoundingBox";
+import {Effect} from "@/effect/Effect";
+import {PlayerKickEvent} from "@/event/defaults/PlayerKickEvent";
+import {BoundingBox} from "@/entity/BoundingBox";
 import X, {def} from "stramp";
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 import {FallDamage} from "@/entity/damage/FallDamage";
 import {Block} from "@/block/Block";
-import Server from "@/Server";
+import {Server} from "@/Server";
 import {InventoryStruct} from "@/structs/ItemStructs";
-import World from "@/world/World";
+import {World} from "@/world/World";
 
 const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
     [Containers.Closed]: ["hotbar", "offhand"],
@@ -42,7 +42,7 @@ const InventoriesStruct = X.object.struct(["hotbar", "offhand", "player", "armor
 X.object.struct({worldFolder: X.s16})
     .withConstructor(({worldFolder}) => Server.instance.worlds[worldFolder])
 
-export default class Player extends Entity implements CommandSender {
+export class Player extends Entity implements CommandSender {
     typeId = EntityIds.PLAYER;
     typeName = "player";
 

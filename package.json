@@ -4,13 +4,14 @@
   "scripts": {
     "client": "vite",
     "server": "cd server && tsx ../src/server/Main.ts",
+    "desktop": "npm run build:desktop && cd src/desktop && npx electron .",
     "authserver": "cd src/auth && tsx Main.ts",
     "test": "tsx tests/test.ts",
     "lint": "eslint src",
     "build:client": "vite build",
     "build:desktop": "tsx ./scripts/build_desktop.ts",
     "build:docs": "typedoc",
-    "test:desktop": "npm run build:desktop && cd src/desktop && npx electron .",
+    "build:all": "npm run build:client && npm run build:docs && npm run build:desktop",
     "prepublishOnly": "tsx ./scripts/publish.ts"
   },
   "keywords": [

@@ -1,4 +1,4 @@
-import BoundingBox from "@/entity/BoundingBox";
+import {BoundingBox} from "@/entity/BoundingBox";
 
 export const BaseBlockBB = [new BoundingBox(0, 0, 1, 1)];
 

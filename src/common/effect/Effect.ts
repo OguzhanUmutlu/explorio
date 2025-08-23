@@ -1,6 +1,6 @@
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 
-export default abstract class Effect {
+export abstract class Effect {
     abstract typeId: number;
     abstract typeName: string;
     abstract name: string;

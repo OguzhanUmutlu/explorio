@@ -1,23 +1,23 @@
 import {EntityIds} from "@/meta/Entities";
-import CPlayer from "@c/entity/types/CPlayer";
+import {CPlayer} from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
-import Texture, {Canvas, Image, SkinData} from "@/utils/Texture";
-import BoundingBox from "@/entity/BoundingBox";
+import {Texture, Canvas, Image, SkinData} from "@/utils/Texture";
+import {BoundingBox} from "@/entity/BoundingBox";
 import {camera, canvas, clientServer, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
 import {useEffect, useState} from "react";
 import * as ZenFS from "@zenfs/core";
 
 import {Buffer} from "buffer";
-import CItemEntity from "@c/entity/types/CItemEntity";
-import Item from "@/item/Item";
-import CEntity from "@c/entity/CEntity";
-import CXPOrbEntity from "@c/entity/types/CXPOrbEntity";
-import CFallingBlockEntity from "@c/entity/types/CFallingBlockEntity";
+import {CItemEntity} from "@c/entity/types/CItemEntity";
+import {Item} from "@/item/Item";
+import {CEntity} from "@c/entity/CEntity";
+import {CXPOrbEntity} from "@c/entity/types/CXPOrbEntity";
+import {CFallingBlockEntity} from "@c/entity/types/CFallingBlockEntity";
 import {SteveDataURL} from "@dom/assets/Steve";
-import ItemFactory from "@/item/ItemFactory";
+import {ItemFactory} from "@/item/ItemFactory";
 import {InventoryHandlers} from "@dom/components/InventoryDiv";
-import CWorld from "@c/world/CWorld";
+import {CWorld} from "@c/world/CWorld";
 import {IndexedDB} from "@zenfs/dom";
 import {fileAsync, FileAsync} from "ktfile";
 

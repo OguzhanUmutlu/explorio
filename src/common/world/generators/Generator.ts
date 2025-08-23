@@ -1,7 +1,7 @@
-import World from "@/world/World";
+import {World} from "@/world/World";
 import {x2cx} from "@/utils/Utils";
 
-export default abstract class Generator {
+export abstract class Generator {
     world: World;
 
     protected constructor() {

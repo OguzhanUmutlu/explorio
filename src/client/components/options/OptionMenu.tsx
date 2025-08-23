@@ -1,10 +1,10 @@
 import React from "react";
 import {isMobileByAgent, ReactState} from "@c/utils/Utils";
-import OptionButtonComponent from "@dom/components/options/OptionButtonComponent";
-import OptionSpacingComponent from "@dom/components/options/OptionSpacingComponent";
+import {OptionButtonComponent} from "@dom/components/options/OptionButtonComponent";
+import {OptionSpacingComponent} from "@dom/components/options/OptionSpacingComponent";
 import {OptionPages} from "@dom/components/options/Menus";
 
-export default function OptionMenu(O: {
+export function OptionMenu(O: {
     title: string,
     name: OptionPages,
     page: ReactState<OptionPages>,

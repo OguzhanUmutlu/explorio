@@ -1,6 +1,6 @@
-import Server from "@/Server";
+import {Server} from "@/Server";
 import {WebSocketServer} from "ws";
-import PlayerNetwork from "@/network/PlayerNetwork";
+import {PlayerNetwork} from "@/network/PlayerNetwork";
 import {initCommon} from "@/utils/Inits";
 import {SoundFiles} from "@/utils/Utils";
 import path from "path";
@@ -12,7 +12,7 @@ import {fileURLToPath} from "node:url";
 import {fileAsync} from "ktfile";
 import {getColoredPrinter} from "@/utils/ColoredPrinter";
 
-export default class SServer extends Server {
+export class SServer extends Server {
     constructor(pt = ".") {
         super(fileAsync(pt), null);
     };

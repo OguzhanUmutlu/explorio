@@ -1,20 +1,20 @@
-import GameOption from "@dom/components/options/classes/GameOption";
-import NumberOption from "@dom/components/options/classes/NumberOption";
-import ButtonOption from "@dom/components/options/classes/ButtonOption";
+import {GameOption} from "@dom/components/options/classes/GameOption";
+import {NumberOption} from "@dom/components/options/classes/NumberOption";
+import {ButtonOption} from "@dom/components/options/classes/ButtonOption";
 import {Options, ReactState, ResourcePack, saveOptions, useOptionSubscription, useSubscription} from "@c/utils/Utils";
-import OptionMenu from "@dom/components/options/OptionMenu";
+import {OptionMenu} from "@dom/components/options/OptionMenu";
 import React, {ReactNode, useState} from "react";
-import OptionGroup from "@dom/components/options/classes/OptionGroup";
-import ToggleOption from "@dom/components/options/classes/ToggleOption";
-import SelectOption from "@dom/components/options/classes/SelectOption";
-import OptionButtonComponent from "@dom/components/options/OptionButtonComponent";
-import JSXOption from "@dom/components/options/classes/JSXOption";
+import {OptionGroup} from "@dom/components/options/classes/OptionGroup";
+import {ToggleOption} from "@dom/components/options/classes/ToggleOption";
+import {SelectOption} from "@dom/components/options/classes/SelectOption";
+import {OptionButtonComponent} from "@dom/components/options/OptionButtonComponent";
+import {JSXOption} from "@dom/components/options/classes/JSXOption";
 import {saveAndQuit, states} from "@dom/Client";
-import GameOptionComponent from "@dom/components/options/GameOptionComponent";
+import {GameOptionComponent} from "@dom/components/options/GameOptionComponent";
 import {deleteCookie, getCookie, setCookie} from "@dom/components/CookieHandler";
-import InputOptionComponent from "@dom/components/options/InputOptionComponent";
+import {InputOptionComponent} from "@dom/components/options/InputOptionComponent";
 import {VersionString} from "@/Versions";
-import ResourcePackComponent from "@dom/components/ResourcePackComponent";
+import {ResourcePackComponent} from "@dom/components/ResourcePackComponent";
 import {FileAsync} from "ktfile";
 
 abstract class Menu {

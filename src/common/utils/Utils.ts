@@ -1,16 +1,15 @@
 import {ZstdSimple} from "@oneidentity/zstd-js";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {im2data, name2data} from "@/item/ItemFactory";
 import {ChunkGroupBits, ChunkGroupLengthN, ChunkLengthBits, ChunkLengthN} from "@/meta/WorldConstants";
-import Entity from "@/entity/Entity";
-import Inventory from "@/item/Inventory";
-import Item from "@/item/Item";
-import World from "@/world/World";
+import {Entity} from "@/entity/Entity";
+import {Inventory} from "@/item/Inventory";
+import {Item} from "@/item/Item";
+import {World} from "@/world/World";
 import {z} from "zod";
 import {readWordOrString} from "@/command/CommandProcessor";
-import CommandError from "@/command/CommandError";
+import {CommandError} from "@/command/CommandError";
 import {Buffer} from "buffer";
-import Printer from "fancy-printer";
 
 declare global {
     let printer: typeof Printer.brackets;

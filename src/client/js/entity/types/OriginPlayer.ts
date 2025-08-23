@@ -1,10 +1,10 @@
-import CPlayer from "@c/entity/types/CPlayer";
+import {CPlayer} from "@c/entity/types/CPlayer";
 import {Containers, InventoryName} from "@/meta/Inventories";
 import {chatBox, clientNetwork, clientPlayer, Keyboard, Mouse, states, updateMouse} from "@dom/Client";
 import {formatDivText, Options} from "@c/utils/Utils";
-import Sound from "@/utils/Sound";
+import {Sound} from "@/utils/Sound";
 
-export default class OriginPlayer extends CPlayer {
+export class OriginPlayer extends CPlayer {
     declare readonly handIndex: number;
     isClient = true;
     declare readonly containerId = Containers.Closed;

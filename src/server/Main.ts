@@ -1,4 +1,4 @@
-import SServer from "@s/SServer";
+import {SServer} from "@s/SServer";
 
 export const s_server = new SServer(process.argv[2] || ".");
 

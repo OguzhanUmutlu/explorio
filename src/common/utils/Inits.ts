@@ -1,6 +1,6 @@
 import {Packets} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
-import Packet from "@/network/Packet";
+import {Packet} from "@/network/Packet";
 import {ZstdInit} from "@oneidentity/zstd-js";
 import {Bin} from "stramp";
 

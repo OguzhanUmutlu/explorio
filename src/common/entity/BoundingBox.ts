@@ -1,4 +1,4 @@
-export default class BoundingBox {
+export class BoundingBox {
     constructor(
         public x: number,
         public y: number,

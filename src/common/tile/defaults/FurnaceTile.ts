@@ -1,11 +1,11 @@
 import {TileIds} from "@/meta/Tiles";
-import ContainerTile from "@/tile/defaults/ContainerTile";
+import {ContainerTile} from "@/tile/defaults/ContainerTile";
 import {InventoryContentStruct} from "@/structs/ItemStructs";
 import X, {def} from "stramp";
 import {InventorySizes} from "@/meta/Inventories";
-import Item from "@/item/Item";
+import {Item} from "@/item/Item";
 
-export default class FurnaceTile extends ContainerTile {
+export class FurnaceTile extends ContainerTile {
     typeId = TileIds.FURNACE;
     typeName = "furnace";
     name = "Furnace";

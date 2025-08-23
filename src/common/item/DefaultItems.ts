@@ -1,13 +1,13 @@
 import {ItemIds} from "@/meta/ItemIds";
 import {FlowerIds, ItemMetaDataConfig, S, ToolLevels, ToolType} from "@/meta/ItemInformation";
-import LeavesBlock from "@/block/LeavesBlock";
-import GrassBlock from "@/block/GrassBlock";
-import {default as ID} from "@/item/ItemDescriptor";
-import {default as IPool} from "@/item/ItemPool";
+import {LeavesBlock} from "@/block/LeavesBlock";
+import {GrassBlock} from "@/block/GrassBlock";
+import {ItemDescriptor as ID} from "@/item/ItemDescriptor";
+import {ItemPool as IPool} from "@/item/ItemPool";
 
-const I = <Record<ItemIds, Partial<ItemMetaDataConfig>>>{};
+export const DefaultItems = <Record<ItemIds, Partial<ItemMetaDataConfig>>>{};
 
-I[ItemIds.AIR] = {
+DefaultItems[ItemIds.AIR] = {
     identifier: "air",
     name: "Air",
     texture: null,
@@ -16,15 +16,15 @@ I[ItemIds.AIR] = {
     replaceableBy: "*",
     breakTime: -1
 };
-I[ItemIds.BEDROCK] = {
+DefaultItems[ItemIds.BEDROCK] = {
     identifier: "bedrock", step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone,
     drops: [], name: "Bedrock", breakTime: -1, explodeMaxDistance: -1
 };
-I[ItemIds.DIRT] = {
+DefaultItems[ItemIds.DIRT] = {
     identifier: "dirt", step: S.stepGrass, dig: S.stepGrass, break: S.digGrass, place: S.digGrass,
     name: "Dirt", breakTime: 0.75, breakTimes: {shovel: [0.4, 0.2, 0.15, 0.15, 0.1, 0.1, 0.1]}
 };
-I[ItemIds.CLAY] = {
+DefaultItems[ItemIds.CLAY] = {
     identifier: "clay", step: S.stepGrass, dig: S.stepGrass, break: S.digGrass, place: S.digGrass,
     name: "Clay", breakTime: 0.9, breakTimes: {shovel: [0.45, 0.25, 0.2, 0.15, 0.1, 0.15, 0.1]}
 };
@@ -34,14 +34,14 @@ const grassOptions: Partial<ItemMetaDataConfig> = {
     drops: [[new ID(ItemIds.DIRT)]], ticksRandomly: true,
     breakTimes: {shovel: [0.45, 0.25, 0.2, 0.15, 0.1, 0.15, 0.1]}
 };
-I[ItemIds.GRASS_BLOCK] = {
+DefaultItems[ItemIds.GRASS_BLOCK] = {
     ...grassOptions, identifier: "grass_block", name: "Grass Block", dataClass: GrassBlock
 };
-I[ItemIds.SNOWY_GRASS_BLOCK] = {
+DefaultItems[ItemIds.SNOWY_GRASS_BLOCK] = {
     ...grassOptions, identifier: "snowy_grass_block", name: "Snowy Grass Block", texture: "grass_block_snow"
 };
 
-I[ItemIds.GLASS] = {
+DefaultItems[ItemIds.GLASS] = {
     identifier: "glass", name: "Glass", breakTime: 0.5, step: S.stepStone, dig: S.stepStone, break: S.digGlass,
     place: S.digStone, drops: [], isOpaque: false
 };
@@ -51,7 +51,7 @@ const stoneOpts: Partial<ItemMetaDataConfig> = {
     dropsWithToolTypes: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN,
     breakTimes: {pickaxe: [1.15, 0.6, 0.45, 0.4, 0.2, 0.3, 0.25]}
 };
-I[ItemIds.STONE] = {
+DefaultItems[ItemIds.STONE] = {
     ...stoneOpts, identifier: "stone", name: "Stone", drops: [[new ID(ItemIds.COBBLESTONE)]]
 };
 
@@ -60,7 +60,7 @@ const cobbOpts: Partial<ItemMetaDataConfig> = {
     dropsWithToolTypes: ["pickaxe"], requiredToolLevel: ToolLevels.WOODEN,
     breakTimes: {pickaxe: [1.5, 0.75, 0.6, 0.5, 0.25, 0.4, 0.35]}
 };
-I[ItemIds.COBBLESTONE] = {
+DefaultItems[ItemIds.COBBLESTONE] = {
     ...cobbOpts, identifier: "cobblestone", name: "Cobblestone", smeltsTo: new ID(ItemIds.STONE), smeltXP: 0.1
 };
 
@@ -88,8 +88,8 @@ const logOptions: Partial<ItemMetaDataConfig> = {
     smeltsTo: new ID(ItemIds.CHARCOAL)
 };
 
-I[ItemIds.LOG] = logOptions;
-I[ItemIds.NATURAL_LOG] = {
+DefaultItems[ItemIds.LOG] = logOptions;
+DefaultItems[ItemIds.NATURAL_LOG] = {
     ...logOptions,
     metas: logOptions.metas.map(i => ({
         ...i,
@@ -99,7 +99,7 @@ I[ItemIds.NATURAL_LOG] = {
     name: "Natural Log", canBePhased: true, isOpaque: false
 };
 
-I[ItemIds.LEAVES] = {
+DefaultItems[ItemIds.LEAVES] = {
     metas: [
         {identifier: "oak_leaves", name: "Oak Leaves"},
         {identifier: "dark_oak_leaves", name: "Dark Oak Leaves"},
@@ -117,7 +117,7 @@ I[ItemIds.LEAVES] = {
     breakTimes: {hoe: [0.15, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05]}, dataClass: LeavesBlock
 };
 
-I[ItemIds.GRAVEL] = {
+DefaultItems[ItemIds.GRAVEL] = {
     identifier: "gravel",
     step: S.stepGravel,
     dig: S.stepGravel,
@@ -130,12 +130,12 @@ I[ItemIds.GRAVEL] = {
     drops: [[new IPool([new ID(ItemIds.GRAVEL), new ID(ItemIds.FLINT)], [90, 10])]]
 };
 
-I[ItemIds.WATER] = {
+DefaultItems[ItemIds.WATER] = {
     identifier: "water", name: "Water", drops: [], explodeMaxDistance: -1, isLiquid: true, liquidSpread: 8,
     canBePhased: true, isOpaque: false, replaceableBy: "*"
 };
 
-I[ItemIds.LAVA] = {
+DefaultItems[ItemIds.LAVA] = {
     identifier: "lava", name: "Lava", drops: [], explodeMaxDistance: -1, isLiquid: true, liquidSpread: 4,
     canBePhased: true, isOpaque: false, replaceableBy: "*", liquidTicks: 12
 };
@@ -181,56 +181,56 @@ const diamondOre: Partial<ItemMetaDataConfig> = {
     smeltsTo: new ID(ItemIds.DIAMOND)
 };
 
-I[ItemIds.COAL_ORE] = {...coalOre, identifier: "coal_ore", name: "Coal Ore"};
-I[ItemIds.COPPER_ORE] = {...copperOre, identifier: "copper_ore", name: "Copper Ore"};
-I[ItemIds.IRON_ORE] = {...ironOre, identifier: "iron_ore", name: "Iron Ore"};
-I[ItemIds.GOLD_ORE] = {...goldOre, identifier: "gold_ore", name: "Gold Ore"};
-I[ItemIds.LAPIS_ORE] = {...lapisOre, identifier: "lapis_ore", name: "Lapis Ore"};
-I[ItemIds.REDSTONE_ORE] = {...redstoneOre, identifier: "redstone_ore", name: "Redstone Ore"};
-I[ItemIds.DIAMOND_ORE] = {...diamondOre, identifier: "diamond_ore", name: "Diamond Ore"};
+DefaultItems[ItemIds.COAL_ORE] = {...coalOre, identifier: "coal_ore", name: "Coal Ore"};
+DefaultItems[ItemIds.COPPER_ORE] = {...copperOre, identifier: "copper_ore", name: "Copper Ore"};
+DefaultItems[ItemIds.IRON_ORE] = {...ironOre, identifier: "iron_ore", name: "Iron Ore"};
+DefaultItems[ItemIds.GOLD_ORE] = {...goldOre, identifier: "gold_ore", name: "Gold Ore"};
+DefaultItems[ItemIds.LAPIS_ORE] = {...lapisOre, identifier: "lapis_ore", name: "Lapis Ore"};
+DefaultItems[ItemIds.REDSTONE_ORE] = {...redstoneOre, identifier: "redstone_ore", name: "Redstone Ore"};
+DefaultItems[ItemIds.DIAMOND_ORE] = {...diamondOre, identifier: "diamond_ore", name: "Diamond Ore"};
 
-I[ItemIds.DEEPSLATE] = {
+DefaultItems[ItemIds.DEEPSLATE] = {
     identifier: "deepslate", name: "Deepslate", breakTime: 15, drops: [[new ID(ItemIds.COBBLED_DEEPSLATE)]],
     step: S.stepStone, dig: S.stepStone, break: S.digStone, place: S.digStone, dropsWithToolTypes: ["pickaxe"],
     breakTimes: {pickaxe: [2.25, 1.15, 0.9, 0.75, 0.4, 0.6, 0.5]}, requiredToolLevel: ToolLevels.WOODEN,
     smeltsTo: new ID(ItemIds.DEEPSLATE), smeltXP: 0.4
 };
-I[ItemIds.COBBLED_DEEPSLATE] = {
+DefaultItems[ItemIds.COBBLED_DEEPSLATE] = {
     identifier: "cobbled_deepslate", name: "Cobbled Deepslate", step: S.stepStone, dig: S.stepStone,
     break: S.digStone, place: S.digStone, drops: [[new ID(ItemIds.COBBLED_DEEPSLATE)]], breakTime: 17.5,
     dropsWithToolTypes: ["pickaxe"], breakTimes: {pickaxe: [2.65, 1.35, 1.05, 0.9, 0.45, 0.7, 0.6]},
     requiredToolLevel: ToolLevels.WOODEN
 };
 
-I[ItemIds.DEEPSLATE_COAL_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_COAL_ORE] = {
     ...coalOre, identifier: "deepslate_coal_ore", name: "Deepslate Coal Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [3.4, 1.7, 1.35, 1.15, 0.6, 0.85, 0.75]}
 };
-I[ItemIds.DEEPSLATE_COPPER_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_COPPER_ORE] = {
     ...copperOre, identifier: "deepslate_copper_ore", name: "Deepslate Copper Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [11.25, 1.7, 1.35, 1.15, 1.9, 0.85, 0.75]}
 };
-I[ItemIds.DEEPSLATE_IRON_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_IRON_ORE] = {
     ...ironOre, identifier: "deepslate_iron_ore", name: "Deepslate Iron Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [11.25, 1.7, 1.35, 1.15, 1.9, 0.85, 0.75]}
 };
-I[ItemIds.DEEPSLATE_GOLD_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_GOLD_ORE] = {
     ...goldOre, identifier: "deepslate_gold_ore", name: "Deepslate Gold Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [11.25, 5.65, 4.5, 1.15, 1.9, 0.85, 0.75]}
 };
-I[ItemIds.DEEPSLATE_LAPIS_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_LAPIS_ORE] = {
     ...lapisOre, identifier: "deepslate_lapis_ore", name: "Deepslate Lapis Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [11.25, 1.7, 1.35, 1.15, 1.9, 0.85, 0.75]}
 };
-I[ItemIds.DEEPSLATE_REDSTONE_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_REDSTONE_ORE] = {
     ...redstoneOre, identifier: "deepslate_redstone_ore", name: "Deepslate Redstone Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [11.25, 5.65, 4.5, 1.15, 1.9, 0.85, 0.75]}
 };
-I[ItemIds.DEEPSLATE_DIAMOND_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_DIAMOND_ORE] = {
     ...diamondOre, identifier: "deepslate_diamond_ore", name: "Deepslate Diamond Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [11.25, 5.65, 4.5, 1.15, 1.9, 0.85, 0.75]}
 };
-I[ItemIds.DEEPSLATE_EMERALD_ORE] = {
+DefaultItems[ItemIds.DEEPSLATE_EMERALD_ORE] = {
     ...diamondOre, identifier: "deepslate_emerald_ore", name: "Deepslate Diamond Ore", breakTime: 22.5,
     breakTimes: {pickaxe: [11.25, 5.65, 4.5, 1.15, 1.9, 0.85, 0.75]}
 };
@@ -246,13 +246,13 @@ const flowerOptions: Partial<ItemMetaDataConfig> = {
     step: S.stepGrass
 };
 
-FlowerIds.forEach(([identifier, name, id]) => I[id] = {...flowerOptions, identifier, name});
+FlowerIds.forEach(([identifier, name, id]) => DefaultItems[id] = {...flowerOptions, identifier, name});
 
-I[ItemIds.APPLE] = {
+DefaultItems[ItemIds.APPLE] = {
     identifier: "apple", name: "Apple", foodPoints: 4, isBlock: false
 };
 
-I[ItemIds.PLANKS] = {
+DefaultItems[ItemIds.PLANKS] = {
     identifier: "planks", name: "Planks", isBlock: true, step: S.stepWood, dig: S.stepWood, break: S.digWood,
     place: S.digWood, breakTime: 3, breakTimes: {axe: [1.5, 0.75, 0.6, 0.5, 0.25, 0.4, 0.35]},
     makeSlabs: ItemIds.WOODEN_SLAB, fuel: 1, makeStairs: ItemIds.WOODEN_STAIRS, metas: [
@@ -269,45 +269,45 @@ I[ItemIds.PLANKS] = {
     ]
 };
 
-I[ItemIds.COAL] = {
+DefaultItems[ItemIds.COAL] = {
     identifier: "coal", name: "Coal", isBlock: false, fuel: 2
 };
 
-I[ItemIds.COPPER_INGOT] = {
+DefaultItems[ItemIds.COPPER_INGOT] = {
     identifier: "copper_ingot", name: "Copper Ingot", isBlock: false
 };
 
-I[ItemIds.RAW_COPPER] = {
+DefaultItems[ItemIds.RAW_COPPER] = {
     identifier: "raw_copper", name: "Raw Copper", isBlock: false, smeltsTo: new ID(ItemIds.COPPER_INGOT), smeltXP: 0.2
 };
 
-I[ItemIds.RAW_IRON] = {
+DefaultItems[ItemIds.RAW_IRON] = {
     identifier: "raw_iron", name: "Raw Iron", isBlock: false, smeltsTo: new ID(ItemIds.IRON_INGOT), smeltXP: 0.2
 };
 
-I[ItemIds.RAW_GOLD] = {
+DefaultItems[ItemIds.RAW_GOLD] = {
     identifier: "raw_gold", name: "Raw Gold", isBlock: false, smeltsTo: new ID(ItemIds.GOLD_INGOT), smeltXP: 0.2
 };
 
-I[ItemIds.LAPIS] = {
+DefaultItems[ItemIds.LAPIS] = {
     identifier: "lapis", name: "Lapis", texture: "lapis_lazuli", isBlock: false
 };
 
-I[ItemIds.REDSTONE] = {
+DefaultItems[ItemIds.REDSTONE] = {
     identifier: "redstone", name: "Redstone", isBlock: false
 };
 
-I[ItemIds.DIAMOND] = {
+DefaultItems[ItemIds.DIAMOND] = {
     identifier: "diamond", name: "Diamond", isBlock: false
 };
 
-I[ItemIds.CRAFTING_TABLE] = {
+DefaultItems[ItemIds.CRAFTING_TABLE] = {
     identifier: "crafting_table", name: "Crafting Table", breakTime: 3.75, step: S.stepWood, dig: S.stepWood,
     break: S.digWood, place: S.digWood, breakTimes: {axe: [1.9, 0.95, 0.75, 0.65, 0.35, 0.5, 0.45]}, fuel: 1.25,
     smeltXP: 0.15, smeltsTo: new ID(ItemIds.CHARCOAL)
 };
 
-I[ItemIds.CHEST] = {
+DefaultItems[ItemIds.CHEST] = {
     identifier: "chest", name: "Chest", breakTime: 3.75, step: S.stepWood, dig: S.stepWood, break: S.digWood,
     place: S.digWood, breakTimes: {axe: [1.9, 0.95, 0.75, 0.65, 0.35, 0.5, 0.45]}, fuel: 1.25, smeltXP: 0.15,
     smeltsTo: new ID(ItemIds.CHARCOAL), isOpaque: false, metas: [
@@ -317,7 +317,7 @@ I[ItemIds.CHEST] = {
     ]
 };
 
-I[ItemIds.FURNACE] = {
+DefaultItems[ItemIds.FURNACE] = {
     identifier: "furnace",
     name: "Furnace",
     breakTime: 17.5,
@@ -330,16 +330,16 @@ I[ItemIds.FURNACE] = {
     breakTimes: {pickaxe: [2.65, 1.35, 1.05, 0.9, 0.45, 0.7, 0.6]}
 };
 
-I[ItemIds.SAND] = {
+DefaultItems[ItemIds.SAND] = {
     identifier: "sand", name: "Sand", step: S.stepSand, dig: S.stepSand, break: S.digSand, place: S.digSand,
     breakTime: 0.75, canFall: true, breakTimes: {shovel: [0.4, 0.2, 0.15, 0.15, 0.1, 0.1, 0.1]}
 };
 
-I[ItemIds.STICK] = {
+DefaultItems[ItemIds.STICK] = {
     identifier: "stick", name: "Stick", isBlock: false
 };
 
-I[ItemIds.FLINT] = {
+DefaultItems[ItemIds.FLINT] = {
     identifier: "flint", name: "Flint", isBlock: false
 };
 
@@ -356,7 +356,7 @@ const registerToolType = (name: string, durability: number) => {
     };
 
     for (const cNameT of ["Sword", "Axe", "Pickaxe", "Shovel", "Hoe"]) {
-        I[ItemIds[uName + "_" + cNameT.toUpperCase()]] = {
+        DefaultItems[ItemIds[uName + "_" + cNameT.toUpperCase()]] = {
             ...toolBase,
             identifier: `${lName}_${cNameT.toLowerCase()}`,
             name: `${cName} ${cNameT}`,
@@ -372,5 +372,3 @@ registerToolType("iron", 250);
 registerToolType("golden", 32);
 registerToolType("diamond", 1561);
 registerToolType("netherite", 2031);
-
-export default I;

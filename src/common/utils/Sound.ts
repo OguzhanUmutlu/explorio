@@ -16,7 +16,7 @@ function tryCreateAudioContext() {
     return true;
 }
 
-export default class Sound {
+export class Sound {
     static sounds: Record<string, Sound> = {};
     static ambients: Record<string, SoundContext> = {};
     buffer: AudioBuffer | null = null;

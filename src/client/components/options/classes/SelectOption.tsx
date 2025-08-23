@@ -1,9 +1,9 @@
-import GameOption from "@dom/components/options/classes/GameOption";
+import {GameOption} from "@dom/components/options/classes/GameOption";
 import {OptionsType} from "@c/utils/Utils";
 import React from "react";
-import SelectOptionComponent from "@dom/components/options/SelectOptionComponent";
+import {SelectOptionComponent} from "@dom/components/options/SelectOptionComponent";
 
-export default class SelectOption extends GameOption {
+export class SelectOption extends GameOption {
     constructor(
         key: keyof OptionsType,
         name: string,

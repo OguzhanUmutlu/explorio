@@ -1,14 +1,14 @@
-import BoundingBox from "@/entity/BoundingBox";
+import {BoundingBox} from "@/entity/BoundingBox";
 import {EntityIds} from "@/meta/Entities";
-import Item from "@/item/Item";
-import Player from "@/entity/defaults/Player";
+import {Item} from "@/item/Item";
+import {Player} from "@/entity/defaults/Player";
 import {ItemStruct} from "@/structs/ItemStructs";
 import X, {def} from "stramp";
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 
 const maxStack = 255;
 
-export default class ItemEntity extends Entity {
+export class ItemEntity extends Entity {
     typeId = EntityIds.ITEM;
     typeName = "item";
     name = "Item";

@@ -1,16 +1,16 @@
-import EffectInstance from "@/effect/EffectInstance";
-import Effect from "@/effect/Effect";
+import {EffectInstance} from "@/effect/EffectInstance";
+import {Effect} from "@/effect/Effect";
 
-import BoundingBox from "@/entity/BoundingBox";
-import Position, {getRotationTowards} from "@/utils/Position";
+import {BoundingBox} from "@/entity/BoundingBox";
+import {Position, getRotationTowards} from "@/utils/Position";
 import {Packets} from "@/network/Packets";
-import EntityTileBase from "@/entity/EntityTileBase";
+import {EntityTileBase} from "@/entity/EntityTileBase";
 import {EntitySaveStruct} from "@/structs/EntityTileSaveStruct";
-import World, {Collision} from "@/world/World";
-import Item from "@/item/Item";
+import {Collision, World} from "@/world/World";
+import {Item} from "@/item/Item";
 import {randInt} from "@/utils/Utils";
 import {Damage} from "@/entity/Damage";
-import Player from "@/entity/defaults/Player";
+import {Player} from "@/entity/defaults/Player";
 import {AnimationIds} from "@/meta/Animations";
 import X, {def} from "stramp";
 import {EntityAnimationStruct} from "@/structs/EntityAnimationStruct";
@@ -21,7 +21,7 @@ export const DefaultJumpVelocity = 7;
 export const DefaultGravity = 18;
 export const GroundHeight = 0.05;
 
-export default abstract class Entity extends EntityTileBase {
+export abstract class Entity extends EntityTileBase {
     declare readonly world: World;
 
     @def(X.f32) declare x: number;

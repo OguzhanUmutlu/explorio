@@ -1,8 +1,8 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
-import CommandError from "@/command/CommandError";
+import {CommandError} from "@/command/CommandError";
 
 export class OneOfArgument<V = unknown> extends CommandArgument<V> {
     default = null;

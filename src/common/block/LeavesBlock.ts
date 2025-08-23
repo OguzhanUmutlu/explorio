@@ -1,8 +1,8 @@
-import BlockData from "@/item/BlockData";
+import {BlockData} from "@/item/BlockData";
 import {createCanvas, Image} from "@/utils/Texture";
 import {TreeType} from "@/meta/ItemInformation";
 
-export default class LeavesBlock extends BlockData {
+export class LeavesBlock extends BlockData {
     postProcessesTexture = true;
 
     beginPostProcessTexture(image: Image): CanvasRenderingContext2D {

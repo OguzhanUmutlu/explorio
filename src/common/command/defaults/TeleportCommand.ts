@@ -1,8 +1,8 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import CommandError from "@/command/CommandError";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {CommandError} from "@/command/CommandError";
 
-export default class TeleportCommand extends DefinitiveCommand {
+export class TeleportCommand extends DefinitiveCommand {
     constructor() {
         super("teleport", "Teleport to a position.", ["tp"], "command.teleport");
     };

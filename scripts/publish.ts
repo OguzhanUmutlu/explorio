@@ -20,7 +20,7 @@ pkg.bin = {explorio: "main.js"};
 
 fs.writeFileSync("./dist-npm/main.js", `#!/usr/bin/env node
 import {spawn} from "child_process";
-import path from "node:path";
+import {path} from "node:path";
 const tsProcess = spawn(\`npx tsx \${path.join(import.meta.dirname, "src/server/Main.ts")}\`, {
   stdio: ["pipe", "pipe", "pipe"],
   shell: true

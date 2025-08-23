@@ -1,12 +1,12 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import {ItemIds} from "@/meta/ItemIds";
-import BlockData from "@/item/BlockData";
+import {BlockData} from "@/item/BlockData";
 import {im2data, name2data} from "@/item/ItemFactory";
 
-export default class ItemArgument extends CommandArgument<BlockData> {
+export class ItemArgument extends CommandArgument<BlockData> {
     default = im2data(ItemIds.AIR);
 
     read(_: CommandAs, __: Position, args: AnyToken[], index: number) {

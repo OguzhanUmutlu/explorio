@@ -1,8 +1,8 @@
 import React from "react";
 import {DefaultOptions, OptionsType, useOptionSubscription} from "@c/utils/Utils";
-import GameOptionComponent from "@dom/components/options/GameOptionComponent";
+import {GameOptionComponent} from "@dom/components/options/GameOptionComponent";
 
-export default function InputOptionComponent(O: {
+export function InputOptionComponent(O: {
     option: keyof OptionsType;
     description?: string;
     text?: string;

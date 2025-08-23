@@ -1,4 +1,4 @@
-import BoundingBox from "@/entity/BoundingBox";
+import {BoundingBox} from "@/entity/BoundingBox";
 import {
     BaseBlockBB,
     SlabBottomBB,
@@ -10,9 +10,9 @@ import {
     StairsRightBottomBB,
     StairsRightTopBB
 } from "@/meta/BlockCollisions";
-import Texture, {createCanvas, Image, texturePlaceholder} from "@/utils/Texture";
-import Item from "@/item/Item";
-import World from "@/world/World";
+import {Texture, createCanvas, Image, texturePlaceholder} from "@/utils/Texture";
+import {Item} from "@/item/Item";
+import {World} from "@/world/World";
 import {randInt, xy2ci} from "@/utils/Utils";
 import {im2f, ItemMetaDataConfig} from "@/meta/ItemInformation";
 import {ItemIds} from "@/meta/ItemIds";
@@ -21,7 +21,7 @@ import {f2data} from "@/item/ItemFactory";
 const ext = <new () => ItemMetaDataConfig>class {
 };
 
-export default class BlockData extends ext {
+export class BlockData extends ext {
     fullId: number;
     bbs: BoundingBox[];
     blockRotation: number;

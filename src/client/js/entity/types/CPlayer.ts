@@ -1,7 +1,7 @@
-import Texture from "@/utils/Texture";
+import {Texture} from "@/utils/Texture";
 import {getClientPosition, renderPlayerModel, TileSize} from "@c/utils/Utils";
-import CEntity from "@c/entity/CEntity";
-import Player from "@/entity/defaults/Player";
+import {CEntity} from "@c/entity/CEntity";
+import {Player} from "@/entity/defaults/Player";
 import {SteveImage} from "@dom/assets/Steve";
 
 export function getCurrentSwing() {
@@ -10,7 +10,7 @@ export function getCurrentSwing() {
     return (mod > p / 2 ? -1 : 1) * Math.PI / 4;
 }
 
-export default class CPlayer extends Player implements CEntity {
+export class CPlayer extends Player implements CEntity {
     isClient = true;
     skin = new Texture("", SteveImage);
     name = "";

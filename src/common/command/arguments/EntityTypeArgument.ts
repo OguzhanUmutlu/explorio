@@ -1,11 +1,11 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import {EntityIds} from "@/meta/Entities";
-import Server from "@/Server";
+import {Server} from "@/Server";
 
-export default class EntityTypeArgument extends CommandArgument<EntityIds> {
+export class EntityTypeArgument extends CommandArgument<EntityIds> {
     default = null;
 
     getDefault() {

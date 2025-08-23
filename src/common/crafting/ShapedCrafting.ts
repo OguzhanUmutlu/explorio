@@ -1,10 +1,10 @@
 import {Crafting} from "@/crafting/Crafting";
-import Item from "@/item/Item";
-import {default as ID} from "@/item/ItemDescriptor";
-import Inventory from "@/item/Inventory";
+import {Item} from "@/item/Item";
+import {ItemDescriptor as ID} from "@/item/ItemDescriptor";
+import {Inventory} from "@/item/Inventory";
 import {compressNulls, inventoryToGrid} from "@/crafting/CraftingUtils";
 
-export default class ShapedCrafting extends Crafting {
+export class ShapedCrafting extends Crafting {
     constructor(public items: (ID | null)[][], public result: ID) {
         super();
     };

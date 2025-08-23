@@ -1,38 +1,38 @@
-import BlockData from "@/item/BlockData";
+import {BlockData} from "@/item/BlockData";
 import {ItemIds} from "@/meta/ItemIds";
-import Texture, {createCanvas} from "@/utils/Texture";
+import {createCanvas, Texture} from "@/utils/Texture";
 import {ClassOf} from "@/utils/Utils";
-import {default as ID} from "@/item/ItemDescriptor";
+import {ItemDescriptor as ID} from "@/item/ItemDescriptor";
 import {DefaultItemOptions, im2f, ItemMetaDataConfig} from "@/meta/ItemInformation";
-import DefaultItems from "@/item/DefaultItems";
+import {DefaultItems} from "@/item/DefaultItems";
 
 export function im2data(id: number, meta = 0): BlockData {
-    return ItemFactory.f2data[im2f(id, meta)];
+    return ItemFactory_.f2data[im2f(id, meta)];
 }
 
 export function f2data(fullId: number): BlockData {
-    return ItemFactory.f2data[fullId];
+    return ItemFactory_.f2data[fullId];
 }
 
 export function im2name(id: number, meta = 0): string {
-    return ItemFactory.f2name[im2f(id, meta)];
+    return ItemFactory_.f2name[im2f(id, meta)];
 }
 
 export function f2name(fullId: number): string {
-    return ItemFactory.f2name[fullId];
+    return ItemFactory_.f2name[fullId];
 }
 
 export function name2f(identifier: string): number {
-    return ItemFactory.name2f[identifier];
+    return ItemFactory_.name2f[identifier];
 }
 
 export function name2data(identifier: string): BlockData {
-    return ItemFactory.name2data[identifier];
+    return ItemFactory_.name2data[identifier];
 }
 
 export const MetaLengthMap: Record<number, number> = {};
 
-class ItemFactory {
+class ItemFactory_ {
     static i2data = <Record<number, BlockData>>{};
     static f2data = <Record<number, BlockData>>{};
     static name2data: Record<string, BlockData> = {};
@@ -65,13 +65,13 @@ class ItemFactory {
 
         const identifier = O.metas[0].identifier;
         const fullId = im2f(id);
-        const baseMeta = ItemFactory.i2data[id]
-            = ItemFactory.Items[identifier.toUpperCase()]
-            = ItemFactory.f2data[fullId]
-            = ItemFactory.name2data[identifier] = new DataClass(id, 0, O);
+        const baseMeta = ItemFactory_.i2data[id]
+            = ItemFactory_.Items[identifier.toUpperCase()]
+            = ItemFactory_.f2data[fullId]
+            = ItemFactory_.name2data[identifier] = new DataClass(id, 0, O);
 
-        ItemFactory.f2name[fullId] = identifier;
-        ItemFactory.name2f[identifier] = fullId;
+        ItemFactory_.f2name[fullId] = identifier;
+        ItemFactory_.name2f[identifier] = fullId;
 
         if (O.isLiquid) for (let i = 0; i < O.liquidSpread; i++) O.metas.push({
             identifier: identifier + "_flowing_state_" + i,
@@ -102,9 +102,9 @@ class ItemFactory {
             const identifier = mMetaBuild.identifier;
             const fullId = im2f(id, meta);
 
-            ItemFactory.Items[identifier.toUpperCase()] = ItemFactory.f2data[fullId] = ItemFactory.name2data[identifier] = metadata;
-            ItemFactory.f2name[fullId] = identifier;
-            ItemFactory.name2f[identifier] = fullId;
+            ItemFactory_.Items[identifier.toUpperCase()] = ItemFactory_.f2data[fullId] = ItemFactory_.name2data[identifier] = metadata;
+            ItemFactory_.f2name[fullId] = identifier;
+            ItemFactory_.name2f[identifier] = fullId;
         }
 
         const slabStairsProtocol = (adder: string, oProp: string, oIsProp: string, nameAdder: string, fnMatch: string[][]) => {
@@ -143,7 +143,7 @@ class ItemFactory {
             ["_stairs_bottom_right", "stairsBottomLeft"]
         ]);
 
-        return ItemFactory.i2data[id];
+        return ItemFactory_.i2data[id];
     };
 
     initDefaultItems() {
@@ -154,4 +154,4 @@ class ItemFactory {
     };
 }
 
-export default ItemFactory as typeof ItemFactory & Record<number, BlockData>;
+export const ItemFactory = ItemFactory_ as typeof ItemFactory_ & Record<number, BlockData>;

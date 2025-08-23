@@ -1,7 +1,7 @@
-import Particle from "@c/particle/Particle";
+import {Particle} from "@c/particle/Particle";
 import {getClientPosition, TileSize} from "@c/utils/Utils";
 
-export default class ParticleManager {
+export class ParticleManager {
     particles = new Set<Particle>;
 
     add(particle: Particle) {

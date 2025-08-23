@@ -1,9 +1,9 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
 import {ZWorldMetaData} from "@/world/World";
-import CommandSender from "@/command/CommandSender";
+import {CommandSender} from "@/command/CommandSender";
 import {ChunkBlockAmount} from "@/meta/WorldConstants";
-import CommandError from "@/command/CommandError";
+import {CommandError} from "@/command/CommandError";
 
 const gameRules = ZWorldMetaData.shape.gameRules.shape;
 const gameRuleNames = Object.keys(gameRules);
@@ -29,7 +29,7 @@ function handleRuleSet(sender: CommandSender, rule: string, value: number | bool
     sender.sendMessage("Game rule " + rule + " changed from " + oldValue + " to " + value);
 }
 
-export default class GameRuleCommand extends DefinitiveCommand {
+export class GameRuleCommand extends DefinitiveCommand {
     constructor() {
         super("gamerule", "Changes or views a game rule.", [], "command.gamerule");
     };

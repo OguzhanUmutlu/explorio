@@ -1,9 +1,9 @@
 import React, {useState} from "react";
 import {isMobileByAgent, OptionsType, useOptionSubscription} from "@c/utils/Utils";
-import GameOptionComponent from "@dom/components/options/GameOptionComponent";
-import OptionValueText from "@dom/components/options/OptionValueText";
+import {GameOptionComponent} from "@dom/components/options/GameOptionComponent";
+import {OptionValueText} from "@dom/components/options/OptionValueText";
 
-export default function RangeOptionComponent(O: {
+export function RangeOptionComponent(O: {
     option: keyof OptionsType;
     description?: string;
     min?: number;

@@ -91,7 +91,7 @@ function loadImage(src: string): Promise<Image> {
     });
 }
 
-export default class Texture {
+export class Texture {
     static textures: Record<string, Texture> = {};
 
     image: Canvas | Image = imagePlaceholder;

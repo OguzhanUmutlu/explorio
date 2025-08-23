@@ -1,9 +1,9 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
-import CommandError from "@/command/CommandError";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
+import {CommandError} from "@/command/CommandError";
 
-export default class PermissionCommand extends DefinitiveCommand {
+export class PermissionCommand extends DefinitiveCommand {
     constructor() {
         super("permission", "Grants/revokes/checks the given permission of the given player.", [], "command.permission");
     };

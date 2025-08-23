@@ -1,13 +1,13 @@
-import Generator from "@/world/generators/Generator";
+import {Generator} from "@/world/generators/Generator";
 import {ItemIds} from "@/meta/ItemIds";
-import World from "@/world/World";
+import {World} from "@/world/World";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
-import DefaultGenerator from "@/world/generators/DefaultGenerator";
+import {DefaultGenerator} from "@/world/generators/DefaultGenerator";
 import {im2f} from "@/meta/ItemInformation";
 import {ChunkLength} from "@/meta/WorldConstants";
 
-export default class CustomGenerator extends Generator {
+export class CustomGenerator extends Generator {
     processedPattern: [number, number | string][][];
     noise: NoiseFunction2D;
 

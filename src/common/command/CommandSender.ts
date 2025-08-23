@@ -1,11 +1,11 @@
-import Server from "@/Server";
+import {Server} from "@/Server";
 
-import Position from "@/utils/Position";
-import Entity from "@/entity/Entity";
+import {Position} from "@/utils/Position";
+import {Entity} from "@/entity/Entity";
 
 export type CommandAs = Entity | CommandSender;
 
-export default interface CommandSender extends Position {
+export interface CommandSender extends Position {
     id: number
     server: Server;
     name: string;

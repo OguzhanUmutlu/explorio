@@ -1,8 +1,8 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
 
-export default class SeedCommand extends DefinitiveCommand {
+export class SeedCommand extends DefinitiveCommand {
     constructor() {
         super("seed", "Gives you the seed of the world you're in.", [], "command.seed");
     };

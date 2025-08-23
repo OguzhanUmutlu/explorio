@@ -1,10 +1,10 @@
-import World from "@/world/World";
-import Position from "@/utils/Position";
+import {World} from "@/world/World";
+import {Position} from "@/utils/Position";
 import X, {BufferIndex} from "stramp";
 
 let _entity_id = 0;
 
-export default abstract class EntityTileBase extends Position {
+export abstract class EntityTileBase extends Position {
     abstract typeId: number;
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes

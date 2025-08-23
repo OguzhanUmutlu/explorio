@@ -1,9 +1,9 @@
-import CEntity from "@c/entity/CEntity";
-import ItemEntity from "@/entity/defaults/ItemEntity";
+import {CEntity} from "@c/entity/CEntity";
+import {ItemEntity} from "@/entity/defaults/ItemEntity";
 import {getClientPosition, TileSize} from "@c/utils/Utils";
 import {f2data} from "@/item/ItemFactory";
 
-export default class CItemEntity extends ItemEntity implements CEntity {
+export class CItemEntity extends ItemEntity implements CEntity {
     isClient = true;
     itemFullId: number;
 

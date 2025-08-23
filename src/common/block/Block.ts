@@ -1,7 +1,7 @@
-import BlockData from "@/item/BlockData";
-import Position from "@/utils/Position";
-import Texture from "@/utils/Texture";
-import World from "@/world/World";
+import {BlockData} from "@/item/BlockData";
+import {Position} from "@/utils/Position";
+import {Texture} from "@/utils/Texture";
+import {World} from "@/world/World";
 
 export class Block extends Position {
     declare readonly x: number;

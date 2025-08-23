@@ -1,7 +1,7 @@
 import {Bin, BufferIndex} from "stramp";
 import {PacketStructs} from "@/network/Packets";
 
-export default class Packet<T extends Bin = Bin> {
+export class Packet<T extends Bin = Bin> {
     __TYPE__: T["__TYPE__"];
 
     constructor(public packetId: number, public data: typeof this["__TYPE__"]) {

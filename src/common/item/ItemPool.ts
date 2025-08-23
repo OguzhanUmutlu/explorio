@@ -1,7 +1,7 @@
-import ItemDescriptor from "@/item/ItemDescriptor";
-import Item from "@/item/Item";
+import {ItemDescriptor} from "@/item/ItemDescriptor";
+import {Item} from "@/item/Item";
 
-export default class ItemPool {
+export class ItemPool {
     chance: number;
 
     constructor(

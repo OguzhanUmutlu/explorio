@@ -1,5 +1,5 @@
 import X from "stramp";
-import ChunkBlocksBin from "@/structs/ChunkBlocksBin";
+import {ChunkBlocksBin} from "@/structs/ChunkBlocksBin";
 import {EntitySaveStruct, TileSaveStruct} from "@/structs/EntityTileSaveStruct";
 import {ChunkBlockAmount, ChunkGroupLength} from "@/meta/WorldConstants";
 

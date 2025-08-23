@@ -1,10 +1,10 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
 import {GameModeNames} from "@/command/arguments/GameModeArgument";
-import CommandError from "@/command/CommandError";
+import {CommandError} from "@/command/CommandError";
 
-export default class GameModeCommand extends DefinitiveCommand {
+export class GameModeCommand extends DefinitiveCommand {
     constructor() {
         super("gamemode", "Sets the game mode of a player.", ["gm"], "command.gamemode");
     };

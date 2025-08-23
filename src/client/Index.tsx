@@ -11,19 +11,19 @@ import {
     useSubscription
 } from "@c/utils/Utils";
 import React, {useEffect, useRef, useState} from "react";
-import SinglePlayerPopup from "@dom/components/indexPopups/SinglePlayerPopup";
-import MultiPlayerPopup from "@dom/components/indexPopups/MultiPlayerPopup";
-import NewWorldPopup from "@dom/components/indexPopups/NewWorldPopup";
-import NewServerPopup from "@dom/components/indexPopups/NewServerPopup";
+import {SinglePlayerPopup} from "@dom/components/indexPopups/SinglePlayerPopup";
+import {MultiPlayerPopup} from "@dom/components/indexPopups/MultiPlayerPopup";
+import {NewWorldPopup} from "@dom/components/indexPopups/NewWorldPopup";
+import {NewServerPopup} from "@dom/components/indexPopups/NewServerPopup";
 import "@dom/css/index.css";
 import {VersionString} from "@/Versions";
 import {getMenus, OptionPages, TokenCookieName, UsernameCookieName} from "@dom/components/options/Menus";
-import Texture from "@/utils/Texture";
+import {Texture} from "@/utils/Texture";
 import {SteveDataURL} from "@dom/assets/Steve";
-import BoundingBox from "@/entity/BoundingBox";
+import {BoundingBox} from "@/entity/BoundingBox";
 import {getCookie} from "@dom/components/CookieHandler";
 
-export default function Index(O: {
+export function Index(O: {
     clientUUID: ReactState<string>
 }) {
     useSubscription("loggedIn");

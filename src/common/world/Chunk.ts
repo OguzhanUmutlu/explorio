@@ -1,11 +1,11 @@
 import {ChunkBlockAmount, ChunkGroupLength, ChunkLength, WorldHeight} from "@/meta/WorldConstants";
 
-import World, {SpawnChunkDistance} from "@/world/World";
-import Player from "@/entity/defaults/Player";
+import {SpawnChunkDistance, World} from "@/world/World";
+import {Player} from "@/entity/defaults/Player";
 import {cgx2cx, cx2cgx, cx2x, i2rx, i2ry, randInt, rxy2ci} from "@/utils/Utils";
-import Tile from "@/tile/Tile";
-import BlockData from "@/item/BlockData";
-import Entity from "@/entity/Entity";
+import {Tile} from "@/tile/Tile";
+import {BlockData} from "@/item/BlockData";
+import {Entity} from "@/entity/Entity";
 import {f2data} from "@/item/ItemFactory";
 import {FullIds} from "@/meta/ItemIds";
 
@@ -21,7 +21,7 @@ const emptyBlocks = new Proxy({}, {
     set: () => true
 }) as Uint16Array;
 
-export default class Chunk {
+export class Chunk {
     blocks: Uint16Array = emptyBlocks;
     entities = new Set<Entity>();
     tiles = new Set<Tile>();

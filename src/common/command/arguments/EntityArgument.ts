@@ -1,11 +1,11 @@
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
-import CommandArgument from "@/command/CommandArgument";
-import EntitiesArgument from "@/command/arguments/EntitiesArgument";
-import Entity from "@/entity/Entity";
+import {CommandArgument} from "@/command/CommandArgument";
+import {EntitiesArgument} from "@/command/arguments/EntitiesArgument";
+import {Entity} from "@/entity/Entity";
 
-export default class EntityArgument<T extends Entity = Entity> extends CommandArgument<T> {
+export class EntityArgument<T extends Entity = Entity> extends CommandArgument<T> {
     default = <T>null;
     base = new EntitiesArgument("").setMax(1).setMin(1);
 

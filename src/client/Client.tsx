@@ -19,23 +19,23 @@ import {
     TileSize,
     WorldData
 } from "@c/utils/Utils";
-import CServer from "@c/CServer";
-import ClientNetwork from "@c/network/ClientNetwork";
-import OriginPlayer from "@c/entity/types/OriginPlayer";
-import CWorld from "@c/world/CWorld";
+import {CServer} from "@c/CServer";
+import {ClientNetwork} from "@c/network/ClientNetwork";
+import {OriginPlayer} from "@c/entity/types/OriginPlayer";
+import {CWorld} from "@c/world/CWorld";
 import "fancy-printer";
-import InventoryDiv, {animateInventories} from "@dom/components/InventoryDiv";
+import {InventoryDiv, animateInventories} from "@dom/components/InventoryDiv";
 import {Containers, CraftingResultMap, InventorySizes} from "@/meta/Inventories";
-import Server, {DefaultServerConfig} from "@/Server";
-import PlayerNetwork from "@/network/PlayerNetwork";
-import ParticleManager from "@c/particle/ParticleManager";
-import Packet from "@/network/Packet";
+import {Server, DefaultServerConfig} from "@/Server";
+import {PlayerNetwork} from "@/network/PlayerNetwork";
+import {ParticleManager} from "@c/particle/ParticleManager";
+import {Packet} from "@/network/Packet";
 import {ChunkLength, SubChunkAmount, WorldHeight} from "@/meta/WorldConstants";
 import {cx2x, cy2y, rotateMeta, x2cx, y2cy} from "@/utils/Utils";
 import {getMenus, OptionPages} from "@dom/components/options/Menus";
-import CPlayer from "@c/entity/types/CPlayer";
-import Texture from "@/utils/Texture";
-import InventoryContainer from "@dom/components/InventoryContainer";
+import {CPlayer} from "@c/entity/types/CPlayer";
+import {Texture} from "@/utils/Texture";
+import {InventoryContainer} from "@dom/components/InventoryContainer";
 import {ZWorldMetaData} from "@/world/World";
 import {im2data} from "@/item/ItemFactory";
 import {FileAsync} from "ktfile";
@@ -872,7 +872,7 @@ function F3Component(O: { ikey: string }) {
     return <span>{f3[O.ikey][0]}</span>;
 }
 
-export default function Client(O: {
+export function Client(O: {
     clientUUID: ReactState<string>,
     favicon: ReactState<string>
 }) {

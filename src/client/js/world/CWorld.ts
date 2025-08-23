@@ -1,12 +1,12 @@
-import World, {Ring1} from "@/world/World";
-import CSubChunk from "@c/world/CSubChunk";
-import Packet from "@/network/Packet";
-import Player from "@/entity/defaults/Player";
+import {World, Ring1} from "@/world/World";
+import {CSubChunk} from "@c/world/CSubChunk";
+import {Packet} from "@/network/Packet";
+import {Player} from "@/entity/defaults/Player";
 import {SubChunkAmount} from "@/meta/WorldConstants";
 import {x2cx, x2rx, y2cy, y2ry} from "@/utils/Utils";
-import Chunk, {ChunkState} from "@/world/Chunk";
+import {Chunk, ChunkState} from "@/world/Chunk";
 
-export default class CWorld extends World {
+export class CWorld extends World {
     isClient = true;
     subChunkRenders: Record<number, CSubChunk[]> = {};
 

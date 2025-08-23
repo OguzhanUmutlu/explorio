@@ -4,9 +4,9 @@
 // @e - every entity in all worlds
 // @c - every entity in the current chunk
 
-import CommandError from "@/command/CommandError";
-import Token from "@/command/token/Token";
-import SelectorToken from "@/command/token/SelectorToken";
+import {CommandError} from "@/command/CommandError";
+import {Token} from "@/command/token/Token";
+import {SelectorToken} from "@/command/token/SelectorToken";
 
 export const SelectorTags = ["a", "p", "s", "e", "c"] as const;
 export type SelectorTagName = typeof SelectorTags[number];

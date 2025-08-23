@@ -1,8 +1,8 @@
-import CommandSender from "@/command/CommandSender";
-import Position from "@/utils/Position";
-import Server from "@/Server";
+import {CommandSender} from "@/command/CommandSender";
+import {Position} from "@/utils/Position";
+import {Server} from "@/Server";
 
-export default class ConsoleCommandSender extends Position implements CommandSender {
+export class ConsoleCommandSender extends Position implements CommandSender {
     static instance: ConsoleCommandSender;
 
     static get() {

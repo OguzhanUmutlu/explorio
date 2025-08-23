@@ -1,8 +1,8 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
 
-export default class DeOperatorCommand extends DefinitiveCommand {
+export class DeOperatorCommand extends DefinitiveCommand {
     constructor() {
         super("deop", "Revokes admin privileges to a player.", [], "*");
     };

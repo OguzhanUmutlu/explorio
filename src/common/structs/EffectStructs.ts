@@ -1,8 +1,8 @@
 import X from "stramp";
 import {EffectIds} from "@/meta/Effects";
-import EffectInstance from "@/effect/EffectInstance";
-import Server from "@/Server";
-import Effect from "@/effect/Effect";
+import {EffectInstance} from "@/effect/EffectInstance";
+import {Server} from "@/Server";
+import {Effect} from "@/effect/Effect";
 
 const BaseEffectInstance = X.object.struct({
     id: X.getUnsignedTypeOf(EffectIds.length),

@@ -1,9 +1,9 @@
 import {Containers} from "@/meta/Inventories";
-import Texture from "@/utils/Texture";
+import {Texture} from "@/utils/Texture";
 import {ReactState} from "@c/utils/Utils";
 import React, {ReactNode} from "react";
 
-export default function InventoryContainer(O: {
+export function InventoryContainer(O: {
     src: string,
     containerId: Containers,
     containerState: ReactState<Containers>,

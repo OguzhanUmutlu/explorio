@@ -1,9 +1,9 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 
-export default class RangeArgument extends CommandArgument<[number, number]> {
+export class RangeArgument extends CommandArgument<[number, number]> {
     default = <[number, number]>[0, 0];
 
     read(_: CommandAs, __: Position, args: AnyToken[], index: number) {

@@ -1,9 +1,9 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {AnyToken} from "@/command/CommandProcessor";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 
-export default class BoolArgument extends CommandArgument<boolean> {
+export class BoolArgument extends CommandArgument<boolean> {
     default = false;
 
     read(_: CommandAs, __: Position, args: AnyToken[], index: number) {

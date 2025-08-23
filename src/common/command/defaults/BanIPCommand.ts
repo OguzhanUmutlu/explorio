@@ -1,8 +1,8 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
 
-export default class BanIPCommand extends DefinitiveCommand {
+export class BanIPCommand extends DefinitiveCommand {
     constructor() {
         super("ban-ip", "Banishes the IP of a player.", [], "command.ban-ip");
     };

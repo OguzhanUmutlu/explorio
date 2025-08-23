@@ -1,7 +1,7 @@
-import PluginEvent from "@/event/PluginEvent";
-import Player from "@/entity/defaults/Player";
+import {PluginEvent} from "@/event/PluginEvent";
+import {Player} from "@/entity/defaults/Player";
 
-export default class PlayerSpamKickEvent extends PluginEvent {
+export class PlayerSpamKickEvent extends PluginEvent {
     kickMessage = "You have been kicked for spamming.";
 
     constructor(

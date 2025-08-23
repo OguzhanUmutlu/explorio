@@ -1,8 +1,8 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
 
-export default class BanCommand extends DefinitiveCommand {
+export class BanCommand extends DefinitiveCommand {
     constructor() {
         super("ban", "Banishes a player.", [], "command.ban");
     };

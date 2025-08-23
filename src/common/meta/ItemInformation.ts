@@ -1,9 +1,9 @@
-import Texture, {Canvas} from "@/utils/Texture";
-import {default as ID} from "@/item/ItemDescriptor";
-import {default as IPool} from "@/item/ItemPool";
+import {Canvas, Texture} from "@/utils/Texture";
+import {ItemDescriptor as ID} from "@/item/ItemDescriptor";
+import {ItemPool as IPool} from "@/item/ItemPool";
 import {ItemIds, ItemMetaBits, ItemMetaMax, ItemMetaMaxN} from "@/meta/ItemIds";
 import {ClassOf} from "@/utils/Utils";
-import BlockData from "@/item/BlockData";
+import {BlockData} from "@/item/BlockData";
 import {MetaLengthMap} from "@/item/ItemFactory";
 
 export enum TreeType {

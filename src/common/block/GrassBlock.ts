@@ -1,8 +1,8 @@
 import {FullIds, ItemIds} from "@/meta/ItemIds";
-import BlockData from "@/item/BlockData";
-import World from "@/world/World";
+import {BlockData} from "@/item/BlockData";
+import {World} from "@/world/World";
 
-export default class GrassBlock extends BlockData {
+export class GrassBlock extends BlockData {
     postProcessesTexture = true;
     hasBiomeTextures = true;
 

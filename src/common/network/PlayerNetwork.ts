@@ -1,33 +1,33 @@
-import Packet from "@/network/Packet";
+import {Packet} from "@/network/Packet";
 import {EntityIds} from "@/meta/Entities";
-import Player from "@/entity/defaults/Player";
+import {Player} from "@/entity/defaults/Player";
 import {PacketByName, Packets, readPacket} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
 import {UsernameRegex, zstdOptionalEncode} from "@/utils/Utils";
 import {Version} from "@/Versions";
 import {Containers, CraftingResultMap, InventoryName} from "@/meta/Inventories";
 
-import ItemTransferEvent from "@/event/defaults/ItemTransferEvent";
-import ItemSwapEvent from "@/event/defaults/ItemSwapEvent";
+import {ItemTransferEvent} from "@/event/defaults/ItemTransferEvent";
+import {ItemSwapEvent} from "@/event/defaults/ItemSwapEvent";
 import {findCrafting, inventoryToGrid} from "@/crafting/CraftingUtils";
 import {Crafting} from "@/crafting/Crafting";
-import Inventory from "@/item/Inventory";
-import PlayerOpenContainerEvent from "@/event/defaults/PlayerOpenContainerEvent";
-import PlayerCloseContainerEvent from "@/event/defaults/PlayerCloseContainerEvent";
-import PlayerLoginEvent from "@/event/defaults/PlayerLoginEvent";
-import PlayerJoinEvent from "@/event/defaults/PlayerJoinEvent";
-import PlayerToggleFlightEvent from "@/event/defaults/PlayerToggleFlightEvent";
-import PlayerSetHandIndexEvent from "@/event/defaults/PlayerSetHandIndexEvent";
-import PlayerMoveEvent from "@/event/defaults/PlayerMoveEvent";
-import PlayerStartBreakingEvent from "@/event/defaults/PlayerStartBreakingEvent";
-import PlayerStopBreakingEvent from "@/event/defaults/PlayerStopBreakingEvent";
-import PlayerDropItemEvent from "@/event/defaults/PlayerDropItemEvent";
-import PlayerCreativeItemAccessEvent from "@/event/defaults/PlayerCreativeItemAccessEvent";
-import Entity from "@/entity/Entity";
+import {Inventory} from "@/item/Inventory";
+import {PlayerOpenContainerEvent} from "@/event/defaults/PlayerOpenContainerEvent";
+import {PlayerCloseContainerEvent} from "@/event/defaults/PlayerCloseContainerEvent";
+import {PlayerLoginEvent} from "@/event/defaults/PlayerLoginEvent";
+import {PlayerJoinEvent} from "@/event/defaults/PlayerJoinEvent";
+import {PlayerToggleFlightEvent} from "@/event/defaults/PlayerToggleFlightEvent";
+import {PlayerSetHandIndexEvent} from "@/event/defaults/PlayerSetHandIndexEvent";
+import {PlayerMoveEvent} from "@/event/defaults/PlayerMoveEvent";
+import {PlayerStartBreakingEvent} from "@/event/defaults/PlayerStartBreakingEvent";
+import {PlayerStopBreakingEvent} from "@/event/defaults/PlayerStopBreakingEvent";
+import {PlayerDropItemEvent} from "@/event/defaults/PlayerDropItemEvent";
+import {PlayerCreativeItemAccessEvent} from "@/event/defaults/PlayerCreativeItemAccessEvent";
+import {Entity} from "@/entity/Entity";
 import {ItemIds} from "@/meta/ItemIds";
-import Item from "@/item/Item";
-import Server from "@/Server";
-import Chunk from "@/world/Chunk";
+import {Item} from "@/item/Item";
+import {Server} from "@/Server";
+import {Chunk} from "@/world/Chunk";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -41,7 +41,7 @@ type ReqLike = {
     };
 };
 
-export default class PlayerNetwork {
+export class PlayerNetwork {
     batch: Packet[] = [];
     uuid = crypto.randomUUID();
     player: Player;

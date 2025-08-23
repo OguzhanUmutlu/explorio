@@ -1,9 +1,9 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
-import CommandError from "@/command/CommandError";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
+import {CommandError} from "@/command/CommandError";
 
-export default class KillCommand extends DefinitiveCommand {
+export class KillCommand extends DefinitiveCommand {
     constructor() {
         super("kill", "Kills given entities.", [], "command.kill");
     };

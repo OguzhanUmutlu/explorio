@@ -1,8 +1,8 @@
-import World from "@/world/World";
-import EntityTileBase from "@/entity/EntityTileBase";
+import {World} from "@/world/World";
+import {EntityTileBase} from "@/entity/EntityTileBase";
 import {TileSaveStruct} from "@/structs/EntityTileSaveStruct";
 
-export default abstract class Tile extends EntityTileBase {
+export abstract class Tile extends EntityTileBase {
     declare readonly x: number;
     declare readonly y: number;
     declare readonly world: World;

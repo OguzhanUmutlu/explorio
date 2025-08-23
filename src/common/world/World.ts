@@ -1,9 +1,9 @@
-import BoundingBox from "@/entity/BoundingBox";
-import Generator from "@/world/generators/Generator";
-import FlatGenerator from "@/world/generators/FlatGenerator";
-import DefaultGenerator from "@/world/generators/DefaultGenerator";
-import FlowerLandGenerator from "@/world/generators/FlowerLandGenerator";
-import CustomGenerator from "@/world/generators/CustomGenerator";
+import {BoundingBox} from "@/entity/BoundingBox";
+import {Generator} from "@/world/generators/Generator";
+import {FlatGenerator} from "@/world/generators/FlatGenerator";
+import {DefaultGenerator} from "@/world/generators/DefaultGenerator";
+import {FlowerLandGenerator} from "@/world/generators/FlowerLandGenerator";
+import {CustomGenerator} from "@/world/generators/CustomGenerator";
 import {
     cgx2cx,
     checkAny,
@@ -15,30 +15,30 @@ import {
     zstdOptionalDecode,
     zstdOptionalEncode
 } from "@/utils/Utils";
-import Player from "@/entity/defaults/Player";
-import Packet from "@/network/Packet";
-import Entity from "@/entity/Entity";
-import Server from "@/Server";
+import {Player} from "@/entity/defaults/Player";
+import {Packet} from "@/network/Packet";
+import {Entity} from "@/entity/Entity";
+import {Server} from "@/Server";
 import {Packets} from "@/network/Packets";
 import {z} from "zod";
 import {ChunkBlockAmount, ChunkGroupLength, WorldHeight} from "@/meta/WorldConstants";
-import BlockPlaceEvent from "@/event/defaults/BlockPlaceEvent";
-import BlockBreakEvent from "@/event/defaults/BlockBreakEvent";
-import ItemEntity from "@/entity/defaults/ItemEntity";
-import Item from "@/item/Item";
+import {BlockPlaceEvent} from "@/event/defaults/BlockPlaceEvent";
+import {BlockBreakEvent} from "@/event/defaults/BlockBreakEvent";
+import {ItemEntity} from "@/entity/defaults/ItemEntity";
+import {Item} from "@/item/Item";
 import {EntityIds} from "@/meta/Entities";
 import {Containers} from "@/meta/Inventories";
-import InteractBlockEvent from "@/event/defaults/InteractBlockEvent";
-import Chunk, {ChunkState} from "@/world/Chunk";
-import XPOrbEntity from "@/entity/defaults/XPOrbEntity";
-import Tile from "@/tile/Tile";
-import BlockData from "@/item/BlockData";
-import Position from "@/utils/Position";
-import FallingBlockEntity from "@/entity/defaults/FallingBlockEntity";
+import {InteractBlockEvent} from "@/event/defaults/InteractBlockEvent";
+import {Chunk, ChunkState} from "@/world/Chunk";
+import {XPOrbEntity} from "@/entity/defaults/XPOrbEntity";
+import {Tile} from "@/tile/Tile";
+import {BlockData} from "@/item/BlockData";
+import {Position} from "@/utils/Position";
+import {FallingBlockEntity} from "@/entity/defaults/FallingBlockEntity";
 import {ChunkGroupStruct} from "@/structs/ChunkStructs";
 import {FullIds, ItemIds} from "@/meta/ItemIds";
 import {im2f} from "@/meta/ItemInformation";
-import ItemFactory, {f2data} from "@/item/ItemFactory";
+import {ItemFactory, f2data} from "@/item/ItemFactory";
 import {FileAsync} from "ktfile";
 
 export function getRandomSeed(): bigint {
@@ -99,7 +99,7 @@ export const SpawnChunkDistance = 2;
 // relX = The chunk-relative x position that goes from 0 to CHUNK_LENGTH-1
 // relY = The sub-chunk-relative y position that goes from 0 to CHUNK_LENGTH-1
 
-export default class World {
+export class World {
     isClient = false;
     chunks: Record<number, Chunk> = {};
     chunkGroups: Record<number, Chunk[]> = {};

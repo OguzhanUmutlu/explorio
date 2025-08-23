@@ -1,14 +1,14 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {AnyToken} from "@/command/CommandProcessor";
-import SelectorToken from "@/command/token/SelectorToken";
+import {SelectorToken} from "@/command/token/SelectorToken";
 
-import CommandError from "@/command/CommandError";
+import {CommandError} from "@/command/CommandError";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {UsernameRegex} from "@/utils/Utils";
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 
-export default class EntitiesArgument<T extends Entity[] = Entity[]> extends CommandArgument<T> {
+export class EntitiesArgument<T extends Entity[] = Entity[]> extends CommandArgument<T> {
     default = <T>[];
     filterError = null;
     filter = null;

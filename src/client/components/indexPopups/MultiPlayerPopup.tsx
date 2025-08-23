@@ -1,12 +1,12 @@
-import StateInput from "@dom/components/StateInput";
+import {StateInput} from "@dom/components/StateInput";
 import {fetchMotd, formatDivText, ReactState, removeServer, ServerData} from "@c/utils/Utils";
-import MainMenuPopup from "@dom/components/MainMenuPopup";
+import {MainMenuPopup} from "@dom/components/MainMenuPopup";
 import React, {useState} from "react";
 
 let fetching = {};
 let fetched = {};
 
-export default function MultiPlayerPopup(O: {
+export function MultiPlayerPopup(O: {
     mp: ReactState<boolean>,
     ns: ReactState<boolean>,
     servers: ReactState<ServerData[]>,

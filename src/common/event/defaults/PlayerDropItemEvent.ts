@@ -1,9 +1,9 @@
-import PluginEvent from "@/event/PluginEvent";
-import Player from "@/entity/defaults/Player";
-import Item from "@/item/Item";
-import Inventory from "@/item/Inventory";
+import {PluginEvent} from "@/event/PluginEvent";
+import {Player} from "@/entity/defaults/Player";
+import {Item} from "@/item/Item";
+import {Inventory} from "@/item/Inventory";
 
-export default class PlayerDropItemEvent extends PluginEvent {
+export class PlayerDropItemEvent extends PluginEvent {
     constructor(
         public readonly player: Player,
         public readonly inventory: Inventory,

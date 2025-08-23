@@ -1,5 +1,5 @@
 import {z} from "zod";
-import Server, {EventHandlersType} from "@/Server";
+import {Server, EventHandlersType} from "@/Server";
 
 export const ZPluginMetadata = z.object({
     name: z.string(),
@@ -17,7 +17,7 @@ export const ZPluginMetadata = z.object({
 
 export type PluginMetadata = z.infer<typeof ZPluginMetadata>;
 
-export default abstract class Plugin {
+export abstract class Plugin {
     static _eventHandlers: EventHandlersType = new Map;
     _eventHandlers: EventHandlersType = new Map;
     _intervals: NodeJS.Timeout[] = [];

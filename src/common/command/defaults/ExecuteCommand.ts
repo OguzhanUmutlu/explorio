@@ -1,16 +1,16 @@
-import Command from "@/command/Command";
-import CommandError from "@/command/CommandError";
+import {Command} from "@/command/Command";
+import {CommandError} from "@/command/CommandError";
 import {skipWhitespace, splitParameters} from "@/command/CommandProcessor";
-import SelectorToken from "@/command/token/SelectorToken";
-import PositionArgument from "@/command/arguments/PositionArgument";
-import CommandSender, {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {SelectorToken} from "@/command/token/SelectorToken";
+import {PositionArgument} from "@/command/arguments/PositionArgument";
+import {CommandSender, CommandAs} from "@/command/CommandSender";
+import {Position} from "@/utils/Position";
 import {dataOperate} from "@/command/defaults/DataCommand";
 
 type StoreStorage = string; // just path
 type StoreEntity = { selector: SelectorToken, path: string };
 
-export default class ExecuteCommand extends Command {
+export class ExecuteCommand extends Command {
     posArg = new PositionArgument("position");
 
     constructor() {

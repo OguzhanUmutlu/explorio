@@ -1,8 +1,8 @@
-import Effect from "@/effect/Effect";
+import {Effect} from "@/effect/Effect";
 import {EffectIds} from "@/meta/Effects";
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 
-export default class SpeedEffect extends Effect {
+export class SpeedEffect extends Effect {
     typeId = EffectIds.Speed;
     typeName = "speed";
     name = "Speed";

@@ -1,8 +1,8 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
 
-import CommandSender from "@/command/CommandSender";
-import Entity from "@/entity/Entity";
+import {CommandSender} from "@/command/CommandSender";
+import {Entity} from "@/entity/Entity";
 
 function handleArgs(sender: CommandSender, duration: number, amplifier: number) {
     duration = Math.floor(duration);
@@ -21,7 +21,7 @@ function handleArgs(sender: CommandSender, duration: number, amplifier: number) 
     return [duration, amplifier];
 }
 
-export default class EffectCommand extends DefinitiveCommand {
+export class EffectCommand extends DefinitiveCommand {
     constructor() {
         super("effect", "Adds and removes effects.", [], "command.effect");
     };

@@ -1,6 +1,6 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 
 const units = {
@@ -9,7 +9,7 @@ const units = {
     d: 24000
 };
 
-export default class TicksArgument extends CommandArgument<number> {
+export class TicksArgument extends CommandArgument<number> {
     default = 0;
 
     read(_: CommandAs, __: Position, args: AnyToken[], index: number) {

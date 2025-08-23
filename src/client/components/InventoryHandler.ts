@@ -7,7 +7,7 @@ let clickedInv = "";
 let clickedItemIndex = -1;
 let clickCount = 0;
 
-export default class InventoryHandler {
+export class InventoryHandler {
     static removed: Partial<Record<InventoryName, Set<number>>> = {};
 
     contexts: CanvasRenderingContext2D[] = [];

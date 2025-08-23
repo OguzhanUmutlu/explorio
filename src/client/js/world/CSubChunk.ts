@@ -1,6 +1,6 @@
 import {createCanvas} from "@/utils/Texture";
 import {clientPlayer} from "@dom/Client";
-import World from "@/world/World";
+import {World} from "@/world/World";
 import {ChunkLength} from "@/meta/WorldConstants";
 import {cx2x, cy2y, i2rx, i2ry, rxry2ci} from "@/utils/Utils";
 import {drawShadow} from "@c/utils/Utils";
@@ -9,7 +9,7 @@ import {f2data} from "@/item/ItemFactory";
 const renderScale = 32; // Blocks are rendered as 16x16
 const renderSize = renderScale * ChunkLength;
 
-export default class CSubChunk {
+export class CSubChunk {
     bCanvas = createCanvas(renderSize, renderSize);
     bCtx = this.bCanvas.getContext("2d");
     bDone = false;

@@ -1,5 +1,5 @@
 import {Block} from "@/block/Block";
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 import {Damage} from "@/entity/Damage";
 
 export class FallDamage extends Damage {

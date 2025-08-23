@@ -1,9 +1,9 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Player from "@/entity/defaults/Player";
-import CommandError from "@/command/CommandError";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Player} from "@/entity/defaults/Player";
+import {CommandError} from "@/command/CommandError";
 
-export default class GiveCommand extends DefinitiveCommand {
+export class GiveCommand extends DefinitiveCommand {
     constructor() {
         super("give", "Gives items to players.", [], "command.give");
     };

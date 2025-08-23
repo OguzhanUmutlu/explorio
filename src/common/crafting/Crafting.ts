@@ -1,5 +1,5 @@
-import Item from "@/item/Item";
-import Inventory from "@/item/Inventory";
+import {Item} from "@/item/Item";
+import {Inventory} from "@/item/Inventory";
 
 export abstract class Crafting {
     abstract validate(contents: (Item | null)[][]): boolean;

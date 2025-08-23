@@ -1,8 +1,8 @@
-import Particle from "@c/particle/Particle";
-import BlockData from "@/item/BlockData";
-import World from "@/world/World";
+import {Particle} from "@c/particle/Particle";
+import {BlockData} from "@/item/BlockData";
+import {World} from "@/world/World";
 
-export default class LittleBlockParticle extends Particle {
+export class LittleBlockParticle extends Particle {
     tm = 1.5;
     t = this.tm;
     vx = 0;

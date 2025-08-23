@@ -1,8 +1,8 @@
 import {AnyToken} from "@/command/CommandProcessor";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 
-export default abstract class CommandArgument<T = unknown> {
+export abstract class CommandArgument<T = unknown> {
     __TYPE__: T;
     required = true;
     spread = false;

@@ -1,7 +1,7 @@
 import X from "stramp";
-import Inventory from "@/item/Inventory";
-import Item from "@/item/Item";
-import ItemFactory from "@/item/ItemFactory";
+import {Inventory} from "@/item/Inventory";
+import {Item} from "@/item/Item";
+import {ItemFactory} from "@/item/ItemFactory";
 import {InventoryName, InventorySizes} from "@/meta/Inventories";
 
 export function InventoryStruct(size: number, name: string) {

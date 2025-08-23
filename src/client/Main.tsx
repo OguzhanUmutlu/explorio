@@ -1,13 +1,13 @@
 import React, {useEffect, useState} from "react";
 import "./css/common.css";
-import Index from "@c/../Index";
-import {default as Client, terminateClient} from "@dom/Client";
+import {Index} from "@c/../Index";
+import {Client, terminateClient} from "@dom/Client";
 import {getHash, isMobileByAgent, Options} from "@c/utils/Utils";
 import {getColoredPrinter} from "@/utils/ColoredPrinter";
 
 getColoredPrinter().makeGlobal().replaceConsole();
 
-export default function Main() {
+export function Main() {
     const clientUUID = useState(getHash);
     const favicon = useState("./assets/logo.png");
 

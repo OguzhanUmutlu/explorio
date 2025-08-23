@@ -1,4 +1,4 @@
-export default class CommandError extends Error {
+export class CommandError extends Error {
     constructor(public message: string) {
         super(message);
     };

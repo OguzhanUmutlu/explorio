@@ -1,9 +1,9 @@
 import {Crafting} from "@/crafting/Crafting";
-import Item from "@/item/Item";
-import {default as ID} from "@/item/ItemDescriptor";
-import Inventory from "@/item/Inventory";
+import {Item} from "@/item/Item";
+import {ItemDescriptor as ID} from "@/item/ItemDescriptor";
+import {Inventory} from "@/item/Inventory";
 
-export default class ShapelessCrafting extends Crafting {
+export class ShapelessCrafting extends Crafting {
     constructor(public items: ID[], public result: ID) {
         super();
     };

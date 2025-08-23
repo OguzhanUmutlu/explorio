@@ -4,7 +4,7 @@ import {clientPlayer} from "@dom/Client";
 import {ReactState, useEventListener} from "@c/utils/Utils";
 import {checkLag} from "@/utils/Utils";
 import {findCrafting, findCraftingFromInventory, inventoryToGrid} from "@/crafting/CraftingUtils";
-import InventoryHandler from "@dom/components/InventoryHandler";
+import {InventoryHandler} from "@dom/components/InventoryHandler";
 
 export const InventoryHandlers: Record<string, InventoryHandler> = {};
 
@@ -54,7 +54,7 @@ export function clientRemoveCrafts(invName: InventoryName) {
 
 let rightDown = false;
 
-export default React.memo(function InventoryDiv(O: {
+export const InventoryDiv = React.memo(function InventoryDiv(O: {
     inventoryName: InventoryName,
     ikey: string,
     handIndex?: ReactState<number>,

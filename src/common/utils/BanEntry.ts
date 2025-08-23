@@ -1,4 +1,4 @@
-export default class BanEntry {
+export class BanEntry {
     constructor(public name: string, public ip: string | null, public timestamp: number, public reason: string) {
     };
 

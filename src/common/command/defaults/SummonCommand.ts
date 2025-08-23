@@ -1,9 +1,9 @@
-import DefinitiveCommand from "@/command/DefinitiveCommand";
-import CommandDefinition from "@/command/CommandDefinition";
-import Vector2 from "@/utils/Vector2";
-import CommandError from "@/command/CommandError";
+import {DefinitiveCommand} from "@/command/DefinitiveCommand";
+import {CommandDefinition} from "@/command/CommandDefinition";
+import {Vector2} from "@/utils/Vector2";
+import {CommandError} from "@/command/CommandError";
 
-export default class SummonCommand extends DefinitiveCommand {
+export class SummonCommand extends DefinitiveCommand {
     constructor() {
         super("summon", "Summons the given entity.", [], "command.summon");
     };

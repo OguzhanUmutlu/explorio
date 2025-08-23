@@ -1,15 +1,15 @@
-import Vector2 from "@/utils/Vector2";
-import World from "@/world/World";
-import BlockData from "@/item/BlockData";
+import {Vector2} from "@/utils/Vector2";
+import {World} from "@/world/World";
+import {BlockData} from "@/item/BlockData";
 import {f2id, f2meta} from "@/meta/ItemInformation";
-import Packet from "@/network/Packet";
-import Entity from "@/entity/Entity";
+import {Packet} from "@/network/Packet";
+import {Entity} from "@/entity/Entity";
 
 export function getRotationTowards(x1: number, y1: number, x2: number, y2: number) {
     return Math.atan2(x2 - x1, y2 - y1) / Math.PI * 180 - 90;
 }
 
-export default class Position extends Vector2 {
+export class Position extends Vector2 {
     readonly = false;
 
     constructor(x: number, y: number, public rotation: number = 0, public world: World) {

@@ -1,6 +1,6 @@
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 
-export default interface CEntity extends Entity {
+export interface CEntity extends Entity {
     typeId: number;
     typeName: string;
     name: string;

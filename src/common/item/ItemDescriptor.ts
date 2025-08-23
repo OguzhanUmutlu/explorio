@@ -1,6 +1,6 @@
-import Item from "@/item/Item";
+import {Item} from "@/item/Item";
 
-export default class ItemDescriptor {
+export class ItemDescriptor {
     chance: number | null = null;
 
     constructor(

@@ -1,7 +1,7 @@
-import Position from "@/utils/Position";
-import World from "@/world/World";
+import {Position} from "@/utils/Position";
+import {World} from "@/world/World";
 
-export default abstract class Particle extends Position {
+export abstract class Particle extends Position {
     done = false;
 
     protected constructor(x: number, y: number, world: World) {

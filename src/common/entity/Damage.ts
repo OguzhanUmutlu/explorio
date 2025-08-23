@@ -1,4 +1,4 @@
-import Entity from "@/entity/Entity";
+import {Entity} from "@/entity/Entity";
 
 export abstract class Damage {
     readonly finalDamage: number;

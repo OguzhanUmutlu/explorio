@@ -1,9 +1,9 @@
 import React from "react";
 import {OptionsType, useOptionSubscription} from "@c/utils/Utils";
-import GameOptionComponent from "@dom/components/options/GameOptionComponent";
-import OptionValueText from "@dom/components/options/OptionValueText";
+import {GameOptionComponent} from "@dom/components/options/GameOptionComponent";
+import {OptionValueText} from "@dom/components/options/OptionValueText";
 
-export default function SelectOptionComponent(O: {
+export function SelectOptionComponent(O: {
     option: keyof OptionsType;
     labels: string[];
     description?: string;

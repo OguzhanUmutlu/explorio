@@ -1,9 +1,9 @@
-import CEntity from "@c/entity/CEntity";
+import {CEntity} from "@c/entity/CEntity";
 import {getClientPosition, TileSize} from "@c/utils/Utils";
-import FallingBlockEntity from "@/entity/defaults/FallingBlockEntity";
+import {FallingBlockEntity} from "@/entity/defaults/FallingBlockEntity";
 import {f2data} from "@/item/ItemFactory";
 
-export default class CFallingBlockEntity extends FallingBlockEntity implements CEntity {
+export class CFallingBlockEntity extends FallingBlockEntity implements CEntity {
     isClient = true;
 
     getBlock() {

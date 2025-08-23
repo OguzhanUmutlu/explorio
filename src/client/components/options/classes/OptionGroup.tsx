@@ -1,9 +1,9 @@
-import GameOption from "@dom/components/options/classes/GameOption";
+import {GameOption} from "@dom/components/options/classes/GameOption";
 import {ReactState} from "@c/utils/Utils";
 import React from "react";
 import {OptionPages} from "@dom/components/options/Menus";
 
-export default class OptionGroup extends GameOption {
+export class OptionGroup extends GameOption {
     constructor(public options: GameOption []) {
         super(null, "", "");
     };

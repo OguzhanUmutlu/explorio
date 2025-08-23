@@ -1,10 +1,10 @@
-import CommandArgument from "@/command/CommandArgument";
-import CommandError from "@/command/CommandError";
+import {CommandArgument} from "@/command/CommandArgument";
+import {CommandError} from "@/command/CommandError";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 
-export default class TextArgument extends CommandArgument<string> {
+export class TextArgument extends CommandArgument<string> {
     default = "";
 
     constructor(name: string, public choices: string[] = []) {

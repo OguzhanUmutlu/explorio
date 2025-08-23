@@ -1,11 +1,11 @@
 import X, {Bin, BufferIndex, IntBaseBin} from "stramp";
-import Tile from "@/tile/Tile";
+import {Tile} from "@/tile/Tile";
 import {TileIds} from "@/meta/Tiles";
-import Server from "@/Server";
-import Entity from "@/entity/Entity";
+import {Server} from "@/Server";
+import {Entity} from "@/entity/Entity";
 import {EntityIds} from "@/meta/Entities";
 
-export default class EntityTileSaveStruct<T extends Tile | Entity> extends Bin<T> {
+export class EntityTileSaveStruct<T extends Tile | Entity> extends Bin<T> {
     server: Server;
 
     typeIdBin: IntBaseBin;

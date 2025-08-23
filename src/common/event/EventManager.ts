@@ -1,8 +1,8 @@
-import PluginEvent from "@/event/PluginEvent";
-import EventResponder from "@/event/EventResponder";
+import {PluginEvent} from "@/event/PluginEvent";
+import {EventResponder} from "@/event/EventResponder";
 import {ClassOf} from "@/utils/Utils";
 
-export default class EventManager {
+export class EventManager {
     static events: Map<ClassOf<PluginEvent>, EventResponder[]> = new Map;
 
     static on<T extends PluginEvent>(event: ClassOf<T>, callback: (event: T) => unknown, priority = 1) {

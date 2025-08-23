@@ -1,9 +1,9 @@
-import CommandArgument from "@/command/CommandArgument";
+import {CommandArgument} from "@/command/CommandArgument";
 import {CommandAs} from "@/command/CommandSender";
-import Position from "@/utils/Position";
+import {Position} from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 
-export default class LabelArgument extends CommandArgument<undefined> {
+export class LabelArgument extends CommandArgument<undefined> {
     default = undefined;
 
     read(_: CommandAs, __: Position, ___: AnyToken[], ____: number) {

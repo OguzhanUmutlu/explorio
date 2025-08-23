@@ -1,9 +1,9 @@
-import Packet from "@/network/Packet";
+import {Packet} from "@/network/Packet";
 import {ClientEntityClasses, getWSUrls, Options, setServerOptions} from "@c/utils/Utils";
 import {EntityUpdateStruct, PacketByName, Packets, readPacket} from "@/network/Packets";
-import PacketError from "@/network/PacketError";
-import CPlayer from "@c/entity/types/CPlayer";
-import CWorld from "@c/world/CWorld";
+import {PacketError} from "@/network/PacketError";
+import {CPlayer} from "@c/entity/types/CPlayer";
+import {CWorld} from "@c/world/CWorld";
 import {PacketIds} from "@/meta/PacketIds";
 import {
     clientPlayer,
@@ -18,10 +18,10 @@ import {
 // @ts-expect-error ?worker
 import SocketWorker from "@c/worker/SocketWorker?worker";
 import {Version} from "@/Versions";
-import LittleBlockParticle from "@c/particle/types/LittleBlockParticle";
+import {LittleBlockParticle} from "@c/particle/types/LittleBlockParticle";
 import {Containers, InventoryName} from "@/meta/Inventories";
-import Item from "@/item/Item";
-import Player from "@/entity/defaults/Player";
+import {Item} from "@/item/Item";
+import {Player} from "@/entity/defaults/Player";
 import {EntityIds} from "@/meta/Entities";
 import {DefaultGravity} from "@/entity/Entity";
 import {getCookie} from "@dom/components/CookieHandler";
@@ -30,10 +30,10 @@ import {copyBuffer, zstdOptionalEncode} from "@/utils/Utils";
 import {AnimationDurations} from "@/meta/Animations";
 import {Buffer} from "buffer";
 import {f2data} from "@/item/ItemFactory";
-import CEntity from "@c/entity/CEntity";
+import {CEntity} from "@c/entity/CEntity";
 import {ChunkState} from "@/world/Chunk";
 
-export default class ClientNetwork {
+export class ClientNetwork {
     allEntities = new Set<CEntity>;
     worker: { postMessage(e: Buffer): void, terminate(): void };
     connected = false;

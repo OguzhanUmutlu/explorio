@@ -1,8 +1,8 @@
-import Generator from "@/world/generators/Generator";
+import {Generator} from "@/world/generators/Generator";
 import {FullIds, ItemIds} from "@/meta/ItemIds";
 import {createNoise2D, NoiseFunction2D} from "simplex-noise";
 import alea from "alea";
-import World from "@/world/World";
+import {World} from "@/world/World";
 import {ChunkLength} from "@/meta/WorldConstants";
 import {im2f, TreeType} from "@/meta/ItemInformation";
 
@@ -66,7 +66,7 @@ export const BlocksUnderTree = [
     FullIds.DIRT, FullIds.GRASS_BLOCK, FullIds.SNOWY_GRASS_BLOCK // podzol, snow block
 ]
 
-export default class DefaultGenerator extends Generator {
+export class DefaultGenerator extends Generator {
     noise: NoiseFunction2D;
     noiseCoal: NoiseFunction2D;
     noiseCopper: NoiseFunction2D;
