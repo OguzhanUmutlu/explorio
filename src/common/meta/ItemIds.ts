@@ -122,11 +122,11 @@ export enum ItemIds {
     NETHERITE_SHOVEL,
     NETHERITE_HOE,
 
-    __MAX__
+    length
 }
 
 export const FullIds = <Record<keyof typeof ItemIds, number>>{};
 
-for (let i = 0; i < ItemIds.__MAX__; i++) {
+for (let i = 0; i < ItemIds.length; i++) {
     FullIds[ItemIds[i]] = i << ItemMetaBits;
 }

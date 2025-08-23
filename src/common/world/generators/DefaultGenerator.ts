@@ -128,14 +128,14 @@ export default class DefaultGenerator extends Generator {
         super.setWorld(world);
 
         this.noise = createNoise2D(alea(world.seed));
-        this.noiseCoal = createNoise2D(alea(world.seed + 1));
-        this.noiseCopper = createNoise2D(alea(world.seed + 2));
-        this.noiseIron = createNoise2D(alea(world.seed + 3));
-        this.noiseGold = createNoise2D(alea(world.seed + 4));
-        this.noiseLapis = createNoise2D(alea(world.seed + 5));
-        this.noiseRedstone = createNoise2D(alea(world.seed + 6));
-        this.noiseDiamond = createNoise2D(alea(world.seed + 7));
-        this.noiseTunnel = createNoise2D(alea(world.seed + 8));
+        this.noiseCoal = createNoise2D(alea(world.seed + 1n));
+        this.noiseCopper = createNoise2D(alea(world.seed + 2n));
+        this.noiseIron = createNoise2D(alea(world.seed + 3n));
+        this.noiseGold = createNoise2D(alea(world.seed + 4n));
+        this.noiseLapis = createNoise2D(alea(world.seed + 5n));
+        this.noiseRedstone = createNoise2D(alea(world.seed + 6n));
+        this.noiseDiamond = createNoise2D(alea(world.seed + 7n));
+        this.noiseTunnel = createNoise2D(alea(world.seed + 8n));
     };
 
     static isCave(y: number, noise: number) {

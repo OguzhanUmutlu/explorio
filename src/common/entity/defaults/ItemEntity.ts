@@ -2,9 +2,8 @@ import BoundingBox from "@/entity/BoundingBox";
 import {EntityIds} from "@/meta/Entities";
 import Item from "@/item/Item";
 import Player from "@/entity/defaults/Player";
-import EntityStruct from "@/structs/entity/EntityStruct";
-import ItemStruct from "@/structs/item/ItemStruct";
-import X from "stramp";
+import {ItemStruct} from "@/structs/ItemStructs";
+import X, {def} from "stramp";
 import Entity from "@/entity/Entity";
 
 const maxStack = 255;
@@ -13,17 +12,13 @@ export default class ItemEntity extends Entity {
     typeId = EntityIds.ITEM;
     typeName = "item";
     name = "Item";
-    saveStruct = EntityStruct.extend({
-        item: ItemStruct,
-        delay: X.f32,
-        despawnTimer: X.f32
-    });
+
+    @def(ItemStruct) item: Item;
+    @def(X.f32) delay = 0;
+    @def(X.f32) despawnTimer = 5 * 60;
 
     bb: BoundingBox = new BoundingBox(0, 0, 0.25, 0.25);
-    item: Item;
     wasOnGround = false;
-    delay = 0;
-    despawnTimer = 5 * 60;
 
     calcCacheState(): string {
         return "";

@@ -43,7 +43,7 @@ export default class DataCommand extends DefinitiveCommand {
             .addTextArgument("path", o => o.setOptional())
             .addNumberArgument("scale", o => o.setOptional())
             .then((sender, _, __, entity, path, scale) => {
-                const data = dataAccess(entity.data, path, scale);
+                const data = dataAccess(entity.rawData, path, scale);
                 sender.sendMessage("Entity §a" + entity.name + "§r's data" + (path ? " for §a" + path + " §ris" : "") + ":\n" + formatDataForChat(data));
                 return anyToNumber(data);
             }),

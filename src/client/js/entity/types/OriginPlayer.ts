@@ -73,6 +73,10 @@ export default class OriginPlayer extends CPlayer {
 
         if (this.containerId !== Containers.Closed) return;
 
+        if (!this.chunk.isFilled) {
+            this.immobile = true;
+        }
+
         if (Keyboard.w || Keyboard[" "]) {
             if (this.isFlying) this.tryToMove(0, this.flySpeed * dt, dt);
             else this.tryToJump();

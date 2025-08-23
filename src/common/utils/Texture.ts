@@ -78,6 +78,7 @@ export function eraseImage(image: Canvas | Image, x: number, y: number, width: n
 }
 
 function loadImage(src: string): Promise<Image> {
+    // console.log(src) todo: use resource packs if available
     return new Promise((resolve, reject) => {
         if (typeof global === "undefined") {
             const image = new Image();
@@ -130,6 +131,30 @@ export default class Texture {
         }
     };
 
+    removeCache() {
+        delete this._flipped;
+        delete this._rotated;
+        delete this._skin;
+        delete this._slabTop;
+        delete this._slabBottom;
+        delete this._slabRight;
+        delete this._slabLeft;
+        delete this._stairsTopLeft;
+        delete this._stairsTopRight;
+        delete this._stairsBottomLeft;
+        delete this._stairsBottomRight;
+        delete this._pixels;
+        delete this._pixelValues;
+        delete this._boundaries;
+    };
+
+    reloadImage(removeCurrent = false) {
+        this.removeCache();
+        if (removeCurrent) this.image = imagePlaceholder;
+        this._promise = loadImage(this.actualSrc).then(image => this.image = image);
+        return this;
+    };
+
     get width() {
         return this.image ? this.image.width : 0;
     };
@@ -172,10 +197,8 @@ export default class Texture {
 
     destroy() {
         delete Texture.textures[this.actualSrc];
-        delete this._flipped;
         delete this.image;
-        delete this._rotated;
-        delete this._skin;
+        this.removeCache();
     };
 
     get loaded() {

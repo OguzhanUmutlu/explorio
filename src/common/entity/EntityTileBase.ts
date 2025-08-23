@@ -1,15 +1,13 @@
 import World from "@/world/World";
-import {getServer} from "@/utils/Utils";
 import Position from "@/utils/Position";
-import {Bin, ObjectStructBin} from "stramp";
+import X, {BufferIndex} from "stramp";
 
 let _entity_id = 0;
 
-export default abstract class EntityTileBase<Save extends Record<string, Bin> = Record<string, Bin>> extends Position {
+export default abstract class EntityTileBase extends Position {
     abstract typeId: number;
     abstract typeName: string; // used in selectors' type= attribute
     abstract name: string; // used for chat messages and informational purposes
-    abstract saveStruct: ObjectStructBin<Save>;
     abstract init(): boolean;
     abstract update(dt: number): void;
     abstract serverUpdate(dt: number): void;
@@ -20,14 +18,24 @@ export default abstract class EntityTileBase<Save extends Record<string, Bin> = 
     id = _entity_id++;
     despawned = false;
 
-    server = getServer();
-
     constructor() {
         super(0, 0, 0, null);
     };
 
-    get data() {
-        return this.saveStruct.adapt(this);
+    get rawData() {
+        return this.saveStruct.adapt(null);
+    };
+
+    get saveStruct() {
+        return X.getStruct(this);
+    };
+
+    saveTo(bind: BufferIndex) {
+        this.saveStruct.serialize(this, bind);
+    };
+
+    loadFrom(bind: BufferIndex) {
+        this.saveStruct.parse(bind, this);
     };
 
     toString() {

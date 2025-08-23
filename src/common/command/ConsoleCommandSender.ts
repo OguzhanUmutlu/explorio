@@ -1,18 +1,21 @@
 import CommandSender from "@/command/CommandSender";
 import Position from "@/utils/Position";
-import {getServer} from "@/utils/Utils";
+import Server from "@/Server";
 
 export default class ConsoleCommandSender extends Position implements CommandSender {
     static instance: ConsoleCommandSender;
+
+    static get() {
+        return ConsoleCommandSender.instance;
+    };
 
     id = -1;
 
     name = "CONSOLE";
     permissions = new Set<string>;
-    server = getServer();
 
-    constructor() {
-        super(0, 0, 0, getServer().defaultWorld);
+    constructor(server: Server) {
+        super(0, 0, 0, server.defaultWorld);
         return ConsoleCommandSender.instance ??= this;
     };
 

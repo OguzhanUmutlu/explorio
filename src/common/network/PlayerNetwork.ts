@@ -3,7 +3,7 @@ import {EntityIds} from "@/meta/Entities";
 import Player from "@/entity/defaults/Player";
 import {PacketByName, Packets, readPacket} from "@/network/Packets";
 import {PacketIds} from "@/meta/PacketIds";
-import {getServer, UsernameRegex} from "@/utils/Utils";
+import {UsernameRegex, zstdOptionalEncode} from "@/utils/Utils";
 import {Version} from "@/Versions";
 import {Containers, CraftingResultMap, InventoryName} from "@/meta/Inventories";
 
@@ -26,6 +26,8 @@ import PlayerCreativeItemAccessEvent from "@/event/defaults/PlayerCreativeItemAc
 import Entity from "@/entity/Entity";
 import {ItemIds} from "@/meta/ItemIds";
 import Item from "@/item/Item";
+import Server from "@/Server";
+import Chunk from "@/world/Chunk";
 
 type WSLike = {
     send(data: Buffer): void;
@@ -45,15 +47,15 @@ export default class PlayerNetwork {
     player: Player;
     ip: string;
     kickReason: string;
-    server = getServer();
     closed = false;
+    compressPackets = false;
 
-    constructor(public ws: WSLike, public req: ReqLike) {
+    constructor(public server: Server, public ws: WSLike, public req: ReqLike) {
         this.ip = req.socket.remoteAddress;
     };
 
     processPacket(pk: Packet) {
-        if (!this.server.pluginsReady || this.server.closed) return;
+        if (!this.server.ready || this.server.closed) return;
         const key = `process${Object.keys(PacketIds).find(i => PacketIds[i] === pk.packetId)}`;
         if (key in this) this[key](pk);
         else printer.warn("Unhandled packet: ", pk);
@@ -157,7 +159,7 @@ export default class PlayerNetwork {
             return this.kick(loginEvent.kickMessage ?? "You are not allowed to join the server");
         }
 
-        const player = this.player = Player.loadPlayer(name);
+        const player = this.player = await Player.loadPlayer(this.server, name);
         player.network = this;
         player.skin = skin;
 
@@ -172,8 +174,10 @@ export default class PlayerNetwork {
             entityId: this.player.id,
             x: player.x,
             y: player.y,
-            handIndex: player.handIndex
+            handIndex: player.handIndex,
+            compressPackets: this.server.config.packetCompression
         }), true);
+        this.compressPackets = this.server.config.packetCompression;
         this.sendInventories(true);
         this.sendAttributes(true);
 
@@ -424,15 +428,17 @@ export default class PlayerNetwork {
         this.player.respawn();
     };
 
-    processSendMessage({data}: PacketByName<"SendMessage">) {
+    async processSendMessage({data}: PacketByName<"SendMessage">) {
         if (this.player.despawned || !data) return;
 
-        this.player.server.processMessage(this.player, data);
+        await this.player.server.processMessage(this.player, data);
     };
 
     sendPacket(pk: Packet, immediate = false) {
         if (immediate) {
-            pk.send(this.ws);
+            this.ws.send(
+                this.compressPackets ? zstdOptionalEncode(pk.serialize()) : pk.serialize()
+            );
         } else {
             this.batch.push(pk);
         }
@@ -460,7 +466,7 @@ export default class PlayerNetwork {
         if (this.server.closed) return;
         let pk: Packet;
         try {
-            pk = readPacket(data);
+            pk = readPacket(data, this.compressPackets);
         } catch (e) {
             printer.error(data);
             printer.error(e);
@@ -534,11 +540,11 @@ export default class PlayerNetwork {
     };
 
     sendPosition(immediate = false) {
-        this.sendPacket(new Packets.SEntityUpdate({
+        this.sendPacket(new Packets.SEntitiesUpdate([{
             typeId: EntityIds.PLAYER,
             entityId: this.player.id,
             props: {x: this.player.x, y: this.player.y}
-        }), immediate);
+        }]), immediate);
     };
 
     sendMessage(message: string, immediate = false) {
@@ -553,18 +559,22 @@ export default class PlayerNetwork {
         this.sendPacket(new Packets.SPlaySound({path, x, y, volume}), immediate);
     };
 
-    sendChunk(chunkX: number, data: Uint16Array, entities?: Entity[], immediate = false) {
+    sendChunks(chunks: Chunk[], immediate = false) {
         if (this.player.world.unloaded) return;
-        this.sendPacket(new Packets.SChunk({
-            x: chunkX, biome: this.player.world.generator.getBiomeAtChunk(chunkX), data
-        }), immediate);
-        if (entities) {
-            this.sendPacket(new Packets.SSetChunkEntities({
-                x: chunkX, entities: entities.filter(i => i !== this.player).map(i => ({
-                    entityId: i.id, typeId: i.typeId, props: i.getSpawnData()
-                }))
-            }));
+        const packets = [];
+        for (const chunk of chunks) {
+            if (chunk.isFilled) {
+                packets.push({x: chunk.x, biome: chunk.biome, data: chunk.blocks});
+            }
         }
+        this.sendPacket(new Packets.SSetChunks(packets), immediate);
+    };
+
+    sendEntities(entities: Entity[], immediate = false) {
+        if (entities.length < 0) return;
+        const data = entities.filter(e => !e.despawned).map(e => e.spawnPkData);
+        if (data.length === 0) return;
+        this.sendPacket(new Packets.SEntitiesUpdate(data), immediate);
     };
 
     kick(reason = "Kicked by an operator") {
@@ -572,16 +582,16 @@ export default class PlayerNetwork {
         if (this.player) {
             delete this.server.players[this.player.name];
         }
-        new Packets.SDisconnect(reason).send(this.ws);
+        this.sendPacket(new Packets.SDisconnect(reason), true);
         this.ws.close();
     };
 
-    onClose() {
+    async onClose() {
         if (this.closed) return;
         this.closed = true;
         if (this.player) {
             this.player.onCloseContainer();
-            this.player.save();
+            await this.player.save();
             delete this.server.players[this.player.name];
             this.player.despawn();
             printer.info(`${this.player.name}(${this.ip}) disconnected: ${this.kickReason || "client disconnect"}`);

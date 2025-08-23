@@ -14,7 +14,8 @@ export default function InputOptionComponent(O: {
     const state = useOptionSubscription(O.option);
 
     return <GameOptionComponent class="option-input" description={O.description ?? ""}>
-        <label>{O.text}</label>: <input placeholder={DefaultOptions[O.option].toString()} value={state[0]}
+        <label>{O.text}</label>: <input placeholder={DefaultOptions[O.option].toString()}
+                                        value={state[0] as string | number}
                                         onChange={e => {
                                             if (e.target.value.length < O.minLength) return;
                                             state[1](typeof state[0] === "number" ? +e.target.value : e.target.value);

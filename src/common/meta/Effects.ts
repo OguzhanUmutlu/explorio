@@ -24,5 +24,5 @@ export enum EffectIds {
 
     Invisibility,
 
-    __MAX__
+    length
 }

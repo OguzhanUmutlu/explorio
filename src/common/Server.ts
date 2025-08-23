@@ -7,14 +7,7 @@ import SelectorToken from "@/command/token/SelectorToken";
 import Position from "@/utils/Position";
 
 import TeleportCommand from "@/command/defaults/TeleportCommand";
-import {
-    ClassOf,
-    SelectorSorters,
-    setServer,
-    suggestString,
-    zstdOptionalDecode,
-    zstdOptionalEncode
-} from "@/utils/Utils";
+import {ClassOf, SelectorSorters, suggestString, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
 import ListCommand from "@/command/defaults/ListCommand";
 import ConsoleCommandSender from "@/command/ConsoleCommandSender";
 import ExecuteCommand from "@/command/defaults/ExecuteCommand";
@@ -64,6 +57,11 @@ import SpeedEffect from "@/effect/defaults/SpeedEffect";
 import ItemFactory from "@/item/ItemFactory";
 import Interval from "@/utils/Interval";
 import Timeout from "@/utils/Timeout";
+import SeedCommand from "@/command/defaults/SeedCommand";
+import Chunk from "@/world/Chunk";
+import {FileAsync} from "ktfile";
+import {EntitySaveStruct, TileSaveStruct} from "@/structs/EntityTileSaveStruct";
+import SaveCommand from "@/command/defaults/SaveCommand";
 
 export const ZServerConfig = z.object({
     port: z.number().min(0).max(65535),
@@ -101,7 +99,7 @@ export const DefaultServerConfig: ServerConfig = {
             name: "default",
             generator: "default",
             generatorOptions: "",
-            seed: getRandomSeed(),
+            seed: getRandomSeed().toString(),
             gameRules: {
                 randomTickSpeed: 3
             }
@@ -129,15 +127,6 @@ const banEntryType = z.object({
 export type StorageDataValue = string | number | boolean | null | { [key: string]: StorageDataValue };
 export type StorageData = { [key: string]: StorageDataValue };
 
-interface ServerFS {
-    existsSync(path: string): boolean;
-    mkdirSync(path: string, options?: { recursive?: boolean; mode?: number }): void;
-    rmSync(path: string, options?: { recursive?: boolean }): void;
-    writeFileSync(path: string, data: Buffer | string): void;
-    readFileSync(path: string): Buffer;
-    readdirSync(path: string): string[];
-}
-
 export default class Server {
     worlds: Record<string, World> = {};
     defaultWorld: World;
@@ -148,7 +137,7 @@ export default class Server {
     config: ServerConfig;
     pluginMetas: Record<string, PluginMetadata> = {};
     plugins: Record<string, Plugin> = {};
-    pluginsReady = false;
+    ready = false;
     intervalId: NodeJS.Timeout | number = 0;
     pausedUpdates = false;
     bans: BanEntry[] = [];
@@ -182,7 +171,8 @@ export default class Server {
     defaultCommandClasses = [
         HelpCommand, ListCommand, TeleportCommand, ExecuteCommand, PermissionCommand, GameModeCommand,
         EffectCommand, ClearCommand, GiveCommand, KickCommand, BanCommand, BanIPCommand, OperatorCommand,
-        DeOperatorCommand, SayCommand, SummonCommand, TickCommand, GameRuleCommand, DataCommand, KillCommand
+        DeOperatorCommand, SayCommand, SummonCommand, TickCommand, GameRuleCommand, DataCommand, KillCommand,
+        SeedCommand, SaveCommand
     ];
     defaultEntityClasses = [
         Player, FallingBlockEntity, ItemEntity, XPOrbEntity
@@ -199,36 +189,16 @@ export default class Server {
     timeouts = new Map<number, Set<Timeout>>;
     intervals = new Set<Interval>;
 
-    constructor(public fs: ServerFS, public path: string, public socketServer: { close(): void } = null) {
-        setServer(this);
-    };
+    static instance: Server;
 
-    deleteFile(path: string) {
-        if (this.fileExists(path)) this.fs.rmSync(`${this.path}/${path}`, {recursive: true});
-    };
-
-    fileExists(path: string): boolean {
-        return this.fs.existsSync(`${this.path}/${path}`);
-    };
-
-    createDirectory(path: string) {
-        if (!this.fileExists(path)) this.fs.mkdirSync(`${this.path}/${path}`, {recursive: true, mode: 0o777});
-    };
-
-    writeFile(path: string, contents: Buffer | string) {
-        this.fs.writeFileSync(`${this.path}/${path}`, contents);
-    };
-
-    readFile(path: string): Buffer | null {
-        return this.fs.readFileSync(`${this.path}/${path}`);
-    };
-
-    readDirectory(path: string): string[] | null {
-        return this.fs.readdirSync(`${this.path}/${path}`);
+    constructor(public path: FileAsync, public socketServer: { close(): void } = null) {
+        Server.instance = this;
+        TileSaveStruct.server = this;
+        EntitySaveStruct.server = this;
     };
 
     isClientSide() {
-        return !this.fs;
+        return !this.path;
     };
 
     registerDefaults() {
@@ -239,8 +209,8 @@ export default class Server {
         this.itemFactory.initDefaultItems();
     };
 
-    init() {
-        this.sender = new ConsoleCommandSender;
+    async init() {
+        this.sender = new ConsoleCommandSender(this);
         this.intervalId = setInterval(() => {
             const now = Date.now();
             const dt = Math.min((now - this.lastUpdate) / 1000, 0.015);
@@ -250,40 +220,44 @@ export default class Server {
 
         this.registerDefaults();
 
-        this.createDirectory(this.path);
+        await this.path.mkdir();
 
-        this.loadConfig();
+        await this.loadConfig();
         if (this.closed) return;
 
-        this.loadStorage();
+        await this.loadStorage();
 
-        this.createDirectory("players");
-        this.createDirectory("worlds");
-        this.createDirectory("plugins");
-        this.createDirectory("crashdumps");
+        await this.path.to("players").mkdir();
+        await this.path.to("worlds").mkdir();
+        await this.path.to("plugins").mkdir();
+        await this.path.to("crashdumps").mkdir();
 
-        if (!this.fileExists("bans.json")) this.writeFile("bans.json", "[]");
+        const bansFile = this.path.to("bans.json");
+        await bansFile.createFile("[]");
 
         try {
-            for (const ban of JSON.parse(this.readFile("bans.json").toString())) {
+            for (const ban of await bansFile.readJSON<BanEntry[]>()) {
                 if (!banEntryType.safeParse(ban).success) {
                     return this.close("Couldn't parse ban entry. Closing server... Please fix the ban entry or remove it. Entry: " + JSON.stringify(ban));
                 }
 
                 this.bans.push(new BanEntry(ban.name, ban.ip, ban.timestamp, ban.reason));
             }
-        } catch {
+        } catch (e) {
+            console.log(e)
             return this.close("Couldn't parse ban file. Closing server... Please fix the JSON or remove the file.");
         }
 
-        this.loadPlugins().then(() => this.pluginsReady = true);
+        await this.loadPlugins();
+
+        if (this.closed) return;
 
         for (const folder in this.config.defaultWorlds) {
-            this.createWorld(folder, this.config.defaultWorlds[folder]);
+            await this.createWorld(folder, this.config.defaultWorlds[folder]);
         }
 
-        for (const folder of this.readDirectory("worlds")) {
-            if (this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
+        for (const folder of await this.path.to("worlds").listFilenames()) {
+            if (await this.loadWorld(folder)) printer.pass("Loaded world %c" + folder, "color: yellow");
             else printer.fail("Failed to load world %c" + folder, "color: yellow");
         }
 
@@ -292,6 +266,8 @@ export default class Server {
         }
 
         this.defaultWorld = this.worlds[this.config.defaultWorld];
+
+        this.ready = true;
     };
 
     registerEntity(sample: Entity) {
@@ -370,17 +346,20 @@ export default class Server {
         this.bans = this.bans.filter(b => b.ip !== ip);
     };
 
-    loadConfig() {
+    async loadConfig() {
         if (this.config) return;
-        if (!this.fileExists("server.json")) {
-            this.config ??= DefaultServerConfig;
-            this.writeFile("server.json", JSON.stringify(this.config, null, 2));
+        const serverJSON = this.path.to("server.json");
+        if (!await serverJSON.exists()) {
+            this.config = DefaultServerConfig;
+            await serverJSON.writeJSON(this.config);
+
             this.closeReason = "Created server.json, please edit it and restart the server.";
             printer.warn(this.closeReason);
+
             return this.close();
         } else {
             try {
-                const got = JSON.parse(this.readFile("server.json").toString());
+                const got = await serverJSON.readJSON<ServerConfig>();
                 const r = ZServerConfig.safeParse(got);
                 if (!r.success) {
                     printer.error(`Invalid server.json. Errors:\n${
@@ -395,27 +374,27 @@ export default class Server {
                 this.closeReason = "Invalid server.json, please edit it and restart the server.";
                 printer.warn(this.closeReason);
                 printer.info("Default config: ", JSON.stringify(DefaultServerConfig, null, 2));
-                this.close();
+                await this.close();
                 return;
             }
         }
     };
 
-    loadStorage() {
-        if (this.fileExists("storage.dat")) {
-            let buffer = this.readFile("storage.dat");
-            buffer = zstdOptionalDecode(buffer);
-            this.storage = X.object.deserialize(buffer);
+    async loadStorage() {
+        const storage = this.path.to("storage.dat");
+        if (await storage.exists()) {
+            const buffer = zstdOptionalDecode(await storage.read());
+            this.storage = X.object.parse(buffer);
         } else this.storage = {};
     };
 
-    private throwPluginIntegrityError(folder: string, message: string | Error) {
+    private async throwPluginIntegrityError(folder: FileAsync, message: string | Error) {
         if (typeof message === "string") message = new Error(message);
-        printer.error("Failed to load plugin %c" + folder, "color: yellow");
+        printer.error("Failed to load plugin %c" + folder.name, "color: yellow");
         printer.error(message);
         printer.error("Closing the server for plugin integrity.");
         this.closeReason = message.message;
-        this.close();
+        await this.close();
     }
 
     async loadPlugins() {
@@ -423,9 +402,11 @@ export default class Server {
 
         const url = await import(/* @vite-ignore */ "url");
 
-        for (const folder of this.readDirectory("plugins")) {
+        const pluginsFolder = this.path.to("plugins");
+
+        for (const folder of await pluginsFolder.listFiles()) {
             try {
-                const meta = <PluginMetadata>JSON.parse(this.readFile(`plugins/${folder}/plugin.json`).toString());
+                const meta = await folder.to("folder.json").readJSON<PluginMetadata>();
                 ZPluginMetadata.parse(meta);
 
                 if (meta.name in this.pluginMetas) {
@@ -470,7 +451,7 @@ export default class Server {
                 }
             }
             if (!loadedAny) {
-                this.close(`Circular dependencies detected in the plugins: ${Array.from(nonReadyPluginNames).join(", ")}. Closing the server for plugin integrity.`);
+                await this.close(`Circular dependencies detected in the plugins: ${Array.from(nonReadyPluginNames).join(", ")}. Closing the server for plugin integrity.`);
             }
         }
     };
@@ -628,9 +609,10 @@ export default class Server {
                     if (token.type !== "object") throw new CommandError(`Invalid 'nbt' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        const allow = entity.saveStruct.keys();
+                        // todo: check for vulnerabilities or bugs in general in here.
+                        const structData = entity.saveStruct.data;
                         for (const k in <object>val) {
-                            if (!allow.includes(<never>k)) return false;
+                            if (!(k in structData)) return false;
                             if (!val[k].equalsValue(entity[k])) return false;
                         }
                         return bm - +token.equalsValue(entity);
@@ -654,7 +636,7 @@ export default class Server {
                     if (token.type !== "text") throw new CommandError(`Invalid 'world' attribute for the selector`);
 
                     entities = entities.filter(entity => {
-                        return bm - +(entity.world.folder === val);
+                        return bm - +(entity.world.path.name === val);
                     });
                     break;
                 case "permissions":
@@ -685,17 +667,15 @@ export default class Server {
         return entities;
     };
 
-    worldExists(folder: string): boolean {
-        return this.fileExists("worlds/" + folder);
-    };
+    async getWorldData(folder: string | FileAsync): Promise<WorldMetaData | null> {
+        if (typeof folder === "string") folder = this.path.to("worlds", folder);
 
-    getWorldData(folder: string): WorldMetaData | null {
-        const path = "worlds/" + folder + "/world.json";
-        if (!this.fileExists(path)) return null;
+        const worldJSON = folder.to("world.json");
 
-        const buf = this.readFile(path);
+        if (!await worldJSON.exists()) return null;
+
         try {
-            const conf = JSON.parse(buf.toString())
+            const conf = await worldJSON.readJSON();
             return ZWorldMetaData.parse(conf);
         } catch (e) {
             printer.error("World " + folder + " has an invalid world.json file");
@@ -704,21 +684,15 @@ export default class Server {
         }
     };
 
-    getWorldChunkList(folder: string): number[] | null {
-        const worldPath = "worlds/" + folder;
-        if (!this.fileExists(worldPath)) return null;
-        const chunksPath = "worlds/" + folder + "/chunks";
-        this.createDirectory(chunksPath);
-        return (this.readDirectory(chunksPath)).map(file => parseInt(file.split(".")[0]));
-    };
+    async loadWorld(folder: string | FileAsync): Promise<World | null> {
+        if (typeof folder === "string") folder = this.path.to("worlds", folder);
 
-    loadWorld(folder: string): World | null {
-        const data = this.getWorldData(folder);
+        const data = await this.getWorldData(folder);
         if (!data) return null;
 
         const version = data.generationVersion;
         if (version !== WorldGenerationVersion) {
-            if (folder === this.config.defaultWorld) this.close(`World ${folder} was generated by ${version > Version ? "a newer" : "an older"} version of `
+            if (folder.name === this.config.defaultWorld) await this.close(`World ${folder.name} was generated by ${version > Version ? "a newer" : "an older"} version of `
                 + `the server(${version > Version ? "" : `Version: ${Versions[version]}`}Version ID: ${version}).\n`
                 + `You can either delete the world for it to regenerate or you can replace it with another chunk that `
                 + `was generated by the same version of the server(Version: ${VersionString}, Version ID: ${Version}).`);
@@ -727,21 +701,21 @@ export default class Server {
         }
 
         const gen = Generators[data.generator];
-        const world = new World(
-            this, data.name, folder, data.seed, new gen(data.generatorOptions),
-            new Set(this.getWorldChunkList(folder)), data
-        );
-        this.worlds[folder] = world;
+        const world = new World(this, data.name, folder, BigInt(data.seed), new gen(data.generatorOptions), data);
+        this.worlds[folder.name] = world;
+        await world.init();
         world.ensureSpawnChunks();
         return world;
     };
 
-    createWorld(folder: string, data: WorldMetaData): boolean {
-        if (this.worldExists(folder)) return false;
-        this.createDirectory("worlds/" + folder);
-        this.createDirectory("worlds/" + folder + "/chunks");
+    async createWorld(folderName: string, data: WorldMetaData): Promise<boolean> {
+        const folder = this.path.to("worlds", folderName);
+        if (await folder.exists()) return;
+        await folder.mkdir();
+        await folder.to("chunks").mkdir();
         data.generationVersion = WorldGenerationVersion;
-        this.writeFile("worlds/" + folder + "/world.json", JSON.stringify(data, null, 2));
+        data.seed = String(data.seed);
+        await folder.to("world.json").writeJSON(data);
         return true;
     };
 
@@ -751,6 +725,63 @@ export default class Server {
 
         for (const folder in this.worlds) {
             this.worlds[folder].serverUpdate(dt);
+        }
+
+        const cleanedChunks = new Set<Chunk>;
+
+        for (const playerName in this.players) {
+            const player = this.players[playerName];
+            if (player.despawned) continue;
+            const chunkX = player.chunkX;
+            const chunks = new WeakSet<Chunk>;
+            const entities = new WeakSet<Entity>;
+            const sendingEntities: Entity[] = [];
+            const sendingChunks: Chunk[] = [];
+            const chunkDist = this.config.renderDistance;
+
+            for (let x = chunkX - chunkDist; x <= chunkX + chunkDist; x++) {
+                const chunk = player.world.getChunk(x, true);
+                if (!chunk.isFilled) continue;
+                chunks.add(chunk);
+
+                const newChunk = !player.viewingChunks.has(x);
+                if (newChunk || chunk.dirtyBlocks) {
+                    if (newChunk) {
+                        chunk.reference();
+                        player.viewingChunks.add(x);
+                    }
+                    sendingChunks.push(chunk);
+                    if (chunk.dirtyBlocks) cleanedChunks.add(chunk);
+                }
+
+                for (const entity of chunk.entities) if (!player.viewingEntities.has(entity.id)) {
+                    sendingEntities.push(entity);
+                    entities.add(entity);
+                }
+            }
+
+            for (const x of player.viewingChunks) {
+                const chunk = player.world.chunks[x];
+                if (!chunks.has(chunk)) {
+                    chunk?.dereference();
+                    player.viewingChunks.delete(x);
+                }
+            }
+
+            player.network.sendEntities(sendingEntities)
+            player.network.sendChunks(sendingChunks)
+
+            for (const id of player.viewingEntities) {
+                const entity = player.world.entities[id];
+                if (!entities.has(entity)) {
+                    // entity?.dereference();
+                    player.viewingEntities.delete(id);
+                }
+            }
+        }
+
+        for (const chunk of cleanedChunks) {
+            chunk.dirtyBlocks = false;
         }
 
         for (const playerName in this.players) {
@@ -782,7 +813,7 @@ export default class Server {
         }
 
         if (++this.saveCounter > this.config.saveIntervalTicks) {
-            this.saveAll();
+            this.saveAll().then(r => r);
             this.saveCounter = 0;
         }
 
@@ -835,7 +866,7 @@ export default class Server {
         this.broadcastMessage(sender.name + " > " + message);
     };
 
-    executeCommandLabel(sender: CommandSender, as: CommandAs, at: Position, label: string): CommandError | number {
+    async executeCommandLabel(sender: CommandSender, as: CommandAs, at: Position, label: string): Promise<CommandError | number> {
         const split = label.split(" ");
         const commandLabel = split[0].toLowerCase();
         const command = this.commands[commandLabel];
@@ -863,7 +894,8 @@ export default class Server {
             }
 
             const args = split.slice(1);
-            return command.execute(sender, as, at, args, label);
+            const response = command.execute(sender, as, at, args, label);
+            return response instanceof Promise ? await response : response;
         } catch (e) {
             if (e instanceof CommandError) {
                 sender.sendMessage(`§c${e.message}`);
@@ -875,7 +907,7 @@ export default class Server {
         }
     };
 
-    processMessage(player: Player, message: string) {
+    async processMessage(player: Player, message: string) {
         message = cleanText(message).substring(0, this.config.maxMessageLength);
         if (!message) return;
 
@@ -894,7 +926,7 @@ export default class Server {
         message = ev.message;
 
         if (message[0] === "/") {
-            if (!new CommandPreProcessEvent(player, message).callGetCancel()) this.executeCommandLabel(
+            if (!new CommandPreProcessEvent(player, message).callGetCancel()) await this.executeCommandLabel(
                 player,
                 player,
                 player instanceof Entity ? (<Entity>player) : new Position(0, 0, 0, this.defaultWorld),
@@ -903,39 +935,34 @@ export default class Server {
         } else this.processChat(player, message);
     };
 
-    saveWorlds() {
+    async saveWorlds() {
         for (const folder in this.worlds) {
-            this.worlds[folder].save();
+            await this.worlds[folder].save();
         }
     };
 
-    savePlayers() {
+    async savePlayers() {
         for (const player in this.players) {
-            this.players[player].save();
+            await this.players[player].save();
         }
     };
 
-    saveBans() {
-        this.writeFile("bans.json", JSON.stringify(this.bans.map(i => ({
-            name: i.name,
-            ip: i.ip,
-            timestamp: i.timestamp,
-            reason: i.reason
-        })), null, 2));
+    async saveBans() {
+        await this.path.to("bans.json").writeJSON(this.bans.map(i => i.toJSON()));
     };
 
-    saveStorage() {
-        this.writeFile("storage.dat", zstdOptionalEncode(X.object.serialize(this.storage)));
+    async saveStorage() {
+        await this.path.to("storage.dat").write(zstdOptionalEncode(X.object.serialize(this.storage)));
     };
 
-    saveAll() {
-        this.saveWorlds();
-        this.savePlayers();
-        this.saveBans();
-        this.saveStorage();
+    async saveAll() {
+        await this.saveWorlds();
+        await this.savePlayers();
+        await this.saveBans();
+        await this.saveStorage();
     };
 
-    close(err?: string) {
+    async close(err?: string) {
         if (err) printer.error(err);
         if (this.closed) return false;
         if (err) this.closeReason = err;
@@ -948,13 +975,13 @@ export default class Server {
         for (const playerName in this.players) {
             const player = this.players[playerName];
             player.kick("Server closed");
-            player.network.onClose();
+            await player.network.onClose();
         }
 
         printer.info("Saving the worlds...");
-        this.saveWorlds();
-        this.saveBans();
-        this.saveStorage();
+        await this.saveWorlds();
+        await this.saveBans();
+        await this.saveStorage();
 
         if (this.socketServer) this.socketServer.close();
         clearInterval(this.intervalId);

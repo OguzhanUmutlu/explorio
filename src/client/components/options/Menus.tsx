@@ -1,7 +1,7 @@
 import GameOption from "@dom/components/options/classes/GameOption";
 import NumberOption from "@dom/components/options/classes/NumberOption";
 import ButtonOption from "@dom/components/options/classes/ButtonOption";
-import {Options, ReactState, useOptionSubscription, useSubscription} from "@c/utils/Utils";
+import {Options, ReactState, ResourcePack, saveOptions, useOptionSubscription, useSubscription} from "@c/utils/Utils";
 import OptionMenu from "@dom/components/options/OptionMenu";
 import React, {ReactNode, useState} from "react";
 import OptionGroup from "@dom/components/options/classes/OptionGroup";
@@ -9,10 +9,13 @@ import ToggleOption from "@dom/components/options/classes/ToggleOption";
 import SelectOption from "@dom/components/options/classes/SelectOption";
 import OptionButtonComponent from "@dom/components/options/OptionButtonComponent";
 import JSXOption from "@dom/components/options/classes/JSXOption";
-import {saveAndQuit} from "@dom/Client";
+import {saveAndQuit, states} from "@dom/Client";
 import GameOptionComponent from "@dom/components/options/GameOptionComponent";
 import {deleteCookie, getCookie, setCookie} from "@dom/components/CookieHandler";
 import InputOptionComponent from "@dom/components/options/InputOptionComponent";
+import {Versions, VersionString} from "@/Versions";
+import ResourcePackComponent from "@dom/components/ResourcePackComponent";
+import {FileAsync} from "ktfile";
 
 abstract class Menu {
     protected constructor(public title: string, public back: OptionPages | null, public backName = "Done") {
@@ -305,7 +308,96 @@ export const Menus: Record<OptionPages, Menu> = {
             new ToggleOption("command_suggestions", "Command Suggestions")
         ])
     ]),
-    resource_packs: new NormalMenu("Resource Packs", "main", []),
+    resource_packs: new JSXMenu("Resource Packs", null, null, pg => {
+        const packs = (states.resourcePacks || [Options.resourcePacks])[0];
+        const save = () => {
+            states.resourcePacks[1](Options.resourcePacks = packs);
+            saveOptions();
+        };
+        return <>
+            <div className="resource-packs">
+                <ResourcePackComponent pack={{name: `Explorio ${VersionString}`, description: "", enabled: true}}
+                                       packs={packs}
+                                       save={save}
+                                       isDefault={true}/>
+                {packs.map(pack => <ResourcePackComponent pack={pack} packs={packs} save={save} key={pack.name}/>)}
+            </div>
+            <div className="option-split">
+                <OptionButtonComponent text="Add Resource Pack" action={async () => {
+                    let handle = await window.showDirectoryPicker({startIn: "desktop"}).catch(() => null as null);
+                    if (!handle) return;
+                    let description = "Imported from " + handle.name;
+
+                    async function decide(handle: FileSystemDirectoryHandle) {
+                        const hasTextures = await handle.getDirectoryHandle("textures").catch(() => null as null);
+                        if (!hasTextures) {
+                            for await(const file of handle.values()) {
+                                if (file.kind === "directory") {
+                                    const subHandle = await decide(file as FileSystemDirectoryHandle);
+                                    if (subHandle) return subHandle;
+                                }
+                            }
+                        } else return handle;
+                        return null;
+                    }
+
+                    handle = await decide(handle);
+                    if (!handle) {
+                        alert("No textures folder found in the selected directory!");
+                        return;
+                    }
+
+                    async function addFile(path: FileAsync, handle: FileSystemFileHandle) {
+                        const file = await handle.getFile();
+                        if (/^pack\.[a-zA-Z_]+meta$/.test(file.name)) {
+                            try {
+                                const meta = JSON.parse(await file.text());
+                                if (meta.description || meta.pack.description) description = meta.description || meta.pack.description;
+                            } catch {
+                                //
+                            }
+                        }
+                        const buffer = await file.arrayBuffer();
+                        await path.write(Buffer.from(buffer));
+                    }
+
+                    async function addFiles(path: FileAsync, handle: FileSystemDirectoryHandle) {
+                        for await (const [name, file] of handle.entries()) {
+                            const newPath = path.to(name);
+                            if (file.kind === "file") {
+                                await addFile(newPath, file as FileSystemFileHandle);
+                            } else if (file.kind === "directory") {
+                                await newPath.mkdir();
+                                await addFiles(newPath, file as FileSystemDirectoryHandle);
+                            }
+                        }
+                    }
+
+                    const packsFolder = bfs.to("texture_packs");
+
+                    await packsFolder.mkdir();
+
+                    const packFolder = packsFolder.to(handle.name);
+                    if (await packFolder.exists()) {
+                        alert(`A resource pack with this name already exists! (${handle.name}) Either remove the existing one or rename the new one.`);
+                        return;
+                    }
+
+                    await packFolder.mkdir();
+
+                    await addFiles(packFolder, handle);
+
+                    const pack: ResourcePack = {
+                        name: handle.name, description, enabled: true
+                    };
+
+                    packs.push(pack);
+                    save();
+                }}/>
+                <OptionButtonComponent text="Done" action={() => pg[1]("main")}/>
+            </div>
+        </>;
+    }),
     accessibility: new NormalMenu("Accessibility Settings", "main", [
         new OptionGroup([
             new NumberOption("auto_save", "Auto Save", "", 10, 600, 1, " seconds")

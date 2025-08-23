@@ -37,5 +37,6 @@ export const InventorySizes = {
     craftingBigResult: 1,
     furnaceInput: 1,
     furnaceFuel: 1,
-    furnaceResult: 1
+    furnaceResult: 1,
+    furnace: 3
 } as const;

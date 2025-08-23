@@ -1,5 +1,4 @@
 import {ZstdSimple} from "@oneidentity/zstd-js";
-import Server from "@/Server";
 import Position from "@/utils/Position";
 import {im2data, name2data} from "@/item/ItemFactory";
 import {ChunkGroupBits, ChunkGroupLengthN, ChunkLengthBits, ChunkLengthN} from "@/meta/WorldConstants";
@@ -17,21 +16,11 @@ declare global {
     let printer: typeof Printer.brackets;
 }
 
-let server: Server;
-
 export const UsernameRegex = /^[a-zA-Z][a-zA-Z\d]{4,19}$/;
 
 export type ClassOf<T, K = unknown> = new (...args: K[]) => T;
 
 export const SoundFiles = [];
-
-export function getServer() {
-    return server;
-}
-
-export function setServer(server_: Server) {
-    server = server_;
-}
 
 export function clearUndefinedValues(obj: object) {
     for (const key in obj) if (obj[key] === undefined) delete obj[key];
@@ -221,17 +210,6 @@ export function checkLag(label: string, ms = 30) {
     }
 }
 
-export function readdirRecursive(fs: typeof import("fs"), path: string) {
-    const files = fs.readdirSync(path);
-    const res = [];
-    for (const file of files) {
-        const curPath = `${path}/${file}`;
-        if (fs.statSync(curPath).isDirectory()) res.push(...readdirRecursive(fs, curPath));
-        else res.push(curPath);
-    }
-    return res;
-}
-
 export function splitByUnderscore(str: string) {
     return str.split("_").map(i => i[0] + i.slice(1).toLowerCase());
 }
@@ -251,12 +229,12 @@ export function splitByUppercase(str: string) {
 
 /** @description World X to chunkX */
 export function x2cx(x: number) {
-    return x >> ChunkLengthBits;
+    return Math.round(x) >> ChunkLengthBits;
 }
 
 /** @description World X to relX */
 export function x2rx(x: number) {
-    return x & ChunkLengthN;
+    return Math.round(x) & ChunkLengthN;
 }
 
 /** @description Converts Chunk X and Chunk Relative X values to World X */
@@ -266,12 +244,12 @@ export function cx2x(chunkX: number, relX = 0) {
 
 /** @description World Y to chunkY */
 export function y2cy(y: number) {
-    return y >> ChunkLengthBits;
+    return Math.round(y) >> ChunkLengthBits;
 }
 
 /** @description World Y to relY */
 export function y2ry(y: number) {
-    return y & ChunkLengthN;
+    return Math.round(y) & ChunkLengthN;
 }
 
 /** @description ChunkY and relY to world Y */
@@ -414,7 +392,7 @@ const itemType = z.object({
     })
 });
 
-const itemArrayType = z.array(itemType.or(z.null()));
+const itemArrayType = z.array(itemType.nullable());
 
 export function setSafely(obj: object, key: number, value: unknown) {
     if (Array.isArray(obj)) {

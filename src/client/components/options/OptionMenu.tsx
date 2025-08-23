@@ -17,7 +17,7 @@ export default function OptionMenu(O: {
             <h3>{O.title}</h3>
             {O.children}
             <OptionSpacingComponent/>
-            {O.back ? <div className="option-center">
+            {O.back && O.backName ? <div className="option-center">
                 <OptionButtonComponent text={O.backName ?? "Done"} action={O.back}/>
             </div> : <></>}
         </div>

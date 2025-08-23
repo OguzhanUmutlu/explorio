@@ -4,6 +4,7 @@ import Packet from "@/network/Packet";
 import Player from "@/entity/defaults/Player";
 import {SubChunkAmount} from "@/meta/WorldConstants";
 import {x2cx, x2rx, y2cy, y2ry} from "@/utils/Utils";
+import Chunk, {ChunkState} from "@/world/Chunk";
 
 export default class CWorld extends World {
     isClient = true;
@@ -12,14 +13,19 @@ export default class CWorld extends World {
     broadcastPacketAt(_0: number, _1: Packet, _2: Player[] = [], _3: boolean = false) {
     };
 
-    ensureChunk(chunkX: number, generate = true) {
-        super.ensureChunk(chunkX, generate);
-        this.subChunkRenders[chunkX] ??= [];
-        for (let y = 0; y < SubChunkAmount; y++) this.subChunkRenders[chunkX][y] ??= new CSubChunk(this, chunkX, y);
-    };
+    ensureSubChunks(chunkX: number) {
+        if (!this.subChunkRenders[chunkX]) {
+            this.subChunkRenders[chunkX] = [];
+            for (let y = 0; y < SubChunkAmount; y++) this.subChunkRenders[chunkX][y] ??= new CSubChunk(this, chunkX, y);
+        }
+    }
 
-    loadChunk() {
-        return false;
+    ensureChunk(chunkX: number) {
+        this.ensureSubChunks(chunkX);
+        if (chunkX in this.chunks) return this.chunks[chunkX];
+        const chunk = this.chunks[chunkX] ??= new Chunk(this, chunkX);
+        chunk.state = ChunkState.Empty;
+        return chunk;
     };
 
     renderSubChunk(chunkX: number, chunkY: number) {
@@ -28,8 +34,6 @@ export default class CWorld extends World {
     };
 
     _polluteBlockAt(x: number, y: number) {
-        super._polluteBlockAt(x, y);
-
         this.prepareBlockRenderAt(x, y);
 
         const block = this.getBlock(x, y);

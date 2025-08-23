@@ -7,7 +7,6 @@ import CustomGenerator from "@/world/generators/CustomGenerator";
 import {
     cgx2cx,
     checkAny,
-    cx2cgi,
     cx2cgx,
     rotateMeta,
     x2cx,
@@ -22,7 +21,7 @@ import Entity from "@/entity/Entity";
 import Server from "@/Server";
 import {Packets} from "@/network/Packets";
 import {z} from "zod";
-import {ChunkGroupLength, WorldHeight} from "@/meta/WorldConstants";
+import {ChunkBlockAmount, ChunkGroupLength, WorldHeight} from "@/meta/WorldConstants";
 import BlockPlaceEvent from "@/event/defaults/BlockPlaceEvent";
 import BlockBreakEvent from "@/event/defaults/BlockBreakEvent";
 import ItemEntity from "@/entity/defaults/ItemEntity";
@@ -30,19 +29,22 @@ import Item from "@/item/Item";
 import {EntityIds} from "@/meta/Entities";
 import {Containers} from "@/meta/Inventories";
 import InteractBlockEvent from "@/event/defaults/InteractBlockEvent";
-import Chunk from "@/world/Chunk";
+import Chunk, {ChunkState} from "@/world/Chunk";
 import XPOrbEntity from "@/entity/defaults/XPOrbEntity";
 import Tile from "@/tile/Tile";
 import BlockData from "@/item/BlockData";
 import Position from "@/utils/Position";
 import FallingBlockEntity from "@/entity/defaults/FallingBlockEntity";
-import ChunkGroupStruct from "@/structs/world/ChunkGroupStruct";
+import {ChunkGroupStruct} from "@/structs/ChunkStructs";
 import {FullIds, ItemIds} from "@/meta/ItemIds";
 import {im2f} from "@/meta/ItemInformation";
-import {f2data} from "@/item/ItemFactory";
+import ItemFactory, {f2data} from "@/item/ItemFactory";
+import {FileAsync} from "ktfile";
 
-export function getRandomSeed() {
-    return Math.floor(Math.random() * 100000000);
+export function getRandomSeed(): bigint {
+    const arr = new BigUint64Array(1);
+    crypto.getRandomValues(arr);
+    return arr[0];
 }
 
 export const Ring1 = [
@@ -68,7 +70,7 @@ type GeneratorKeys = keyof typeof Generators;
 
 export const ZWorldMetaData = z.object({
     name: z.string(),
-    seed: z.number().int(),
+    seed: z.string(),
     generator: z.enum(<[GeneratorKeys, ...GeneratorKeys[]]>Object.keys(Generators)),
     generatorOptions: z.string(),
     gameRules: z.object({
@@ -99,7 +101,6 @@ export const SpawnChunkDistance = 2;
 
 export default class World {
     isClient = false;
-    path: string;
     chunks: Record<number, Chunk> = {};
     chunkGroups: Record<number, Chunk[]> = {};
     entities: Record<number, Entity> = {};
@@ -107,20 +108,25 @@ export default class World {
     unloaded = false;
     gameRules: WorldMetaData["gameRules"];
     spawnPoint: Position;
+    unloadedChunkGroups = new Set<number>;
+    loadingChunkGroups = new Set<number>;
 
     constructor(
         public server: Server,
         public name: string,
-        public folder: string,
-        public seed: number,
+        public path: FileAsync,
+        public seed: bigint,
         public generator: Generator,
-        public chunksGenerated: Set<number>,
         public data: WorldMetaData
     ) {
         if (generator) generator.setWorld(this);
-        this.path = "worlds/" + folder;
         this.gameRules = data.gameRules;
         this.spawnPoint = new Position(data.spawnPoint.x, data.spawnPoint.y, 0, this);
+    };
+
+    async init() {
+        const groups = await this.path.to("chunks").listFilenames();
+        this.unloadedChunkGroups = new Set(groups.map(g => +g.replace(/\.dat$/, "")));
     };
 
     getSpawnPoint() {
@@ -131,7 +137,7 @@ export default class World {
 
     ensureSpawnChunks() {
         for (let x = -SpawnChunkDistance; x <= SpawnChunkDistance; x++) {
-            this.ensureChunk(x);
+            this.ensureChunk(x, true);
         }
     };
 
@@ -165,27 +171,26 @@ export default class World {
     };
 
     getChunkEntities(chunkX: number) {
-        return this.getChunk(chunkX, false).entities;
+        return this.getChunk(chunkX).entities;
     };
 
-    getChunkAt(x: number, generate: boolean) {
+    getChunkAt(x: number, generate = false) {
         return this.getChunk(x2cx(x), generate);
     };
 
-    getChunk(chunkX: number, generate: boolean) {
-        this.ensureChunk(chunkX, generate);
-        return this.chunks[chunkX];
+    getChunk(chunkX: number, generate = false) {
+        return this.ensureChunk(chunkX, generate);
     };
 
     getBlock(x: number, y: number) {
-        return f2data(this.getFullBlockAt(x, y)) || f2data(ItemIds.AIR);
+        return f2data(this.getFullBlockAt(x, y)) || ItemFactory.name2data.air;
     };
 
     getFullBlockAt(x: number, y: number) {
         x = Math.round(x);
         y = Math.round(y);
-        if (!this.inWorld(y)) return ItemIds.AIR;
-        return this.getChunkAt(x, false).blocks[xy2ci(x, y)];
+        if (!this.inWorld(y)) return FullIds.AIR;
+        return this.getChunkAt(x, false).getFullBlock(x2rx(x), y);
     };
 
     scheduleBlockUpdateAt(x: number, y: number, ticks: number) {
@@ -237,8 +242,8 @@ export default class World {
     // light: Updates the necessary light levels around the block.
     // update: Applies logical block updates at and around the block.
     private _doUpdatesAt(x: number, y: number, fullId: number, polluteBlock: boolean, broadcast: boolean, light: boolean, update: boolean) {
-        if (polluteBlock) this._polluteBlockAt(x, y);
-        if (broadcast) this.broadcastBlockAt(x, y, fullId); // the promise doesn't matter.
+        if (polluteBlock) this.getChunk(x2cx(x)).pollute(!broadcast);
+        if (broadcast) this.broadcastBlockAt(x, y, fullId);
         if (light) this.updateLightAt(x, y);
         if (update) {
             this.updateBlockAt(x, y);
@@ -246,11 +251,11 @@ export default class World {
         }
     }
 
-    setFullBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true, light = true, update = true) {
+    setFullBlock(x: number, y: number, fullId: number, generate = true, polluteBlock = true, broadcast = true, light = true, update = true, ifEmpty = false) {
         x = Math.round(x);
         y = Math.round(y);
         if (!this.inWorld(y)) return;
-        this._setBlock(x, y, fullId, generate);
+        if (!this._setBlock(x, y, fullId, generate, ifEmpty)) return;
         this._doUpdatesAt(x, y, fullId, polluteBlock, broadcast, light, update);
     };
 
@@ -259,7 +264,7 @@ export default class World {
         y = Math.round(y);
         if (!this.inWorld(y)) return;
         const fullId = im2f(id, meta);
-        this._setBlock(x, y, fullId, generate, ifEmpty);
+        if (!this._setBlock(x, y, fullId, generate, ifEmpty)) return;
         this._doUpdatesAt(x, y, fullId, polluteBlock, broadcast, light, update);
     };
 
@@ -268,46 +273,60 @@ export default class World {
     };
 
     /**
-     * Ensures that the chunk exists. If it exists as a file it will be loaded, otherwise it will be generated.
+     * If the chunk is not loaded, it will either load from a file or generate it.
      */
-    protected ensureChunk(chunkX: number, generate = true) {
-        if (this.loadChunk(chunkX)) return;
-        const chunk = this.chunks[chunkX] ??= new Chunk(this, chunkX);
-        const group = this.chunkGroups[cx2cgx(chunkX)] ??= [];
-        group[cx2cgi(chunkX)] = chunk;
-
-        if (generate && this.generator && !this.chunksGenerated.has(chunkX)) {
-            this.chunksGenerated.add(chunkX);
-            this.generator.generate(chunkX);
-            chunk.load();
-            this._polluteChunk(chunkX);
+    protected ensureChunk(chunkX: number, generate = false) {
+        if (chunkX in this.chunks) {
+            const chunk = this.chunks[chunkX];
+            if (generate && chunk.state === ChunkState.Empty) chunk.generate();
+            return chunk;
         }
+        const chunk = this.chunks[chunkX] ??= new Chunk(this, chunkX);
+        chunk.ensure(generate);
+        return chunk;
     };
 
-    loadChunk(initialChunkX: number) {
-        if (initialChunkX in this.chunks) return false;
-        const cgx = cx2cgx(initialChunkX);
-        const baseChunkX = cgx2cx(cgx);
-        if (cgx in this.chunkGroups) {
-            const group = this.chunkGroups[cgx];
-            const i = initialChunkX - baseChunkX;
-            const chunk = group[i];
-            if (!chunk) return false;
-            this.chunks[initialChunkX] = chunk;
-            chunk.load();
-            return true;
-        }
-        let buffer = this.getChunkGroupBuffer(cgx);
-        if (!buffer) return false;
+    async __loadChunkGroup(cgx: number) {
+        if (cgx in this.chunkGroups) return;
+        if (!this.unloadedChunkGroups.has(cgx) || this.loadingChunkGroups.has(cgx)) return;
+
+        this.loadingChunkGroups.add(cgx);
+        let buffer = await this.getChunkGroupBuffer(cgx);
+        this.unloadedChunkGroups.delete(cgx);
+        if (!buffer) return;
+        const cxStart = cgx2cx(cgx);
+        let groupData: typeof ChunkGroupStruct["__TYPE__"];
+
         try {
             buffer = zstdOptionalDecode(buffer);
-            const groupData = ChunkGroupStruct.deserialize(buffer);
-            const group = this.chunkGroups[cgx] = Array(ChunkGroupLength);
-            for (let chunkX = baseChunkX; chunkX < baseChunkX + ChunkGroupLength; chunkX++) {
-                const i = chunkX - baseChunkX;
-                const chunkData = groupData[i];
-                if (chunkData === null) continue;
-                const chunk = this.chunks[chunkX] = group[i] = new Chunk(this, chunkX);
+            groupData = ChunkGroupStruct.parse(buffer);
+        } catch (e) {
+            if (e.message.startsWith("ZSTD_ERROR:")) {
+                printer.error(`Chunk group ${cgx} is corrupted. Regenerating because it was a compression issue. Backing up the old chunk.`, e);
+                const chunksFolder = this.path.to("chunks");
+                await chunksFolder.to(cgx + ".dat").copyTo(chunksFolder.to(cgx + ".dat.corrupted"));
+                groupData = Array(ChunkGroupLength).fill(null);
+            } else {
+                printer.error(`Chunk group ${cgx} is corrupted. Crashing for safety.`, e);
+                throw e; // For testing purposes
+            }
+        }
+
+        const group = this.chunkGroups[cgx] = Array(ChunkGroupLength) as Chunk[];
+        for (let cx = cxStart; cx < cxStart + ChunkGroupLength; cx++) {
+            const i = cx - cxStart;
+            const chunkData = groupData[i];
+            const chunk = group[i] = this.chunks[cx] ??= new Chunk(this, cx);
+            try {
+                if (chunkData === null) {
+                    if (chunk.state === ChunkState.LoadingFile) {
+                        chunk.state = ChunkState.Empty;
+                        chunk.generate();
+                    }
+                    continue;
+                }
+
+                chunk.blocks = new Uint16Array(ChunkBlockAmount);
                 chunk.blocks.set(chunkData.blocks);
                 chunk.recalculateLights();
 
@@ -315,6 +334,7 @@ export default class World {
                     (<Position>entity).world = this;
                     chunk.entities.add(entity);
                 }
+
                 for (const tile of chunkData.tiles) {
                     (<Position>tile).world = this;
                     chunk.tiles.add(tile);
@@ -322,22 +342,18 @@ export default class World {
 
                 Object.assign(chunk.updateSchedules, chunkData.updateSchedules);
 
-                this.chunksGenerated.add(chunkX);
-
-                if (chunkX === initialChunkX) {
-                    this.chunks[initialChunkX] = chunk;
+                if (chunk.state === ChunkState.LoadingFile) {
+                    chunk.state = ChunkState.Unloaded;
                     chunk.load();
-                }
+                } else chunk.state = ChunkState.Unloaded;
+            } catch (e) {
+                printer.error(`Chunk ${cx} in group ${cgx} is corrupted. Crashing for safety.`);
+                throw e;
             }
-        } catch (e) {
-            printer.error(`Chunk group at ${initialChunkX} is corrupted (Chunk group ${cgx}). Crashing for safety.`, e);
-
-            throw e;
-            //this.removeChunkBuffer(chunkX);
-            //return false;
         }
-        return true;
-    };
+
+        this.loadingChunkGroups.delete(cgx);
+    }
 
     serverUpdate(dt: number): void {
         for (const x in this.chunks) {
@@ -351,29 +367,26 @@ export default class World {
         }
     };
 
-    saveChunkGroup(chunkGroupX: number) {
+    async saveChunkGroup(chunkGroupX: number) {
         const baseChunkX = cgx2cx(chunkGroupX);
         const list = [];
         let hasDirty = false;
         for (let chunkX = baseChunkX; chunkX < baseChunkX + ChunkGroupLength; chunkX++) {
             const chunk = this.chunks[chunkX];
-            if (!chunk) {
+
+            if (!chunk || !chunk.isFilled) {
                 list.push(null);
                 continue;
             }
 
-            const generated = this.chunksGenerated.has(chunkX);
+            list.push({
+                blocks: chunk.blocks,
+                entities: Array.from(chunk.entities).filter(i => !(i instanceof Player)),
+                tiles: Array.from(chunk.tiles),
+                updateSchedules: chunk.updateSchedules
+            });
 
-            if (generated) {
-                list.push({
-                    blocks: chunk.blocks,
-                    entities: Array.from(chunk.entities).filter(i => !(i instanceof Player)),
-                    tiles: Array.from(chunk.tiles),
-                    updateSchedules: chunk.updateSchedules
-                });
-            } else list.push(null)
-
-            if (chunk.dirty && generated) hasDirty = true;
+            if (chunk.dirty) hasDirty = true;
             chunk.dirty = false;
         }
 
@@ -381,10 +394,10 @@ export default class World {
 
         const buffer = ChunkGroupStruct.serialize(list);
 
-        this.setChunkGroupBuffer(chunkGroupX, zstdOptionalEncode(buffer));
+        await this.setChunkGroupBuffer(chunkGroupX, zstdOptionalEncode(buffer));
     };
 
-    save() {
+    async save() {
         const cgxList = [];
         for (const x in this.chunks) {
             const chunk = this.chunks[x];
@@ -392,14 +405,12 @@ export default class World {
             if (chunk.dirty && !cgxList.includes(cgx)) cgxList.push(cgx);
         }
 
-        for (const cgx of cgxList) this.saveChunkGroup(cgx);
+        for (const cgx of cgxList) await this.saveChunkGroup(cgx);
 
-        const path = "worlds/" + this.folder + "/world.json";
-
-        this.server.writeFile(path, JSON.stringify(this.data, null, 2));
+        await this.path.to("world.json").writeJSON({...this.data, seed: String(this.data.seed)});
     };
 
-    unload() {
+    async unload() {
         if (this.unloaded) return;
 
         if (this === this.server.defaultWorld) return this.server.close();
@@ -407,16 +418,8 @@ export default class World {
         this.unloaded = true;
 
         for (const x in this.chunks) {
-            this.chunks[x].unload();
+            await this.chunks[x].unload();
         }
-    };
-
-    _polluteChunk(chunkX: number) {
-        this.getChunk(chunkX, true).pollute();
-    };
-
-    _polluteBlockAt(x: number, _y: number) {
-        this._polluteChunk(x2cx(x));
     };
 
     onUpdateLight(_x: number, _y: number) {
@@ -577,7 +580,7 @@ export default class World {
         if (nbt) {
             if (!checkAny(nbt, entity)) return null;
             try {
-                Object.assign(entity, entity.saveStruct.adapt(nbt));
+                Object.assign(entity, entity.saveStruct.adapt(<T>nbt));
             } catch {
                 return null;
             }
@@ -687,19 +690,19 @@ export default class World {
         }
     };
 
-    getChunkGroupBuffer(chunkGroupX: number): Buffer | null {
-        const path = this.path + "/chunks/" + chunkGroupX + ".dat";
-        if (!this.server.fileExists(path)) return null;
-        return this.server.readFile(path);
+    async getChunkGroupBuffer(chunkGroupX: number): Promise<Buffer | null> {
+        const chunkPath = this.path.to("chunks", chunkGroupX + ".dat");
+        return await chunkPath.read();
     };
 
-    setChunkGroupBuffer(chunkGroupX: number, buffer: Buffer) {
-        this.server.createDirectory(this.path + "/chunks");
-        this.server.writeFile(this.path + "/chunks/" + chunkGroupX + ".dat", buffer);
+    async setChunkGroupBuffer(chunkGroupX: number, buffer: Buffer) {
+        const chunksFolder = this.server.path.to("chunks");
+        await chunksFolder.mkdir();
+        await chunksFolder.to(chunkGroupX + ".dat").write(buffer);
     };
 
-    removeChunkGroupBuffer(chunkGroupX: number) {
-        this.server.deleteFile(this.path + "/chunks/" + chunkGroupX + ".dat");
+    async removeChunkGroupBuffer(chunkGroupX: number) {
+        await this.path.to("chunks", chunkGroupX + ".dat").delete();
     };
 
     getChunkViewers(chunkXMiddle: number) {
@@ -732,10 +735,5 @@ export default class World {
         for (const player of this.getChunkViewers(chunkX)) {
             if (!exclude.includes(player)) player.network.sendBlock(x, y, fullId, immediate);
         }
-    };
-
-    sendChunk(player: Player, chunkX: number) {
-        const chunk = this.getChunk(chunkX, true);
-        player.network?.sendChunk(chunkX, chunk.blocks, Array.from(chunk.entities), true);
     };
 }

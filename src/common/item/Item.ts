@@ -1,6 +1,5 @@
 import {im2f} from "@/meta/ItemInformation";
-import ItemStruct from "@/structs/item/ItemStruct";
-import {ItemComponents} from "@/structs/item/ItemComponentsStruct";
+import {ItemComponents, ItemStruct} from "@/structs/ItemStructs";
 import {f2data} from "@/item/ItemFactory";
 
 export const DefaultItemComponents: ItemComponents = {
@@ -19,6 +18,10 @@ export default class Item {
     ) {
         this.components = {...DefaultItemComponents, ...components}
         this.maxStack = this.toMetadata().maxStack;
+    };
+
+    get identifier() {
+        return this.toMetadata().identifier;
     };
 
     get fullId() {
@@ -42,7 +45,7 @@ export default class Item {
     };
 
     static fromBuffer(buffer: Buffer) {
-        return ItemStruct.deserialize(buffer);
+        return ItemStruct.parse(buffer);
     };
 
     equals(item: Item, count = true, components = true) {

@@ -36,7 +36,7 @@ export default class CSubChunk {
     };
 
     get chunk() {
-        return this.world.getChunk(this.x, false);
+        return this.world.getChunk(this.x);
     };
 
     __renderBlock(
@@ -103,8 +103,7 @@ export default class CSubChunk {
 
     renderBlock(relX: number, relY: number) {
         if (!clientPlayer.seeShadows && this.getShadowOpacity(relX, relY) === 1) return;
-        const i = rxry2ci(relX, relY) + this.subIndex;
-        this.__renderBlock(relX, relY, this.chunk.blocks[i], true);
+        this.__renderBlock(relX, relY, this.getFullBlock(relX, relY), true);
     };
 
     renderShadow(relX: number, relY: number) {
@@ -151,5 +150,9 @@ export default class CSubChunk {
 
         this.bList.clear();
         this.sList.clear();
+    };
+
+    getFullBlock(relX: number, relY: number) {
+        return this.chunk.getFullBlock(relX, cy2y(this.y, relY));
     };
 }

@@ -3,7 +3,7 @@ import {CommandAs} from "@/command/CommandSender";
 import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import Effect from "@/effect/Effect";
-import {getServer} from "@/utils/Utils";
+import Server from "@/Server";
 
 export default class EffectArgument extends CommandArgument<Effect> {
     get default(): never {
@@ -30,10 +30,9 @@ export default class EffectArgument extends CommandArgument<Effect> {
             }, index: index + 1
         };
         const raw = arg.rawText;
-        const server = getServer();
 
         return {
-            error: raw in server.registeredEffects || raw in server.effectNameToId ? null : {
+            error: raw in Server.instance.registeredEffects || raw in Server.instance.effectNameToId ? null : {
                 token: arg,
                 message: "Expected a valid effect name"
             }, index: index + 1

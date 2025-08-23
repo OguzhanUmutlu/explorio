@@ -1,11 +1,5 @@
 import {Bin, BufferIndex} from "stramp";
-import {getServer, zstdOptionalEncode} from "@/utils/Utils";
 import {PacketStructs} from "@/network/Packets";
-
-export const CompressPackets = true;
-
-type Receivable = { send(data: Buffer): void; }
-    | { postMessage(data: Buffer): void; };
 
 export default class Packet<T extends Bin = Bin> {
     __TYPE__: T["__TYPE__"];
@@ -35,8 +29,7 @@ export default class Packet<T extends Bin = Bin> {
     };
 
     assert() {
-        if (!this.struct) return;
-        this.struct.assert(this.data);
+        (<(_: unknown) => void>this.struct?.assert)(this.data);
     };
 
     serialize() {
@@ -44,12 +37,6 @@ export default class Packet<T extends Bin = Bin> {
         const bind = BufferIndex.allocUnsafe(this.getSize() + 1);
         bind.push(this.packetId);
         this.write(bind);
-        return getServer().config.packetCompression ? zstdOptionalEncode(bind.buffer) : bind.buffer;
-    };
-
-    send(ws: Receivable) {
-        const buf = this.serialize();
-        if ("send" in ws) ws.send(buf);
-        else ws.postMessage(buf);
+        return bind.buffer;
     };
 }

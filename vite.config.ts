@@ -47,7 +47,7 @@ export default defineConfig({
         react({
             babel: {
                 parserOpts: {
-                    plugins: ["decorators-legacy", "classProperties"]
+                    plugins: [["decorators", {}], "classProperties"]
                 }
             }
         })

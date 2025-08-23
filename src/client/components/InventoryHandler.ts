@@ -14,6 +14,8 @@ export default class InventoryHandler {
     counts: Div[] = [];
     divs: Div[] = [];
 
+    needsReload = false;
+
     constructor(public inventoryName: InventoryName) {
     };
 
@@ -214,16 +216,23 @@ export default class InventoryHandler {
         return clientPlayer.inventories[this.inventoryName].dirtyIndexes.size > 0 && (this.inventoryName in CraftingMap);
     };
 
+    reload() {
+        this.needsReload = true;
+        return this;
+    };
+
     render() {
         const inventory = clientPlayer.inventories[this.inventoryName];
 
-        if (inventory.wholeDirty) {
+        if (inventory.wholeDirty || this.needsReload) {
             for (let i = 0; i < this.contexts.length; i++) {
                 inventory.dirtyIndexes.add(i);
             }
 
             inventory.wholeDirty = false;
         }
+
+        this.needsReload = false;
 
         const rm = InventoryHandler.removed[this.inventoryName] ??= new Set<number>;
 

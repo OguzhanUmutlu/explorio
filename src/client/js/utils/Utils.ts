@@ -3,11 +3,10 @@ import CPlayer from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
 import Texture, {Canvas, Image, SkinData} from "@/utils/Texture";
 import BoundingBox from "@/entity/BoundingBox";
-import {camera, canvas, ctx} from "@dom/Client";
+import {camera, canvas, clientServer, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
 import {useEffect, useState} from "react";
 import * as ZenFS from "@zenfs/core";
-import {WebStorage} from "@zenfs/dom";
 
 import {Buffer} from "buffer";
 import CItemEntity from "@c/entity/types/CItemEntity";
@@ -16,6 +15,11 @@ import CEntity from "@c/entity/CEntity";
 import CXPOrbEntity from "@c/entity/types/CXPOrbEntity";
 import CFallingBlockEntity from "@c/entity/types/CFallingBlockEntity";
 import {SteveDataURL} from "@dom/assets/Steve";
+import ItemFactory from "@/item/ItemFactory";
+import {InventoryHandlers} from "@dom/components/InventoryDiv";
+import CWorld from "@c/world/CWorld";
+import {IndexedDB} from "@zenfs/dom";
+import {fileAsync, FileAsync} from "ktfile";
 
 export type Div = HTMLDivElement;
 export type Input = HTMLInputElement;
@@ -107,7 +111,7 @@ export function getHash() {
     return "";
 }
 
-export type WorldData = { uuid: string, name: string, seed: number, lastPlayedAt: number };
+export type WorldData = { uuid: string, name: string, seed: string, lastPlayedAt: number };
 export type ServerData = {
     uuid: string,
     name: string,
@@ -131,23 +135,23 @@ export async function initClientThings() {
 }
 
 export async function initBrowserFS() {
-    const w = self as { bfs?: typeof import("fs"), bfs_path?: string };
+    const w = self as { bfs?: FileAsync, bfs_path?: string };
     if (!w.bfs) {
         let electron: unknown;
         if ("electron" in self) electron = self.electron;
         if (typeof electron === "undefined") {
             await ZenFS.configure({
                 mounts: {
-                    "/": WebStorage.create({storage: localStorage})
+                    "/": await IndexedDB.create({storeName: "explorio"})
                 }
             });
-            w.bfs = <typeof import("fs")><unknown>ZenFS.fs;
-            w.bfs_path = "./singleplayer/";
-            if (!bfs.existsSync(bfs_path)) bfs.mkdirSync(bfs_path, {recursive: true});
+            FileAsync.fs = ZenFS.fs.promises;
+            w.bfs = fileAsync("singleplayer");
+            await bfs.mkdir();
         } else {
-            const el = <{ fs: typeof import("fs"), fs_path: string }>electron;
-            w.bfs = el.fs;
-            w.bfs_path = el.fs_path;
+            const el = <{ fs: unknown, fs_path: string }>electron;
+            FileAsync.fs = el.fs;
+            w.bfs = fileAsync(el.fs_path);
         }
         self.Buffer = Buffer;
     }
@@ -172,6 +176,12 @@ export function getWSUrls(ip: string, port: number): string[] {
     if (isHttp || isHttps) return [`${isHttps ? "wss://" : "ws://"}${url}`];
     return [`wss://${url}`, `ws://${url}`];
 }
+
+export type ResourcePack = {
+    name: string;
+    description: string;
+    enabled: boolean;
+};
 
 export type OptionsType = {
     fallbackUsername: string;
@@ -259,6 +269,8 @@ export type OptionsType = {
     chatMessageLimit: number;
     particles: number;
     pauseOnBlur: 0 | 1;
+
+    resourcePacks: ResourcePack[];
 };
 
 export const DefaultOptions: OptionsType = {
@@ -347,7 +359,9 @@ export const DefaultOptions: OptionsType = {
     updatesPerSecond: 60,
     chatMessageLimit: 100,
     particles: 2,
-    pauseOnBlur: 1
+    pauseOnBlur: 1,
+
+    resourcePacks: []
 };
 
 export const Options: OptionsType = {...DefaultOptions};
@@ -371,30 +385,33 @@ export function getWorldList(): WorldData[] {
         .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
 }
 
-export function addWorld(name: string, seed: number) {
+export function addWorld(name: string, seed: string) {
     const worlds = getWorldList();
     const uuid = Date.now().toString(36);
     worlds.push({uuid, name, seed, lastPlayedAt: Date.now()});
-    localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
+    saveWorlds(worlds);
 }
 
 export function setWorldOptions(uuid: string, options: Partial<WorldData>) {
     const worlds = getWorldList();
     const index = worlds.findIndex(w => w.uuid === uuid);
     worlds[index] = {...worlds[index], ...options};
-    localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
+    saveWorlds(worlds);
 }
 
-export function removeWorld(uuid: string) {
+export async function removeWorld(uuid: string) {
     const worlds = getWorldList();
     const world = worlds.find(i => i.uuid === uuid);
     if (!world) return;
 
-    const pth = bfs_path + uuid;
-    if (bfs.existsSync(pth)) bfs.rmSync(pth, {recursive: true});
+    await bfs.to(uuid).delete();
 
     worlds.splice(worlds.indexOf(world), 1);
-    localStorage.setItem("explorio.worlds", JSON.stringify(worlds));
+    saveWorlds(worlds);
+}
+
+function saveWorlds(worlds: WorldData[]) {
+    localStorage.setItem("explorio.worlds", JSON.stringify(worlds.map(i => ({...i, seed: String(i.seed)}))));
 }
 
 export function getServerList(): ServerData[] {
@@ -619,7 +636,32 @@ export async function fetchMotd(ip: string, port: number): Promise<string> {
     try {
         const res = await fetch(`http://${ip}:${port}/__explorio__/motd`);
         return await res.text();
-    } catch (_) {
+    } catch {
         return `§cFailed to connect.`;
+    }
+}
+
+export function reloadTextures() {
+    Texture.textures = {};
+    // entities use the block data textures so they are reloaded too
+    for (const block of Object.values(ItemFactory.name2data)) block.reloadTextures();
+    for (const handler of Object.values(InventoryHandlers)) handler.reload();
+    for (const world of Object.values(clientServer.worlds)) {
+        for (const chunk of Object.values((world as CWorld).subChunkRenders)) {
+            for (const subChunk of chunk) subChunk.prepare();
+        }
+    }
+}
+
+export function reloadProcessedTextures(changes: string[] = []) {
+    for (const texture of Object.values(Texture.textures)) {
+        if (changes.includes(texture.actualSrc)) texture.reloadImage(true);
+    }
+    for (const block of Object.values(ItemFactory.name2data)) block.reloadProcessedTextures();
+    for (const handler of Object.values(InventoryHandlers)) handler.reload();
+    for (const world of Object.values(clientServer.worlds)) {
+        for (const chunk of Object.values((world as CWorld).subChunkRenders)) {
+            for (const subChunk of chunk) subChunk.prepare();
+        }
     }
 }

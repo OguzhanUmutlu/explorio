@@ -23,7 +23,7 @@ export default abstract class DefinitiveCommand extends Command {
             .sort((a, b) => b.arguments.length - a.arguments.length);
     };
 
-    execute(sender: CommandSender, as: CommandAs, at: Position, _: string[], label: string) {
+    async execute(sender: CommandSender, as: CommandAs, at: Position, _: string[], label: string) {
         const labelSpl = label.split(" ");
         const labelCmd = labelSpl[0];
         const params = labelSpl.slice(1).join(" ");
@@ -106,6 +106,8 @@ export default abstract class DefinitiveCommand extends Command {
             return null;
         }
 
-        return validCmd.run(sender, as, at, ...resultArgs) || 0;
+        const response = validCmd.run(sender, as, at, ...resultArgs);
+
+        return (response instanceof Promise ? await response : response) || 0;
     };
 }

@@ -26,12 +26,15 @@ import {EntityIds} from "@/meta/Entities";
 import {DefaultGravity} from "@/entity/Entity";
 import {getCookie} from "@dom/components/CookieHandler";
 import {TokenCookieName} from "@dom/components/options/Menus";
-import {copyBuffer} from "@/utils/Utils";
+import {copyBuffer, zstdOptionalEncode} from "@/utils/Utils";
 import {AnimationDurations} from "@/meta/Animations";
 import {Buffer} from "buffer";
 import {f2data} from "@/item/ItemFactory";
+import CEntity from "@c/entity/CEntity";
+import {ChunkState} from "@/world/Chunk";
 
 export default class ClientNetwork {
+    allEntities = new Set<CEntity>;
     worker: { postMessage(e: Buffer): void, terminate(): void };
     connected = false;
     connectCb: () => void;
@@ -42,6 +45,7 @@ export default class ClientNetwork {
     ping = 0;
     kickReason = "";
     serverIp = "";
+    compressPackets = false;
 
     whenConnect() {
         return this.connectPromise;
@@ -49,7 +53,7 @@ export default class ClientNetwork {
 
     processPacketBuffer(buf: Buffer) {
         try {
-            const packet = readPacket(copyBuffer(buf));
+            const packet = readPacket(copyBuffer(buf), this.compressPackets);
             this.processPacket(packet);
         } catch (err) {
             if (err instanceof PacketError) throw err;
@@ -144,9 +148,10 @@ export default class ClientNetwork {
         this.sendAuth(null, true);
     }
 
-    processSHandshake({data: {entityId, x, y, handIndex}}: PacketByName<"SHandshake">) {
+    processSHandshake({data: {entityId, x, y, handIndex, compressPackets}}: PacketByName<"SHandshake">) {
         setConnectionText("");
         this.handshake = true;
+        this.compressPackets = compressPackets;
         clientPlayer.immobile = false;
         clientPlayer.id = entityId;
         clientPlayer.x = x;
@@ -161,6 +166,7 @@ export default class ClientNetwork {
 
     spawnEntityFromData(data: typeof EntityUpdateStruct["__TYPE__"]) {
         const entity = new ClientEntityClasses[data.typeId](clientPlayer.world);
+        this.allEntities.add(entity);
         entity.id = data.entityId;
 
         for (const k in data.props) {
@@ -178,52 +184,40 @@ export default class ClientNetwork {
         return entity;
     };
 
-    processSChunk({data: {x, biome, data}}: PacketByName<"SChunk">) {
-        const world = <CWorld>clientPlayer.world;
-        const chunk = world.getChunk(x, false);
-        chunk.__setBiome(biome);
-        chunk.blocks = data;
-        world.chunksGenerated.add(x);
-        chunk.recalculateLights();
+    processSSetChunks({data: list}: PacketByName<"SSetChunks">) {
+        for (const {x, biome, data} of list) {
+            const world = <CWorld>clientPlayer.world;
+            const chunk = world.getChunk(x);
+            chunk.__setBiome(biome);
+            chunk.blocks = data;
+            chunk.state = ChunkState.Loaded;
+            chunk.recalculateLights();
 
-        world.prepareChunkRenders(x - 1, false, true);
-        world.prepareChunkRenders(x);
-        world.prepareChunkRenders(x + 1, false, true);
+            world.prepareChunkRenders(x - 1, false, true);
+            world.prepareChunkRenders(x);
+            world.prepareChunkRenders(x + 1, false, true);
+            if (clientPlayer.chunk.isFilled) clientPlayer.immobile = false;
+        }
     };
 
-    processSSetChunkEntities({data: {x, entities}}: PacketByName<"SSetChunkEntities">) {
-        const world = <CWorld>clientPlayer.world;
-        const chunk = world.getChunk(x, false);
+    processSEntitiesUpdate({data}: PacketByName<"SEntitiesUpdate">) {
+        for (const dat of data) {
+            const entity = clientPlayer.world.entities[dat.entityId];
+            if (!entity) return this.spawnEntityFromData(dat);
+            const dist = entity.distance(dat.props.x, dat.props.y);
+            Object.assign(entity, dat.props);
+            if ("handItemId" in dat.props && "handItemMeta" in dat.props && entity instanceof Player) {
+                entity.handItem = new Item(dat.props.handItemId, dat.props.handItemMeta);
+            }
 
-        chunk.entities.clear();
+            if (entity === clientPlayer) {
+                clientPlayer.updateCacheState();
+                clientPlayer.teleport(entity.x, entity.y);
+            }
 
-        for (const entity of entities) {
-            this.spawnEntityFromData(entity);
-        }
-
-        if (clientPlayer.chunkX === x) {
-            clientPlayer._chunkX = NaN;
             // @ts-expect-error Low level access.
-            clientPlayer.onMovement();
+            if (dist > 0) entity.onMovement();
         }
-    };
-
-    processSEntityUpdate({data}: PacketByName<"SEntityUpdate">) {
-        const entity = clientPlayer.world.entities[data.entityId];
-        if (!entity) return this.spawnEntityFromData(data);
-        const dist = entity.distance(data.props.x, data.props.y);
-        Object.assign(entity, data.props);
-        if ("handItemId" in data.props && "handItemMeta" in data.props && entity instanceof Player) {
-            entity.handItem = new Item(data.props.handItemId, data.props.handItemMeta);
-        }
-
-        if (entity === clientPlayer) {
-            clientPlayer.updateCacheState();
-            clientPlayer.teleport(entity.x, entity.y);
-        }
-
-        // @ts-expect-error Low level access.
-        if (dist > 0) entity.onMovement();
     };
 
     processSEntityAnimation({data}: PacketByName<"SEntityAnimation">) {
@@ -464,8 +458,9 @@ export default class ClientNetwork {
 
     sendPacket(pk: Packet, immediate = false) {
         if (immediate || !isMultiPlayer) {
-            if (this.connected) pk.send(this.worker);
-            else this.immediate.push(pk);
+            if (this.connected) {
+                this.worker.postMessage(this.compressPackets ? zstdOptionalEncode(pk.serialize()) : pk.serialize());
+            } else this.immediate.push(pk);
         } else {
             this.batch.push(pk);
         }

@@ -13,6 +13,7 @@ import {
     Options,
     ReactState,
     renderBoundingBox,
+    ResourcePack,
     saveOptions,
     ServerData,
     TileSize,
@@ -37,21 +38,38 @@ import Texture from "@/utils/Texture";
 import InventoryContainer from "@dom/components/InventoryContainer";
 import {ZWorldMetaData} from "@/world/World";
 import {im2data} from "@/item/ItemFactory";
+import {FileAsync} from "ktfile";
 
 Printer.makeGlobal();
 
 declare global {
-    const bfs: typeof import("fs");
-    const bfs_path: string;
+    interface Window {
+        showDirectoryPicker(options?: {
+            id?: string,
+            mode?: "read" | "readwrite" | "write",
+            startIn?: "desktop" | "documents" | "downloads" | "music" | "pictures" | "videos" | "home" | "appdata"
+        }): Promise<FileSystemDirectoryHandle>;
+    }
+
+    interface FileSystemDirectoryHandle {
+        getFileHandle(name: string, options?: { create?: boolean }): Promise<FileSystemFileHandle>;
+        getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<FileSystemDirectoryHandle>;
+        removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>;
+        keys(): AsyncIterableIterator<string>;
+        values(): AsyncIterableIterator<FileSystemHandle>;
+        entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+    }
+
+    const bfs: FileAsync;
 }
 
 export const IS_LOCALHOST = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 type PublicStates = {
     container: Containers, chatOpen: boolean, optionsPage: OptionPages, saveScreen: boolean,
     deathScreen: boolean, connectionText: string, f1: boolean, handIndex: number, health: number, armor: number,
-    breathe: number, hunger: number, xpProgress: number, xpLevel: number
+    breathe: number, hunger: number, xpProgress: number, xpLevel: number, resourcePacks: ResourcePack[]
 };
-const DefaultPublicStates: PublicStates = {
+const DefaultPublicStates: Partial<PublicStates> = {
     container: Containers.Closed,
     chatOpen: false,
     optionsPage: "none",
@@ -243,7 +261,8 @@ function render() {
     particleManager.render(ctx, dt);
 
     for (let chunkX = minSubX; chunkX <= maxSubX; chunkX++) {
-        if (!world.chunksGenerated.has(chunkX)) continue;
+        const chunk = world.getChunk(chunkX);
+        if (!chunk.isFilled) continue;
         for (let chunkY = minSubY; chunkY <= maxSubY; chunkY++) {
             world.renderSubChunk(chunkX, chunkY);
             const render = world.subChunkRenders[chunkX][chunkY];
@@ -682,7 +701,7 @@ export function initClient(clientUUID: string) {
     clientServer = new CServer();
     clientServer.registerDefaults();
     clientServer.config = DefaultServerConfig;
-    clientServer.defaultWorld = new CWorld(clientServer, "", "", 0, null, new Set, ZWorldMetaData.parse(DefaultServerConfig.defaultWorlds.default));
+    clientServer.defaultWorld = new CWorld(clientServer, "", null, 0n, null, ZWorldMetaData.parse(DefaultServerConfig.defaultWorlds.default));
     clientServer.defaultWorld.ensureSpawnChunks();
 
     const req = {socket: {remoteAddress: "::ffff:127.0.0.1"}};
@@ -696,38 +715,42 @@ export function initClient(clientUUID: string) {
         states.connectionText[1]("Connecting...");
         clientNetwork._connect().then(r => r); // not waiting for it to connect
     } else {
-        singlePlayerServer = new Server(bfs, `${bfs_path}${WorldInfo.uuid}`);
+        const server = singlePlayerServer = new Server(bfs.to(WorldInfo.uuid));
         Error.stackTraceLimit = 50;
 
-        const config = singlePlayerServer.config = DefaultServerConfig;
+        const config = server.config = DefaultServerConfig;
         config.saveIntervalTicks = Options.auto_save * 20;
         config.auth = null;
 
-        singlePlayerServer.init();
-        singlePlayerServer.bans = [];
+        //if (bfs.existsSync(server.path + "/worlds")) bfs.rmSync(server.path + "/worlds", {recursive: true});
+        //if (bfs.existsSync(server.path + "/players")) bfs.rmSync(server.path + "/players", {recursive: true});
 
-        serverNetwork = new PlayerNetwork({
-            send(data: Buffer) {
-                clientNetwork.processPacketBuffer(data);
-            },
-            kick() {
-                printer.warn("Got kicked for some reason? did you kick yourself?");
-            },
-            close() {
-                printer.warn("Pseudo-closed the pseudo-socket. What a duo...");
-                serverNetwork.onClose();
-            }
-        }, req);
+        server.init().then(() => {
+            server.bans = [];
 
-        clientNetwork.connected = true;
-        clientNetwork.worker = {
-            postMessage: (e: Buffer) => serverNetwork.processPacketBuffer(e),
-            terminate: () => null
-        };
-        // faster but have to serialize things like items: clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPrePacket(pk);
-        clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPacketBuffer(pk.serialize());
+            serverNetwork = new PlayerNetwork(server, {
+                send(data: Buffer) {
+                    clientNetwork.processPacketBuffer(data);
+                },
+                kick() {
+                    printer.warn("Got kicked for some reason? did you kick yourself?");
+                },
+                close() {
+                    printer.warn("Pseudo-closed the pseudo-socket. What a duo...");
+                    serverNetwork.onClose().then(r => r);
+                }
+            }, req);
 
-        clientNetwork.sendAuth(null, true);
+            clientNetwork.connected = true;
+            clientNetwork.worker = {
+                postMessage: (e: Buffer) => serverNetwork.processPacketBuffer(e),
+                terminate: () => null
+            };
+            // faster but have to serialize things like items: clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPrePacket(pk);
+            clientNetwork.sendPacket = (pk: Packet) => serverNetwork.processPacketBuffer(pk.serialize());
+
+            clientNetwork.sendAuth(null, true);
+        });
     }
 
     Mouse._x = innerWidth / 2;
@@ -759,7 +782,7 @@ export function terminateClient() {
         clientNetwork.worker.terminate();
         clientNetwork.worker = null;
     }
-    if (singlePlayerServer) singlePlayerServer.close();
+    if (singlePlayerServer) singlePlayerServer.close().then(r => r);
     removeEventListener("resize", onResize);
     removeEventListener("keydown", onPressKey);
     removeEventListener("keyup", onReleaseKey);
@@ -778,7 +801,6 @@ export function terminateClient() {
         chatInput.removeEventListener("keydown", onChatKeyPress);
     }
     removeEventListener("beforeunload", terminateClient);
-    singlePlayerServer = null;
     console.clear();
 }
 
@@ -857,6 +879,7 @@ export default function Client(O: {
     // @ts-expect-error This is for debugging purposes.
     window.dbg = {s: singlePlayerServer, p: clientPlayer};
     for (const k in DefaultPublicStates) states[k] = useState(DefaultPublicStates[k]);
+    states.resourcePacks = useState([...Options.resourcePacks]);
     const mouseX = useState(0);
     const mouseY = useState(0);
     if (singlePlayerServer) singlePlayerServer.pausedUpdates = states.optionsPage[0] !== "none";
@@ -1045,7 +1068,7 @@ export default function Client(O: {
         {/* Options */}
         {useMemo(() => {
             return <>{...getMenus("client", states.optionsPage)}</>;
-        }, [states.optionsPage[0]])}
+        }, [states.resourcePacks[0], states.optionsPage[0]])}
 
 
         {/* Mobile Control Buttons */}

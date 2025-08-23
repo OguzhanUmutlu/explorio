@@ -17,7 +17,7 @@ export default class ExecuteCommand extends Command {
         super("execute", "Executes a given command.", "", [], "command.execute");
     };
 
-    execute(sender: CommandSender, as: CommandAs, at: Position, __: string[], label: string) {
+    async execute(sender: CommandSender, as: CommandAs, at: Position, __: string[], label: string) {
         const tokens = splitParameters(label.split(" ").slice(1).join(" "));
 
         if (tokens.length === 0) throw new CommandError("No instruction to execute. Try:\n" +
@@ -63,7 +63,7 @@ export default class ExecuteCommand extends Command {
                 let last: number;
 
                 for (const entity of entities) {
-                    const response = sender.server.executeCommandLabel(sender, entity, positions[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
+                    const response = await sender.server.executeCommandLabel(sender, entity, positions[entity.id], token.originalText.substring(skipWhitespace(token.originalText, token.end)));
                     if (response instanceof CommandError) {
                         for (const {selector, path} of store.success.entity) {
                             // todo: entity data operate
@@ -358,7 +358,7 @@ export default class ExecuteCommand extends Command {
                     entities = [];
                     for (const entity of oldEntities) {
                         const loc = positions[entity.id];
-                        if (b - +(loc.world.folder === folder)) {
+                        if (b - +(loc.world.path.name === folder)) {
                             entities.push(entity);
                             positions[entity.id] ??= loc.copyPosition();
                         } else delete positions[entity.id];

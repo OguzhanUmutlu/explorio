@@ -1,7 +1,6 @@
 import BoundingBox from "@/entity/BoundingBox";
 import {EntityIds} from "@/meta/Entities";
-import EntityStruct from "@/structs/entity/EntityStruct";
-import X from "stramp";
+import X, {def} from "stramp";
 import Item from "@/item/Item";
 import {f2id, f2meta} from "@/meta/ItemInformation";
 import Entity from "@/entity/Entity";
@@ -10,14 +9,11 @@ export default class FallingBlockEntity extends Entity {
     typeId = EntityIds.FALLING_BLOCK;
     typeName = "falling_block";
     name = "Falling Block";
-    saveStruct = EntityStruct.extend({
-        blockFullId: X.u16,
-        despawnTimer: X.f32
-    });
+
+    @def(X.u16) blockFullId: number;
+    @def(X.f32) despawnTimer = 10;
 
     bb = new BoundingBox(0, 0, 0.99, 0.99);
-    blockFullId: number;
-    despawnTimer = 10;
     onGround = false;
 
     get item() {

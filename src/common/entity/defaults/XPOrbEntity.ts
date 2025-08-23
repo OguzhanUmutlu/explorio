@@ -2,8 +2,7 @@ import BoundingBox from "@/entity/BoundingBox";
 import {EntityIds} from "@/meta/Entities";
 import Player from "@/entity/defaults/Player";
 import Entity from "@/entity/Entity";
-import EntityStruct from "@/structs/entity/EntityStruct";
-import X from "stramp";
+import X, {def} from "stramp";
 
 const maxStack = 255;
 
@@ -11,17 +10,13 @@ export default class XPOrbEntity extends Entity {
     typeId = EntityIds.XP_ORB;
     typeName = "xp_orb";
     name = "XP Orb";
-    saveStruct = EntityStruct.extend({
-        amount: X.u8,
-        delay: X.f32,
-        despawnTimer: X.f32
-    });
+
+    @def(X.u8) amount: number;
+    @def(X.f32) delay = 0;
+    @def(X.f32) despawnTimer = 5 * 60;
 
     bb = new BoundingBox(0, 0, 0.05, 0.05);
-    amount: number;
     wasOnGround = false;
-    delay = 0;
-    despawnTimer = 5 * 60;
 
     calcCacheState(): string {
         return `${this.amount}`;

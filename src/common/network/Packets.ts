@@ -1,23 +1,15 @@
 import PacketError from "@/network/PacketError";
 import Packet from "@/network/Packet";
-import {getServer, zstdOptionalDecode} from "@/utils/Utils";
+import {zstdOptionalDecode} from "@/utils/Utils";
 import {PacketIds} from "@/meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
-import ChunkBlocksBin from "@/structs/world/ChunkBlocksBin";
+import ChunkBlocksBin from "@/structs/ChunkBlocksBin";
 import {GameModeStruct} from "@/command/arguments/GameModeArgument";
-import {InventoryNameBin} from "@/structs/item/InventoryNameBin";
-import ItemStruct, {InventoryContentStruct} from "@/structs/item/ItemStruct";
+import {InventoryContentStruct, InventoryNameBin, ItemStruct} from "@/structs/ItemStructs";
+import {EntityAnimationStruct} from "@/structs/EntityAnimationStruct";
 import {ContainerIDBin} from "@/meta/Inventories";
-import EntityAnimationStruct from "@/structs/entity/EntityAnimationStruct";
-
-export const EntityUpdateStruct = X.object.struct({
-    typeId: X.u8,
-    entityId: X.u32,
-    props: X.object
-});
 
 const BatchStruct = new class BatchStruct extends Bin<Packet[]> {
-    isOptional = false as const;
     name = "BatchPacket";
 
     unsafeWrite(bind: BufferIndex, value: Packet[]) {
@@ -70,29 +62,32 @@ export const Packets = <{ [Name in keyof typeof PacketIds]: PacketNameToPacket<N
 
 export type AnyPacketConstructor = typeof Packets[keyof typeof Packets];
 
+export const EntityUpdateStruct = X.object.struct({
+    typeId: X.u8,
+    entityId: X.u32,
+    props: X.object
+});
+
 export const PacketStructs = {
     [PacketIds.Batch]: BatchStruct,
     [PacketIds.Ping]: X.date,
     [PacketIds.SendMessage]: X.string16,
 
     [PacketIds.SPreLoginInformation]: X.object.struct({
-        auth: X.any.of(X.string16, X.null)
+        auth: X.string16.nullable()
     }),
     [PacketIds.SHandshake]: X.object.struct({
         entityId: X.u32,
         x: X.f32, y: X.f32,
-        handIndex: X.u8
+        handIndex: X.u8,
+        compressPackets: X.bool
     }),
-    [PacketIds.SChunk]: X.object.struct({
+    [PacketIds.SSetChunks]: X.object.struct({
         x: X.i32,
         biome: X.u8,
         data: ChunkBlocksBin
-    }),
-    [PacketIds.SSetChunkEntities]: X.object.struct({
-        x: X.i32,
-        entities: X.array.typed(EntityUpdateStruct)
-    }),
-    [PacketIds.SEntityUpdate]: EntityUpdateStruct,
+    }).array(),
+    [PacketIds.SEntitiesUpdate]: EntityUpdateStruct.array(),
     [PacketIds.SEntityAnimation]: X.object.struct({
         entityId: X.u32,
         animation: EntityAnimationStruct
@@ -144,7 +139,7 @@ export const PacketStructs = {
 
         xp: X.u32,
         xpLevels: X.u32,
-        gamemode: GameModeStruct,
+        gameMode: GameModeStruct,
         canBreak: X.bool,
         canPlace: X.bool,
         canAttack: X.bool,
@@ -162,14 +157,14 @@ export const PacketStructs = {
     }),
     [PacketIds.SSetInventory]: X.object.struct({
         name: InventoryNameBin,
-        items: X.array.typed(InventoryContentStruct)
+        items: InventoryContentStruct.array()
     }),
     [PacketIds.SUpdateInventory]: X.object.struct({
         name: InventoryNameBin,
-        indices: X.array.typed(X.object.struct({
+        indices: X.object.struct({
             index: X.u8,
             item: InventoryContentStruct
-        }))
+        }).array()
     }),
     [PacketIds.SSetContainer]: X.object.struct({
         container: ContainerIDBin,
@@ -183,7 +178,7 @@ export const PacketStructs = {
         name: X.string8,
         skin: X.string16,
         version: X.u16,
-        secret: X.any.of(X.buffer.sized(128), X.null)
+        secret: X.buffer.sized(128).nullable()
     }),
     [PacketIds.CMovement]: X.object.struct({
         x: X.f32,
@@ -211,11 +206,11 @@ export const PacketStructs = {
     [PacketIds.CItemTransfer]: X.object.struct({
         fromInventory: InventoryNameBin,
         fromIndex: X.u8,
-        to: X.array.typed(X.object.struct({
+        to: X.object.struct({
             inventory: InventoryNameBin,
             index: X.u8,
             count: X.u8
-        }))
+        }).array()
     }),
     [PacketIds.CItemDrop]: X.object.struct({
         inventory: InventoryNameBin,
@@ -228,7 +223,7 @@ export const PacketStructs = {
         toInventory: InventoryNameBin,
         toIndex: X.u8
     }),
-    [PacketIds.CSetItem]: X.object.struct({ // only when infiniteResource is on (for now it's just for creative gamemode)
+    [PacketIds.CSetItem]: X.object.struct({ // only when infiniteResource is on (for now it's just for creative game mode)
         inventory: InventoryNameBin,
         index: X.u8,
         item: ItemStruct
@@ -236,8 +231,8 @@ export const PacketStructs = {
     [PacketIds.CRespawn]: X.null
 } as const;
 
-export function readPacket(buffer: Buffer) {
-    buffer = getServer().config.packetCompression ? zstdOptionalDecode(buffer) : buffer;
+export function readPacket(buffer: Buffer, compressed: boolean) {
+    buffer = compressed ? zstdOptionalDecode(buffer) : buffer;
     const clazz = Packets[buffer[0]];
     if (!clazz) throw new PacketError("Invalid packet", buffer);
     return <Packet>clazz.read(new BufferIndex(buffer, 1));

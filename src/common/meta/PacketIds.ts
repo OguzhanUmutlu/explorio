@@ -5,9 +5,8 @@ export enum PacketIds {
 
     SPreLoginInformation,
     SHandshake,
-    SChunk,
-    SSetChunkEntities,
-    SEntityUpdate,
+    SSetChunks,
+    SEntitiesUpdate,
     SEntityAnimation,
     SEntityRemove,
     SBlockUpdate,

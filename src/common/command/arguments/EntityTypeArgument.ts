@@ -3,7 +3,7 @@ import {CommandAs} from "@/command/CommandSender";
 import Position from "@/utils/Position";
 import {AnyToken} from "@/command/CommandProcessor";
 import {EntityIds} from "@/meta/Entities";
-import {getServer} from "@/utils/Utils";
+import Server from "@/Server";
 
 export default class EntityTypeArgument extends CommandArgument<EntityIds> {
     default = null;
@@ -15,14 +15,14 @@ export default class EntityTypeArgument extends CommandArgument<EntityIds> {
     };
 
     read(_: CommandAs, __: Position, args: AnyToken[], index: number) {
-        return getServer().entityNameToId[args[index].rawText];
+        return Server.instance.entityNameToId[args[index].rawText];
     };
 
     blindCheck(args: AnyToken[], index: number) {
         const arg = args[index];
 
         return {
-            error: arg && getServer().entityNameToId[arg.rawText] ? null : {
+            error: arg && Server.instance.entityNameToId[arg.rawText] ? null : {
                 token: arg,
                 message: "Expected a valid entity name"
             }, index: index + 1

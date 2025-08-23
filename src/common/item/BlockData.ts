@@ -103,6 +103,20 @@ export default class BlockData extends ext {
     async postProcessTexture(_ctx: CanvasRenderingContext2D, _biome: number, _block: boolean) {
     };
 
+    reloadTextures() {
+        for (const meta of this.metas) {
+            delete meta.__processed__;
+            delete meta.__processed_biomes__;
+        }
+        return this;
+    };
+
+    reloadProcessedTextures() {
+        if (!this.postProcessesTexture && this.texture && (typeof this.texture === "string" || (this.texture instanceof Texture && this.texture.actualSrc))) return this;
+        this.reloadTextures();
+        return this;
+    };
+
     getTexture(meta = this.meta, block = false, world?: World, x = 0, _y = 0): Texture {
         if (this.id === ItemIds.AIR) return texturePlaceholder;
         const url = this.metas[meta % this.metas.length];
@@ -112,7 +126,7 @@ export default class BlockData extends ext {
         const proc = this.hasBiomeTextures
             ? (url.__processed_biomes__ ??= {texture: [], blockTexture: []})
             : (url.__processed__ ??= {texture: null, blockTexture: null});
-        const biome = this.hasBiomeTextures ? (world ? world.getChunkAt(x, false).biome : 0) : 0;
+        const biome = this.hasBiomeTextures ? (world ? world.getChunkAt(x).biome : 0) : 0;
         const key = block ? "blockTexture" : "texture";
         if (!this.hasBiomeTextures && proc[key]) return <Texture>proc[key];
         if (this.hasBiomeTextures && (<Texture[]>proc[key])[biome]) return proc[key][biome];
@@ -308,7 +322,7 @@ export default class BlockData extends ext {
     };
 
     onBlockUpdate(world: World, x: number, y: number) {
-        delete world.getChunkAt(x, false).updateSchedules[xy2ci(x, y)];
+        delete world.getChunkAt(x).updateSchedules[xy2ci(x, y)];
 
         if (this.canFall && world.getBlock(x, y - 1).canBePhased) {
             world.setBlock(x, y, ItemIds.AIR);

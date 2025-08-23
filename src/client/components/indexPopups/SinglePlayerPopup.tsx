@@ -32,12 +32,12 @@ export default function SinglePlayerPopup(O: {
                     O.clientUUID[1](w.uuid);
                 }}>
                     {w.name}
-                    <div className="delete-btn" onClick={() => {
+                    <div className="delete-btn" onClick={async () => {
                         if (!confirm(`Are you sure you want to delete the world named ${w.name}?`)) return;
                         if (!confirm(`You sure? You're really deleting ${w.name}?`)) return;
                         if (!confirm(`This is the last time I'm going to ask this. Are you sure you really want to delete your world named ${w.name}?`)) return;
                         if (prompt(`Type in the name of your world you want to delete:`) !== w.name) return;
-                        removeWorld(w.uuid);
+                        await removeWorld(w.uuid);
                         O.refresh();
                     }}>Delete
                     </div>

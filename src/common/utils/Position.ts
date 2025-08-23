@@ -2,6 +2,8 @@ import Vector2 from "@/utils/Vector2";
 import World from "@/world/World";
 import BlockData from "@/item/BlockData";
 import {f2id, f2meta} from "@/meta/ItemInformation";
+import Packet from "@/network/Packet";
+import Entity from "@/entity/Entity";
 
 export function getRotationTowards(x1: number, y1: number, x2: number, y2: number) {
     return Math.atan2(x2 - x1, y2 - y1) / Math.PI * 180 - 90;
@@ -12,6 +14,10 @@ export default class Position extends Vector2 {
 
     constructor(x: number, y: number, public rotation: number = 0, public world: World) {
         super(x, y);
+    };
+
+    get server() {
+        return this.world?.server;
     };
 
     copyPosition() {
@@ -42,6 +48,14 @@ export default class Position extends Vector2 {
         );
     };
 
+    broadcastPacketHere(pk: Packet, exclude: Entity[] = [], immediate = false) {
+        this.world.broadcastPacketAt(this.x, pk, exclude, immediate);
+    };
+
+    broadcastSoundHere(sound: string, volume = 1) {
+        this.world.playSound(sound, this.x, this.y, volume);
+    };
+
     up() {
         return new Position(this.x, this.y + 1, this.rotation, this.world);
     };
@@ -59,7 +73,7 @@ export default class Position extends Vector2 {
     };
 
     get chunk() {
-        return this.world.getChunk(this.chunkX, false);
+        return this.world.getChunk(this.chunkX);
     };
 
     getChunkEntities() {

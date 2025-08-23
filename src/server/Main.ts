@@ -1,6 +1,5 @@
 import SServer from "@s/SServer";
-import fs from "fs";
 
-const server = new SServer(fs, process.argv[2] || ".");
+export const s_server = new SServer(process.argv[2] || ".");
 
-await server.start();
+await s_server.start();

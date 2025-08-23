@@ -17,5 +17,5 @@ export default abstract class Command {
     init() {
     };
 
-    abstract execute(sender: CommandSender, as: CommandAs, at: Position, args: string[], label: string): number;
+    abstract execute(sender: CommandSender, as: CommandAs, at: Position, args: string[], label: string): number | Promise<number>;
 }

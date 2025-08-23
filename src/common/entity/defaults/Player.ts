@@ -1,24 +1,24 @@
 import {EntityIds} from "@/meta/Entities";
 import Inventory from "@/item/Inventory";
 import CommandSender from "@/command/CommandSender";
-import {copyBuffer, getServer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
+import {copyBuffer, permissionCheck, zstdOptionalDecode, zstdOptionalEncode} from "@/utils/Utils";
 import PlayerNetwork from "@/network/PlayerNetwork";
 import {Packets} from "@/network/Packets";
 import {Containers, InventoryName, InventorySizes} from "@/meta/Inventories";
 import Item from "@/item/Item";
-import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
+import {EntitySaveStruct} from "@/structs/EntityTileSaveStruct";
 import Packet from "@/network/Packet";
 import {GameMode, GameModeStruct} from "@/command/arguments/GameModeArgument";
 import Effect from "@/effect/Effect";
 import PlayerKickEvent from "@/event/defaults/PlayerKickEvent";
 import BoundingBox from "@/entity/BoundingBox";
-import EntityStruct from "@/structs/entity/EntityStruct";
-import WorldStruct from "@/structs/world/WorldStruct";
-import X from "stramp";
-import InventoryStruct from "@/structs/item/InventoryStruct";
+import X, {def} from "stramp";
 import Entity from "@/entity/Entity";
 import {FallDamage} from "@/entity/damage/FallDamage";
 import {Block} from "@/block/Block";
+import Server from "@/Server";
+import {InventoryStruct} from "@/structs/ItemStructs";
+import World from "@/world/World";
 
 const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
     [Containers.Closed]: ["hotbar", "offhand"],
@@ -36,35 +36,35 @@ const nonShiftables: InventoryName[] = ["cursor", "player", "offhand", "hotbar",
 
 const temporaryInventories: InventoryName[] = ["cursor", "craftingSmall", "craftingBig"];
 
+const InventoriesStruct = X.object.struct(["hotbar", "offhand", "player", "armor", "cursor"]
+    .reduce((a, b) => ({...a, [b]: InventoryStruct(InventorySizes[b], b)}), {}));
+
+X.object.struct({worldFolder: X.s16})
+    .withConstructor(({worldFolder}) => Server.instance.worlds[worldFolder])
+
 export default class Player extends Entity implements CommandSender {
     typeId = EntityIds.PLAYER;
     typeName = "player";
-    saveStruct = EntityStruct.extend({
-        world: WorldStruct, // This is sufficient because player files aren't located inside world folders
-        permissions: X.set.typed(X.string16),
-        handIndex: X.u8,
-        gamemode: GameModeStruct,
-        inventories: X.object.struct(["hotbar", "offhand", "player", "armor", "cursor"]
-            .reduce((a, b) => ({...a, [b]: new InventoryStruct(InventorySizes[b], b)}), {}))
-    });
+
+    @def(X.cstring) worldName = "";
+    @def(X.s16.set()) permissions = new Set<string>;
+    @def(X.u8) handIndex = 0;
+    @def(GameModeStruct) gameMode = GameMode.Survival;
+    @def(InventoriesStruct) inventories = <Record<InventoryName, Inventory>>{};
 
     name = "";
     skin = null;
     network: PlayerNetwork;
 
     bb = new BoundingBox(0, 0, 0.5, 1.8);
-    permissions = new Set<string>;
     breaking: [number, number] | null = null;
     breakingTime = 0;
-    sentChunks = new Set<number>;
-    viewingChunks: number[] = [];
+    viewingChunks = new Set<number>;
+    viewingEntities = new Set<number>();
     broadcastedItem: Item | null = null;
-
-    handIndex = 0;
 
     xp = 0;
     xpLevels = 0;
-    gamemode = GameMode.Survival;
     canBreak = true;
     canPlace = true;
     canAttack = true;
@@ -85,15 +85,25 @@ export default class Player extends Entity implements CommandSender {
     containerId = Containers.Closed;
     containerX = 0;
     containerY = 0;
-    inventories = <Record<InventoryName, Inventory>>{};
     fallY = 0;
 
     init() {
+        if (!this.isClient) {
+            const server = Server.instance;
+            this.setWorld(server.worlds[this.worldName] || server.defaultWorld);
+        }
+
         for (const k in InventorySizes) {
             this.inventories[k] ??= new Inventory(InventorySizes[k], k);
         }
 
         return super.init();
+    };
+
+    protected setWorld(world: World): this {
+        super.setWorld(world);
+        this.worldName = this.world.name;
+        return this;
     };
 
     getAccessibleInventoryNames() {
@@ -240,31 +250,6 @@ export default class Player extends Entity implements CommandSender {
         const wasOnGround = this.onGround;
         super.serverUpdate(dt);
         this.gravity = gravity;
-        const chunkX = this.chunkX;
-        const chunks = [];
-        const chunkDist = this.server.config.renderDistance;
-
-        for (let x = chunkX - chunkDist; x <= chunkX + chunkDist; x++) {
-            chunks.push(x);
-            const chunk = this.world.getChunk(chunkX, true);
-            const lastDirtyCheck = chunk.playerCleanTimes[this.name] || -1;
-
-            if (!this.sentChunks.has(x) && lastDirtyCheck !== chunk.dirtyTime) {
-                this.sentChunks.add(x);
-                this.world.sendChunk(this, x);
-            }
-
-            chunk.reference();
-        }
-
-        for (const x of this.sentChunks) {
-            if (!chunks.includes(x)) {
-                this.world.getChunk(x, true).dereference();
-                this.sentChunks.delete(x);
-            }
-        }
-
-        this.viewingChunks = chunks;
 
         this.breakingTime = Math.max(0, this.breakingTime - dt);
         if (this.instantBreak) this.breakingTime = 0;
@@ -334,8 +319,9 @@ export default class Player extends Entity implements CommandSender {
     despawn() {
         super.despawn();
         for (const x of this.viewingChunks) {
-            this.world.getChunk(x, true).dereference();
+            this.world.chunks[x]?.dereference();
         }
+        this.viewingChunks.clear();
         this.network.sendPacket(new Packets.SEntityRemove(this.id));
     };
 
@@ -366,11 +352,11 @@ export default class Player extends Entity implements CommandSender {
         if (this.broadcastedItem && this.broadcastedItem.equals(item, false, false)) return;
 
         this.broadcastedItem = item;
-        this.broadcastPacketHere(new Packets.SEntityUpdate({
+        this.broadcastPacketHere(new Packets.SEntitiesUpdate([{
             entityId: this.id,
             typeId: this.typeId,
             props: {handItemId: item ? item.id : 0, handItemMeta: item ? item.meta : 0}
-        }), [this]);
+        }]), [this]);
     };
 
     sendMessage(message: string): void {
@@ -379,8 +365,8 @@ export default class Player extends Entity implements CommandSender {
         }
     };
 
-    chat(message: string) {
-        this.server.processMessage(this, message);
+    async chat(message: string) {
+        await this.server.processMessage(this, message);
     };
 
     kick(reason = "Kicked by an operator") {
@@ -409,12 +395,13 @@ export default class Player extends Entity implements CommandSender {
         return !this.network?.closed;
     };
 
-    save() {
-        this.server.createDirectory("players");
+    async save() {
+        const playersFolder = this.server.path.to("players");
+        await playersFolder.mkdir();
 
         const buffer = this.getSaveBuffer();
         const encoded = zstdOptionalEncode(buffer);
-        this.server.writeFile(`players/${this.name}.dat`, encoded);
+        await playersFolder.to(this.name + ".dat").write(encoded);
     };
 
     updateCollisionBox() {
@@ -448,32 +435,31 @@ export default class Player extends Entity implements CommandSender {
 
     //
 
-    static new(name: string) {
+    static new(server: Server, name: string) {
         const player = new Player;
         player.name = name;
-        const spawn = getServer().defaultWorld.getSpawnPoint();
+        const spawn = server.defaultWorld.getSpawnPoint();
         player.teleport(spawn.x, spawn.y, spawn.world, false);
         return player;
     };
 
-    static loadPlayer(name: string) {
-        const server = getServer();
-        const datPath = `players/${name}.dat`;
-        if (!server.fileExists(datPath)) {
-            return Player.new(name);
+    static async loadPlayer(server: Server, name: string) {
+        const dataFile = server.path.to("players", name + ".dat");
+        if (!await dataFile.exists()) {
+            return Player.new(server, name);
         }
 
-        let buffer = server.readFile(datPath);
+        let buffer = await dataFile.read();
         buffer = zstdOptionalDecode(copyBuffer(buffer));
 
         try {
-            const player = <Player>EntitySaveStruct.deserialize(buffer);
+            const player = <Player>EntitySaveStruct.parse(buffer);
             player.name = name;
             return player;
         } catch (e) {
             printer.error(e);
             printer.warn(`Player data corrupted, creating new player for ${name}`);
-            return Player.new(name);
+            return Player.new(server, name);
         }
     };
 
@@ -498,7 +484,7 @@ export default class Player extends Entity implements CommandSender {
     };
 
     applyGameModeAttributes() {
-        switch (this.gamemode) {
+        switch (this.gameMode) {
             case GameMode.Survival:
                 this.canBreak = true;
                 this.canPlace = true;
@@ -569,8 +555,8 @@ export default class Player extends Entity implements CommandSender {
         this.applyEffects();
     };
 
-    setGameMode(gamemode: GameMode) {
-        this.gamemode = gamemode;
+    setGameMode(gameMode: GameMode) {
+        this.gameMode = gameMode;
         this.applyAttributes();
     };
 

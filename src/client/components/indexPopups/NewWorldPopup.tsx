@@ -24,8 +24,13 @@ export default function NewWorldPopup(O: {
         </div>
         <div className="create-world btn" onClick={() => {
             const name = worldName[0];
-            const seed = Math.floor(+(worldSeed[0] || getRandomSeed()));
-            if (seed <= 0 || !name || name.length > 128) {
+            let seed: bigint;
+            try {
+                seed = BigInt(worldSeed[0] || getRandomSeed());
+            } catch {
+                seed = null;
+            }
+            if (seed === null || seed <= 0n || !name || name.length > 128) {
                 popupError[1]("Invalid name or seed");
                 return;
             }
@@ -33,7 +38,7 @@ export default function NewWorldPopup(O: {
             popupError[1]("");
             worldName[1]("My World");
             worldSeed[1]("");
-            addWorld(name, seed);
+            addWorld(name, seed.toString());
             O.refresh();
             O.nw[1](false);
             O.sp[1](true);

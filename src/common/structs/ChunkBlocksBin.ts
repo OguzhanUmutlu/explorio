@@ -15,7 +15,6 @@ function getPalette(value: Uint16Array) {
 }
 
 export default new class ChunkBlocksBin extends Bin<Uint16Array> {
-    isOptional = false as const;
     name = "Chunk";
 
     unsafeWrite(bind: BufferIndex, value: Uint16Array) {

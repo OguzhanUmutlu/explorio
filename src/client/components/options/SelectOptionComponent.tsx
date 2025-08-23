@@ -14,7 +14,7 @@ export default function SelectOptionComponent(O: {
     return <GameOptionComponent class="option-btn" description={O.description ?? ""}
                                 action={() => state[1]((+state[0] + 1) % O.labels.length)}>
         <OptionValueText>
-            {O.text + ": " + O.labels[state[0]]}
+            {O.text + ": " + O.labels[state[0] as string | number]}
         </OptionValueText>
     </GameOptionComponent>;
 }

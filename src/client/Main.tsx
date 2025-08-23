@@ -2,11 +2,16 @@ import React, {useEffect, useState} from "react";
 import "./css/common.css";
 import Index from "@c/../Index";
 import {default as Client, terminateClient} from "@dom/Client";
-import {getHash, isMobileByAgent} from "@c/utils/Utils";
+import {getHash, isMobileByAgent, Options} from "@c/utils/Utils";
+import {getColoredPrinter} from "@/utils/ColoredPrinter";
+
+getColoredPrinter().makeGlobal().replaceConsole();
 
 export default function Main() {
     const clientUUID = useState(getHash);
     const favicon = useState("./assets/logo.png");
+
+    document.documentElement.style.setProperty("--blur", `${Options.blur_px}px`);
 
     useEffect(() => {
         function onClick() {
@@ -37,9 +42,7 @@ export default function Main() {
         };
     }, []);
 
-    if (!clientUUID[0]) {
-        terminateClient();
-    }
+    if (!clientUUID[0]) terminateClient();
 
     return <>
         <link rel="icon" href={favicon[0]}/>

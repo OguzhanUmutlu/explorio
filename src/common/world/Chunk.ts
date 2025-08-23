@@ -7,23 +7,43 @@ import Tile from "@/tile/Tile";
 import BlockData from "@/item/BlockData";
 import Entity from "@/entity/Entity";
 import {f2data} from "@/item/ItemFactory";
-import {ItemIds} from "@/meta/ItemIds";
+import {FullIds} from "@/meta/ItemIds";
+
+export enum ChunkState {
+    Empty = 0,       // readonly empty chunk         (generate() -> Loaded)
+    LoadingFile = 1, // readonly empty chunk         (read end   -> Loaded)
+    Unloaded = 2,    // filled chunk                 (load()     -> Loaded)
+    Loaded = 3       // filled chunk, ticks, saves   (unload()   -> Ready)
+}
+
+const emptyBlocks = new Proxy({}, {
+    get: () => FullIds.AIR,
+    set: () => true
+}) as Uint16Array;
 
 export default class Chunk {
-    blocks: Uint16Array = new Uint16Array(ChunkBlockAmount);
+    blocks: Uint16Array = emptyBlocks;
     entities = new Set<Entity>();
     tiles = new Set<Tile>();
     referees = 0;
     dirty = false;
-    dirtyTime = 0;
-    playerCleanTimes: Record<string, number> = {};
+    dirtyBlocks = false;
+
     lightLevels: Uint8Array = new Uint8Array(ChunkBlockAmount);
     unloadTimer = 30;
-    unloaded = false;
+
+    state = ChunkState.Empty;
+
     updateSchedules: Record<number, number> = {};
     private __biome: number;
+    readonly groupX: number;
 
-    constructor(public world: World, public x: number) {
+    constructor(public world: World, public readonly x: number) {
+        this.groupX = cx2cgx(x);
+    };
+
+    get isFilled() {
+        return this.state === ChunkState.Loaded || this.state === ChunkState.Unloaded;
     };
 
     get isSpawnChunk() {
@@ -35,17 +55,17 @@ export default class Chunk {
     };
 
     reference() {
+        if (!this.isFilled) return;
         this.referees++;
     };
 
-    pollute() {
+    pollute(blocks = false) {
+        if (blocks) this.dirtyBlocks = true;
         this.dirty = true;
-        const now = this.dirtyTime = Date.now();
-        for (const k in this.playerCleanTimes) this.playerCleanTimes[k] = now;
     };
 
     scheduleUpdate(relX: number, y: number, ticks: number) {
-        this.dirty = true;
+        this.pollute();
         this.updateSchedules[rxy2ci(relX, y)] = ticks;
     };
 
@@ -84,7 +104,7 @@ export default class Chunk {
     };
 
     serverUpdate(dt: number) {
-        if (this.referees <= 0 && !this.isSpawnChunk && (this.unloadTimer -= dt) <= 0) return this.unload();
+        if (this.referees <= 0 && !this.isSpawnChunk && (this.unloadTimer -= dt) <= 0) return void this.unload();
 
         for (const e of this.entities) {
             if (e instanceof Player) continue;
@@ -107,37 +127,64 @@ export default class Chunk {
                 const u = +updates[i];
                 if (--this.updateSchedules[u] <= 0) {
                     delete this.updateSchedules[u];
+                    this.pollute();
                     const relX = i2rx(u);
                     const y = i2ry(u);
                     this.getBlock(relX, y).onScheduledBlockUpdate(this.world, cx2x(this.x, relX), y);
                 }
             }
-
-            this.dirty = true;
         }
     };
 
-    broadcast() {
-        for (const viewer of this.world.getChunkViewers(this.x)) {
-            this.world.sendChunk(viewer, this.x);
+    sendTo(player: Player, immediate = true) {
+        if (!this.isFilled) return;
+        player.network?.sendChunks([this], immediate);
+    };
+
+    ensure(generate = false) {
+        if (this.state === ChunkState.Empty) {
+            this.state = ChunkState.LoadingFile;
+            if (this.world.unloadedChunkGroups.has(this.groupX)) {
+                this.world.__loadChunkGroup(this.groupX).then(r => r);
+                return;
+            } else if (this.world.loadingChunkGroups.has(this.groupX)) return;
+            this.state = ChunkState.Empty;
+        }
+
+        if (generate) {
+            this.generate();
         }
     };
 
     load() {
+        if (this.state !== ChunkState.Unloaded) return;
+        this.state = ChunkState.Loaded;
         for (const entity of this.entities) entity.init();
         for (const tile of this.tiles) tile.init();
-        this.broadcast();
         for (let i = 0; i < ChunkBlockAmount; i++) {
             const blockData = f2data(this.blocks[i]);
             blockData.onBlockUpdate(this.world, cx2x(this.x, i2rx(i)), i2ry(i));
         }
+        this.pollute(true);
     };
 
-    unload() {
-        if (this.unloaded) return;
-        this.unloaded = true;
+    generate() {
+        if (this.state !== ChunkState.Empty || this.world.unloadedChunkGroups.has(this.groupX)) return;
+        this.state = ChunkState.Unloaded;
+        this.blocks = new Uint16Array(ChunkBlockAmount);
+        this.world.generator.generate(this.x);
+        this.load();
+    };
 
-        this.world.saveChunkGroup(cx2cgx(this.x));
+    async unload() {
+        if (this.state !== ChunkState.Loaded) return;
+        this.state = ChunkState.Unloaded;
+        for (const player of this.world.getPlayers()) {
+            player.viewingChunks.delete(this.x);
+        }
+        this.referees = 0;
+
+        await this.world.saveChunkGroup(this.groupX);
 
         for (const entity of this.entities) {
             if (entity instanceof Player) {
@@ -149,20 +196,24 @@ export default class Chunk {
 
         delete this.world.chunks[this.x];
 
-        const cgx = cx2cgx(this.x);
-        const startChunkX = cgx2cx(cgx);
+        const startChunkX = cgx2cx(this.groupX);
         for (let chunkX = startChunkX; chunkX < startChunkX + ChunkGroupLength; chunkX++) {
             if (chunkX in this.world.chunks) return;
         }
 
         // all chunks in this chunk group are unloaded, so unload the chunk group
-        delete this.world.chunkGroups[cgx];
+        delete this.world.chunkGroups[this.groupX];
+    };
+
+    getFullBlock(relX: number, y: number): number {
+        if (!this.isFilled) return FullIds.AIR;
+        if (relX < 0 || relX >= ChunkLength) return this.world.getFullBlockAt(cx2x(this.x, relX), y);
+        if (y < 0 || y >= WorldHeight) return FullIds.AIR;
+        return this.blocks[rxy2ci(relX, y)];
     };
 
     getBlock(relX: number, y: number): BlockData {
-        if (relX < 0 || relX >= ChunkLength) return this.world.getBlock(cx2x(this.x, relX), y);
-        if (y < 0 || y >= WorldHeight) return f2data(ItemIds.AIR);
-        return f2data(this.blocks[rxy2ci(relX, y)]);
+        return f2data(this.getFullBlock(relX, y));
     };
 
     getLight(relX: number, y: number) {

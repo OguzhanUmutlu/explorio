@@ -49,6 +49,6 @@ export default class GameModeArgument extends CommandArgument<GameMode> {
     };
 
     toString() {
-        return "gamemode";
+        return "GameMode";
     };
 }

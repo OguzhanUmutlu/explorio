@@ -16,7 +16,7 @@ export default function RangeOptionComponent(O: {
     const state = O.action instanceof Function ? useState(O.default) : useOptionSubscription(O.option);
 
     return <GameOptionComponent class="option-input" description={O.description ?? ""}>
-        <input type="range" min={O.min} max={O.max} step={O.step} value={state[0]} onChange={e => {
+        <input type="range" min={O.min} max={O.max} step={O.step} value={state[0] as number} onChange={e => {
             state[1](+e.target.value);
             if (O.action) O.action(+e.target.value);
         }}/>

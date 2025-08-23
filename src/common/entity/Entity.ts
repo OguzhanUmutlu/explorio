@@ -5,15 +5,15 @@ import BoundingBox from "@/entity/BoundingBox";
 import Position, {getRotationTowards} from "@/utils/Position";
 import {Packets} from "@/network/Packets";
 import EntityTileBase from "@/entity/EntityTileBase";
-import EntitySaveStruct from "@/structs/entity/EntitySaveStruct";
+import {EntitySaveStruct} from "@/structs/EntityTileSaveStruct";
 import World, {Collision} from "@/world/World";
 import Item from "@/item/Item";
 import {randInt} from "@/utils/Utils";
 import {Damage} from "@/entity/Damage";
-import EntityAnimationStruct from "@/structs/entity/EntityAnimationStruct";
-import Packet from "@/network/Packet";
 import Player from "@/entity/defaults/Player";
 import {AnimationIds} from "@/meta/Animations";
+import X, {def} from "stramp";
+import {EntityAnimationStruct} from "@/structs/EntityAnimationStruct";
 
 export const DefaultWalkSpeed = 5;
 export const DefaultFlySpeed = 10;
@@ -23,6 +23,10 @@ export const GroundHeight = 0.05;
 
 export default abstract class Entity extends EntityTileBase {
     declare readonly world: World;
+
+    @def(X.f32) declare x: number;
+    @def(X.f32) declare y: number;
+    @def(X.s16.set()) tags = new Set<string>();
 
     _chunkX = NaN;
     _x = 0;
@@ -37,7 +41,6 @@ export default abstract class Entity extends EntityTileBase {
     bb: BoundingBox;
     groundBB = new BoundingBox(0, 0, 0, GroundHeight);
     cacheState: string;
-    tags = new Set<string>;
     effects: Record<number, EffectInstance> = {};
 
     walkSpeed = DefaultWalkSpeed;
@@ -78,21 +81,18 @@ export default abstract class Entity extends EntityTileBase {
     };
 
     private get oldChunk() {
-        return !isNaN(this._chunkX) ? this.world.getChunk(this._chunkX, false) : null;
+        return !isNaN(this._chunkX) ? this.world.getChunk(this._chunkX) : null;
     };
 
-    private setWorld(world: World) {
+    protected setWorld(world: World) {
         if (this.world) delete this.world.entities[this.id];
         const oldChunk = this.oldChunk;
-
         if (oldChunk) oldChunk.entities.delete(this);
+        this._chunkX = NaN;
 
         (<Position><unknown>this).world = world;
 
-        const newChunk = world.getChunk(this.chunkX, false);
-        newChunk.entities.add(this);
-        newChunk.pollute();
-
+        this.onMovement();
         return this;
     };
 
@@ -371,16 +371,13 @@ export default abstract class Entity extends EntityTileBase {
         const newChunkX = this.chunkX;
 
         const oldChunk = this.oldChunk;
-        const newChunk = world.getChunk(newChunkX, false);
-
-        const oldEntities = oldChunk?.entities;
-        const newEntities = newChunk.entities;
+        const newChunk = world.getChunk(newChunkX);
 
         if (oldChunkX !== newChunkX) {
-            newEntities.add(this);
+            newChunk.entities.add(this);
             newChunk.pollute();
-            if (oldEntities) {
-                oldEntities.delete(this);
+            if (oldChunk) {
+                oldChunk.entities?.delete(this);
                 oldChunk.pollute();
             }
         }
@@ -408,20 +405,40 @@ export default abstract class Entity extends EntityTileBase {
         return this.getMovementData();
     };
 
-    broadcastMovement() {
-        this.broadcastPacketHere(new Packets.SEntityUpdate({
-            entityId: this.id,
-            typeId: this.typeId,
-            props: this.getMovementData()
-        }), [this]);
+    get spawnPacket() {
+        return new Packets.SEntitiesUpdate([this.spawnPkData]);
     };
 
-    broadcastSpawn() {
-        this.broadcastPacketHere(new Packets.SEntityUpdate({
+    get spawnPkData() {
+        return {
             entityId: this.id,
             typeId: this.typeId,
             props: this.getSpawnData()
-        }), [this]);
+        };
+    };
+
+    get movementPacket() {
+        return new Packets.SEntitiesUpdate([this.movementPkData]);
+    };
+
+    get movementPkData() {
+        return {
+            entityId: this.id,
+            typeId: this.typeId,
+            props: this.getMovementData()
+        };
+    };
+
+    broadcastMovement() {
+        this.broadcastPacketHere(this.movementPacket, [this]);
+    };
+
+    broadcastSpawn() {
+        this.broadcastPacketHere(this.spawnPacket, [this]);
+    };
+
+    sendTo(player: Player, immediate = false) {
+        player.sendPacket(this.spawnPacket, immediate);
     };
 
     broadcastDespawn() {
@@ -434,14 +451,6 @@ export default abstract class Entity extends EntityTileBase {
 
     getXPDrops() {
         return 0;
-    };
-
-    broadcastPacketHere(pk: Packet, exclude: Entity[] = [], immediate = false) {
-        this.world.broadcastPacketAt(this.x, pk, exclude, immediate);
-    };
-
-    broadcastSoundHere(sound: string, volume = 1) {
-        this.world.playSound(sound, this.x, this.y, volume);
     };
 
     kill(broadcast = true) {
