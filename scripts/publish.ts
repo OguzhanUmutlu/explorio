@@ -32,7 +32,7 @@ tsProcess.stderr.pipe(process.stderr);`);
 
 fs.writeFileSync("./dist-npm/package.json", JSON.stringify(pkg, null, 2));
 
-execSync("cd dist-npm && npm publish", {stdio: "inherit"});
+execSync(`cd dist-npm && npm publish --tag latest`, {stdio: "inherit"});
 
 fs.rmSync("./dist-npm", {recursive: true, force: true});
 

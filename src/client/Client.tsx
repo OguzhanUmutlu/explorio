@@ -24,9 +24,9 @@ import {ClientNetwork} from "@c/network/ClientNetwork";
 import {OriginPlayer} from "@c/entity/types/OriginPlayer";
 import {CWorld} from "@c/world/CWorld";
 import "fancy-printer";
-import {InventoryDiv, animateInventories} from "@dom/components/InventoryDiv";
+import {animateInventories, InventoryDiv} from "@dom/components/InventoryDiv";
 import {Containers, CraftingResultMap, InventorySizes} from "@/meta/Inventories";
-import {Server, DefaultServerConfig} from "@/Server";
+import {DefaultServerConfig, Server} from "@/Server";
 import {PlayerNetwork} from "@/network/PlayerNetwork";
 import {ParticleManager} from "@c/particle/ParticleManager";
 import {Packet} from "@/network/Packet";
@@ -563,9 +563,11 @@ function onLoseFocus() {
         states.optionsPage[1]("main");
         closeChat();
     }
+    lastRender = Date.now() - 1;
 }
 
 function onFocus() {
+    lastRender = Date.now() - 1;
 }
 
 function onCanvasMouseMove(e: MouseEvent) {
@@ -664,7 +666,24 @@ function onChatKeyPress(e: KeyboardEvent) {
     }
 }
 
+/*function test() {
+    const ofs = ZenFS.fs;
+    const fs = FileAsync.fs = {...FileAsync.fs} as Record<string, (...args: unknown[]) => unknown>;
+    for (const k of [
+        "access", "chmod", "stat", "utimes", "exists", "lstat", "rm", "rmdir", "unlink",
+        "readdir", "mkdir", "rename", "writeFile", "readlink", "readFile", "appendFile"
+    ]) fs[k] = (p: string, ...args: unknown[]) => {
+        console.log(k, p, args);
+        ofs[k + "Sync"]("/localstorage/" + p, ...args);
+    }
+    console.log(ofs.readdirSync("/localstorage"));
+}*/
+
 export function initClient(clientUUID: string) {
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().then(r => r);
+    }
+
     states.connectionText[1]("");
     states.saveScreen[1](false);
     states.deathScreen[1](false);
@@ -771,7 +790,7 @@ export function initClient(clientUUID: string) {
 
     onResize();
     intervalId = setInterval(() => update(1 / Options.updatesPerSecond), 1000 / Options.updatesPerSecond);
-    frameId = requestAnimationFrame(render);
+    render();
 }
 
 export function terminateClient() {
@@ -797,10 +816,8 @@ export function terminateClient() {
     }
     removeEventListener("touchend", onTouchEnd);
     removeEventListener("mouseup", onMouseUp);
-    if (chatInput) {
-        chatInput.removeEventListener("keydown", onChatKeyPress);
-    }
     removeEventListener("beforeunload", terminateClient);
+    if (chatInput) chatInput.removeEventListener("keydown", onChatKeyPress);
     console.clear();
 }
 

@@ -1,4 +1,4 @@
-import {World, Ring1} from "@/world/World";
+import {Ring1, World} from "@/world/World";
 import {CSubChunk} from "@c/world/CSubChunk";
 import {Packet} from "@/network/Packet";
 import {Player} from "@/entity/defaults/Player";
@@ -33,13 +33,17 @@ export class CWorld extends World {
         this.subChunkRenders[chunkX][chunkY].render();
     };
 
-    _polluteBlockAt(x: number, y: number) {
-        this.prepareBlockRenderAt(x, y);
+    protected _doUpdatesAt(x: number, y: number, fullId: number, polluteBlock: boolean, broadcast: boolean, light: boolean, update: boolean) {
+        super._doUpdatesAt(x, y, fullId, polluteBlock, broadcast, light, update);
 
-        const block = this.getBlock(x, y);
+        if (polluteBlock) {
+            this.prepareBlockRenderAt(x, y);
 
-        for (const [dx, dy] of Ring1) {
-            this.prepareBlockRenderAt(x + dx, y + dy, !block.isOpaque, true);
+            const block = this.getBlock(x, y);
+
+            for (const [dx, dy] of Ring1) {
+                this.prepareBlockRenderAt(x + dx, y + dy, !block.isOpaque, true);
+            }
         }
     };
 

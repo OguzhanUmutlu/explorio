@@ -1,3 +1,5 @@
+import Printer from "fancy-printer";
+
 export function getColoredPrinter() {
     const printer = Printer.brackets.create();
 
@@ -32,6 +34,8 @@ export function getColoredPrinter() {
     printer.addStyle("§k", "font-style: oblique");
     printer.addStyle("§r", "color: white; background-color: none; font-weight: normal; font-style: normal");
     printer.addStyle("&t", p => "color: " + p.options.currentTag.textColor);
+
+    printer.info("test§ctest")
 
     return printer;
 }

@@ -24,10 +24,10 @@ export class SServer extends Server {
 
         getColoredPrinter().makeGlobal().replaceConsole();
 
-        const exit = () => {
+        const exit = async () => {
             wss.close();
             try {
-                this.close();
+                await this.close();
             } catch (e) {
                 printer.error("Got an error while closing the server. Terminating the process anyways.");
                 printer.error(e);
@@ -64,7 +64,7 @@ export class SServer extends Server {
         this.socketServer = wss;
         await this.init();
         server.listen(this.config.port);
-        if (this.closed) exit();
+        if (this.closed) await exit();
 
         let corsOrigin = this.config.corsOrigin;
 

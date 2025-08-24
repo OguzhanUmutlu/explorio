@@ -1,7 +1,7 @@
-import {World, Generators, getRandomSeed, WorldMetaData, ZWorldMetaData} from "@/world/World";
+import {Generators, getRandomSeed, World, WorldMetaData, ZWorldMetaData} from "@/world/World";
 import {Player} from "@/entity/defaults/Player";
 import {CommandError} from "@/command/CommandError";
-import {CommandSender, CommandAs} from "@/command/CommandSender";
+import {CommandAs, CommandSender} from "@/command/CommandSender";
 import {cleanText} from "@/command/CommandProcessor";
 import {SelectorToken} from "@/command/token/SelectorToken";
 import {Position} from "@/utils/Position";
@@ -245,7 +245,7 @@ export class Server {
                 this.bans.push(new BanEntry(ban.name, ban.ip, ban.timestamp, ban.reason));
             }
         } catch (e) {
-            console.log(e)
+            printer.error(e)
             return this.close("Couldn't parse ban file. Closing server... Please fix the JSON or remove the file.");
         }
 
@@ -814,8 +814,8 @@ export class Server {
         }
 
         if (++this.saveCounter > this.config.saveIntervalTicks) {
-            this.saveAll().then(r => r);
-            this.saveCounter = 0;
+            this.saveAll().then(() => this.saveCounter = 0);
+            this.saveCounter = -Infinity;
         }
 
         for (const folder in this.worlds) {
@@ -942,6 +942,12 @@ export class Server {
         }
     };
 
+    __saveWorldsUrgent() {
+        for (const folder in this.worlds) {
+            this.worlds[folder].save();
+        }
+    };
+
     async savePlayers() {
         for (const player in this.players) {
             await this.players[player].save();
@@ -957,6 +963,7 @@ export class Server {
     };
 
     async saveAll() {
+        // printer.info("Saving...");
         await this.saveWorlds();
         await this.savePlayers();
         await this.saveBans();
@@ -981,8 +988,11 @@ export class Server {
 
         printer.info("Saving the worlds...");
         await this.saveWorlds();
+        printer.info("Saving bans...");
         await this.saveBans();
+        printer.info("Saving storage...");
         await this.saveStorage();
+        printer.info("Saved everything.");
 
         if (this.socketServer) this.socketServer.close();
         clearInterval(this.intervalId);

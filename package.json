@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "client": "vite",
-    "server": "cd server && tsx ../src/server/Main.ts",
+    "server": "tsx ./src/server/Main.ts ./server",
     "desktop": "npm run build:desktop && cd src/desktop && npx electron .",
     "authserver": "cd src/auth && tsx Main.ts",
     "test": "tsx tests/test.ts",
@@ -45,11 +45,11 @@
     "express-rate-limit": "^7.5.1",
     "fancy-printer": "^2.1.6",
     "fast-glob": "^3.3.3",
-    "ktfile": "^0.0.6",
+    "ktfile": "^1.0.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "simplex-noise": "^4.0.3",
-    "stramp": "^2.2.8",
+    "stramp": "^2.3.2",
     "ws": "^8.18.3",
     "zod": "^4.1.0"
   },

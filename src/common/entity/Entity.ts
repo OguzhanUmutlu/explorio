@@ -2,7 +2,7 @@ import {EffectInstance} from "@/effect/EffectInstance";
 import {Effect} from "@/effect/Effect";
 
 import {BoundingBox} from "@/entity/BoundingBox";
-import {Position, getRotationTowards} from "@/utils/Position";
+import {getRotationTowards, Position} from "@/utils/Position";
 import {Packets} from "@/network/Packets";
 import {EntityTileBase} from "@/entity/EntityTileBase";
 import {EntitySaveStruct} from "@/structs/EntityTileSaveStruct";
@@ -375,10 +375,10 @@ export abstract class Entity extends EntityTileBase {
 
         if (oldChunkX !== newChunkX) {
             newChunk.entities.add(this);
-            newChunk.pollute();
+            if (!(this instanceof Player)) newChunk.pollute();
             if (oldChunk) {
                 oldChunk.entities?.delete(this);
-                oldChunk.pollute();
+                if (!(this instanceof Player)) oldChunk.pollute();
             }
         }
 

@@ -567,6 +567,7 @@ export class PlayerNetwork {
                 packets.push({x: chunk.x, biome: chunk.biome, data: chunk.blocks});
             }
         }
+        if (packets.length === 0) return;
         this.sendPacket(new Packets.SSetChunks(packets), immediate);
     };
 

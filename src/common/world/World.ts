@@ -38,7 +38,7 @@ import {FallingBlockEntity} from "@/entity/defaults/FallingBlockEntity";
 import {ChunkGroupStruct} from "@/structs/ChunkStructs";
 import {FullIds, ItemIds} from "@/meta/ItemIds";
 import {im2f} from "@/meta/ItemInformation";
-import {ItemFactory, f2data} from "@/item/ItemFactory";
+import {f2data, ItemFactory} from "@/item/ItemFactory";
 import {FileAsync} from "ktfile";
 
 export function getRandomSeed(): bigint {
@@ -241,7 +241,7 @@ export class World {
     // broadcast: Broadcasts the block update to all players.
     // light: Updates the necessary light levels around the block.
     // update: Applies logical block updates at and around the block.
-    private _doUpdatesAt(x: number, y: number, fullId: number, polluteBlock: boolean, broadcast: boolean, light: boolean, update: boolean) {
+    protected _doUpdatesAt(x: number, y: number, fullId: number, polluteBlock: boolean, broadcast: boolean, light: boolean, update: boolean) {
         if (polluteBlock) this.getChunk(x2cx(x)).pollute(!broadcast);
         if (broadcast) this.broadcastBlockAt(x, y, fullId);
         if (light) this.updateLightAt(x, y);
@@ -291,7 +291,7 @@ export class World {
         if (!this.unloadedChunkGroups.has(cgx) || this.loadingChunkGroups.has(cgx)) return;
 
         this.loadingChunkGroups.add(cgx);
-        let buffer = await this.getChunkGroupBuffer(cgx);
+        let buffer = await this.readChunkGroup(cgx);
         this.unloadedChunkGroups.delete(cgx);
         if (!buffer) return;
         const cxStart = cgx2cx(cgx);
@@ -367,7 +367,7 @@ export class World {
         }
     };
 
-    async saveChunkGroup(chunkGroupX: number) {
+    createChunkGroupBuffer(chunkGroupX: number) {
         const baseChunkX = cgx2cx(chunkGroupX);
         const list = [];
         let hasDirty = false;
@@ -394,8 +394,8 @@ export class World {
 
         const buffer = ChunkGroupStruct.serialize(list);
 
-        await this.setChunkGroupBuffer(chunkGroupX, zstdOptionalEncode(buffer));
-    };
+        return zstdOptionalEncode(buffer);
+    }
 
     async save() {
         const cgxList = [];
@@ -406,7 +406,6 @@ export class World {
         }
 
         for (const cgx of cgxList) await this.saveChunkGroup(cgx);
-
         await this.path.to("world.json").writeJSON({...this.data, seed: String(this.data.seed)});
     };
 
@@ -690,18 +689,19 @@ export class World {
         }
     };
 
-    async getChunkGroupBuffer(chunkGroupX: number): Promise<Buffer | null> {
+    async readChunkGroup(chunkGroupX: number): Promise<Buffer | null> {
         const chunkPath = this.path.to("chunks", chunkGroupX + ".dat");
         return await chunkPath.read();
     };
 
-    async setChunkGroupBuffer(chunkGroupX: number, buffer: Buffer) {
-        const chunksFolder = this.server.path.to("chunks");
+    async saveChunkGroup(chunkGroupX: number) {
+        const chunksFolder = this.path.to("chunks");
         await chunksFolder.mkdir();
+        const buffer = this.createChunkGroupBuffer(chunkGroupX);
         await chunksFolder.to(chunkGroupX + ".dat").write(buffer);
     };
 
-    async removeChunkGroupBuffer(chunkGroupX: number) {
+    async deleteChunkGroup(chunkGroupX: number) {
         await this.path.to("chunks", chunkGroupX + ".dat").delete();
     };
 
@@ -729,7 +729,7 @@ export class World {
     };
 
     broadcastBlockAt(x: number, y: number, fullId = null, exclude: Entity[] = [], immediate = false) {
-        if (this.server.isClientSide()) return;
+        if (this.isClient) return;
         const chunkX = x2cx(x);
         fullId ??= this.getFullBlockAt(x, y);
         for (const player of this.getChunkViewers(chunkX)) {

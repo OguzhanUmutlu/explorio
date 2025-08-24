@@ -1,7 +1,7 @@
 import {EntityIds} from "@/meta/Entities";
 import {CPlayer} from "@c/entity/types/CPlayer";
 import {initCommon} from "@/utils/Inits";
-import {Texture, Canvas, Image, SkinData} from "@/utils/Texture";
+import {Canvas, Image, SkinData, Texture} from "@/utils/Texture";
 import {BoundingBox} from "@/entity/BoundingBox";
 import {camera, canvas, clientServer, ctx} from "@dom/Client";
 import {ClassOf, SoundFiles} from "@/utils/Utils";
@@ -18,7 +18,7 @@ import {SteveDataURL} from "@dom/assets/Steve";
 import {ItemFactory} from "@/item/ItemFactory";
 import {InventoryHandlers} from "@dom/components/InventoryDiv";
 import {CWorld} from "@c/world/CWorld";
-import {IndexedDB} from "@zenfs/dom";
+import {IndexedDB, WebStorage} from "@zenfs/dom";
 import {fileAsync, FileAsync} from "ktfile";
 
 export type Div = HTMLDivElement;
@@ -142,7 +142,8 @@ export async function initBrowserFS() {
         if (typeof electron === "undefined") {
             await ZenFS.configure({
                 mounts: {
-                    "/": await IndexedDB.create({storeName: "explorio"})
+                    "/": await IndexedDB.create({storeName: "explorio"}),
+                    "/localstorage": WebStorage.create({storage: localStorage})
                 }
             });
             FileAsync.fs = ZenFS.fs.promises;
@@ -349,7 +350,7 @@ export const DefaultOptions: OptionsType = {
     textures_animated: 1,
     firework_particles: 1,
 
-    auto_save: 45,
+    auto_save: 3,
 
     camera_speed: 12,
     invert_mouse: 0,

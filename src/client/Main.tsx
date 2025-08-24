@@ -5,7 +5,7 @@ import {Client, terminateClient} from "@dom/Client";
 import {getHash, isMobileByAgent} from "@c/utils/Utils";
 import {getColoredPrinter} from "@/utils/ColoredPrinter";
 
-getColoredPrinter().makeGlobal().replaceConsole();
+getColoredPrinter().makeGlobal();
 
 export function Main() {
     const clientUUID = useState(getHash);

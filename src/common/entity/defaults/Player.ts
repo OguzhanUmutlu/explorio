@@ -258,14 +258,14 @@ export class Player extends Entity implements CommandSender {
             this.breaking = null;
 
             if (!this.world.tryToBreakBlockAt(this, bx, by)) {
-                this.network.sendBlock(bx, by);
+                this.network?.sendBlock(bx, by);
                 this.broadcastBlockBreaking();
                 return;
             }
         }
 
         for (const name in this.inventories) {
-            this.network.syncInventory(<InventoryName>name);
+            this.network?.syncInventory(<InventoryName>name);
         }
 
         const isOnGround = this.onGround;
@@ -279,7 +279,7 @@ export class Player extends Entity implements CommandSender {
             if (this.y > this.fallY) this.fallY = this.y;
         }
 
-        this.network.releaseBatch();
+        this.network?.releaseBatch();
     };
 
     kill(broadcast: boolean = true) {
@@ -290,7 +290,7 @@ export class Player extends Entity implements CommandSender {
                 }
             }
             this.clearInventories();
-            this.network.sendInventories();
+            this.network?.sendInventories();
             if (this.xpLevels > 0) this.world.dropXP(this.x, this.y, Math.min(100, this.xpLevels * 7))
         }
         super.kill(broadcast);
@@ -308,8 +308,8 @@ export class Player extends Entity implements CommandSender {
         const spawn = this.world.getSpawnPoint();
         this.teleport(spawn.x, spawn.y, this.world, false);
         this.broadcastBlockBreaking();
-        this.network.sendAttributes();
-        this.network.sendPosition();
+        this.network?.sendAttributes();
+        this.network?.sendPosition();
         this.broadcastSpawn();
         this.onMovement();
     };
@@ -320,13 +320,13 @@ export class Player extends Entity implements CommandSender {
             this.world.chunks[x]?.dereference();
         }
         this.viewingChunks.clear();
-        this.network.sendPacket(new Packets.SEntityRemove(this.id));
+        this.network?.sendPacket(new Packets.SEntityRemove(this.id));
     };
 
     teleport(x: number, y: number, world = this.world, send = true) {
         super.teleport(x, y, world);
         this.fallY = this.y;
-        if (send) this.network.sendPosition();
+        if (send) this.network?.sendPosition();
 
         return this;
     };
@@ -359,7 +359,7 @@ export class Player extends Entity implements CommandSender {
 
     sendMessage(message: string): void {
         for (const msg of message.split("\n")) {
-            this.network.sendMessage(msg);
+            this.network?.sendMessage(msg);
         }
     };
 
@@ -371,7 +371,7 @@ export class Player extends Entity implements CommandSender {
         const ev = new PlayerKickEvent(this, reason);
         if (ev.callGetCancel()) return;
 
-        this.network.kick(ev.reason);
+        this.network?.kick(ev.reason);
     };
 
     ban(reason = "Banned by an operator") {
@@ -385,7 +385,7 @@ export class Player extends Entity implements CommandSender {
             if (player.isOnline() && player !== this) player.kick(reason);
         }
 
-        this.server.addIPBan(this.name, this.network.ip, reason);
+        this.server.addIPBan(this.name, this.network?.ip, reason);
         this.kick(reason);
     };
 
@@ -471,7 +471,7 @@ export class Player extends Entity implements CommandSender {
 
     sendPacket(pk: Packet, immediate = false) {
         if (!this.network) return;
-        this.network.sendPacket(pk, immediate);
+        this.network?.sendPacket(pk, immediate);
     };
 
     applyAttributes(reset = true) {

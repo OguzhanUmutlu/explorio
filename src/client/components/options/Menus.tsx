@@ -269,8 +269,7 @@ export const Menus: Record<OptionPages, Menu> = {
             new ToggleOption("invert_mouse", "Invert Mouse")
         ]),
         new OptionGroup([
-            new NumberOption("scroll_sensitivity", "Scroll Sensitivity", "", 1, 200, 1),
-            new ToggleOption("pauseOnBlur", "Pause on Blur")
+            new NumberOption("scroll_sensitivity", "Scroll Sensitivity", "", 1, 200, 1)
         ])
     ]),
     key_binds: new JSXMenu("Mouse Settings", "controls", "Done", () => {
@@ -400,7 +399,8 @@ export const Menus: Record<OptionPages, Menu> = {
     }),
     accessibility: new NormalMenu("Accessibility Settings", "main", [
         new OptionGroup([
-            new NumberOption("auto_save", "Auto Save", "", 10, 600, 1, " seconds")
+            new NumberOption("auto_save", "Auto Save", "", 0, 60, 1, " seconds"),
+            new ToggleOption("pauseOnBlur", "Pause on Blur")
         ])
     ]),
     animations: new NormalMenu("Animation Settings", "video_settings", [
