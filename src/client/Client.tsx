@@ -734,7 +734,7 @@ export function initClient(clientUUID: string) {
         states.connectionText[1]("Connecting...");
         clientNetwork._connect().then(r => r); // not waiting for it to connect
     } else {
-        const server = singlePlayerServer = new Server(bfs.to(WorldInfo.uuid));
+        const server = singlePlayerServer = new Server(bfs.to("singleplayer", WorldInfo.uuid));
         Error.stackTraceLimit = 50;
 
         const config = server.config = DefaultServerConfig;

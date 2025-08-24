@@ -19,7 +19,7 @@ import {ItemFactory} from "@/item/ItemFactory";
 import {InventoryHandlers} from "@dom/components/InventoryDiv";
 import {CWorld} from "@c/world/CWorld";
 import {IndexedDB, WebStorage} from "@zenfs/dom";
-import {fileAsync, FileAsync} from "ktfile";
+import {fileAsync, FileAsync, FileSync} from "ktfile";
 
 export type Div = HTMLDivElement;
 export type Input = HTMLInputElement;
@@ -147,11 +147,13 @@ export async function initBrowserFS() {
                 }
             });
             FileAsync.fs = ZenFS.fs.promises;
-            w.bfs = fileAsync("singleplayer");
-            await bfs.mkdir();
+            FileSync.fs = ZenFS.fs;
+            w.bfs = fileAsync(".");
+            await bfs.to("singleplayer").mkdir();
         } else {
-            const el = <{ fs: unknown, fs_path: string }>electron;
-            FileAsync.fs = el.fs;
+            const el = <{ fs: typeof import("fs"), fs_path: string }>electron;
+            FileAsync.fs = el.fs.promises;
+            FileSync.fs = el.fs;
             w.bfs = fileAsync(el.fs_path);
         }
         self.Buffer = Buffer;
@@ -405,7 +407,7 @@ export async function removeWorld(uuid: string) {
     const world = worlds.find(i => i.uuid === uuid);
     if (!world) return;
 
-    await bfs.to(uuid).delete();
+    await bfs.to("singleplayer", uuid).delete();
 
     worlds.splice(worlds.indexOf(world), 1);
     saveWorlds(worlds);

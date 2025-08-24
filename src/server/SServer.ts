@@ -69,7 +69,7 @@ export class SServer extends Server {
         let corsOrigin = this.config.corsOrigin;
 
         if (corsOrigin !== "*") {
-            const trusted = ["https://mc.oguzhanumutlu.com"];
+            const trusted = ["https://explorio.oguzhanumutlu.com"];
 
             if (!corsOrigin) corsOrigin = trusted;
             else if (typeof corsOrigin === "string") corsOrigin = [corsOrigin, ...trusted];
