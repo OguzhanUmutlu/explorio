@@ -755,9 +755,11 @@ export class Server {
                     if (chunk.dirtyBlocks) cleanedChunks.add(chunk);
                 }
 
-                for (const entity of chunk.entities) if (!player.viewingEntities.has(entity.id)) {
-                    sendingEntities.push(entity);
-                    entities.add(entity);
+                for (const entity of chunk.entities) {
+                    if (entity !== player && !player.viewingEntities.has(entity.id)) {
+                        sendingEntities.push(entity);
+                        entities.add(entity);
+                    }
                 }
             }
 

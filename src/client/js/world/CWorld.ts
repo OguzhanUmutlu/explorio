@@ -71,7 +71,6 @@ export class CWorld extends World {
     };
 
     prepareBlockRenderAt(x: number, y: number, blocks = true, shadows = true) {
-        console.log(x,y)
         this.getSubChunkAt(x, y)?.prepareBlock(x2rx(x), y2ry(y), blocks, shadows);
     };
 
