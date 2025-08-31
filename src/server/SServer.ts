@@ -18,7 +18,7 @@ export class SServer extends Server {
     };
 
     async start() {
-        const t = Date.now();
+        const t = performance.now();
 
         Error.stackTraceLimit = 50;
 
@@ -76,7 +76,7 @@ export class SServer extends Server {
             else if (Array.isArray(corsOrigin)) corsOrigin.push(...trusted);
             corsOrigin = [...new Set(corsOrigin)];
         } else {
-            printer.warn("CORS is set to '*', this is not recommended for production servers. " +
+            printer.warn("CORS is set to '*'. This is not recommended for production servers. " +
                 "It allows any website to force users to join your server. " +
                 "You can set it to a specific origin or an array of origins in the config file.");
         }
@@ -106,7 +106,7 @@ export class SServer extends Server {
             setTimeout(listenForTerminal);
         };
 
-        printer.info("Server started in " + (Date.now() - t) + "ms");
+        printer.info("Server started in " + (performance.now() - t).toFixed(2) + "ms");
         listenForTerminal().then(void 0);
     };
 }

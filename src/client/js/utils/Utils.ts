@@ -424,7 +424,16 @@ export function getServerList(): ServerData[] {
 
 export function addServer(name: string, ip: string, port: number) {
     const servers = getServerList();
-    servers.push({uuid: Date.now().toString(36), name, ip, port, lastPlayedAt: Date.now(), preferSecure: true});
+    let uuid = name
+        .replaceAll(" ", "_")
+        .toLowerCase()
+        .replaceAll(/[^a-zA-Z\d_]/g, "");
+    if (servers.some(i => i.name === uuid)) {
+        let id = 1;
+        while (servers.some(i => i.name === `${uuid}_${id}`)) id++;
+        uuid = `${uuid}_${id}`;
+    }
+    servers.push({uuid, name, ip, port, lastPlayedAt: Date.now(), preferSecure: true});
     localStorage.setItem("explorio.servers", JSON.stringify(servers));
 }
 
