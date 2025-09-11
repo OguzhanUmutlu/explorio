@@ -54,8 +54,8 @@ class JSXMenu extends Menu {
 }
 
 export type OptionPages = "none" | "main" | "index" | "client" | "online" | "skin_customization" | "sound"
-    | "video_settings" | "controls" | "language" | "chat" | "resource_packs" | "accessibility" | "animations"
-    | "statistics" | "achievements" | "mouse" | "key_binds" | "login";
+    | "video_settings" | "controls" | "language" | "chat" | "resource_packs" | "accessibility" | "credits"
+    | "animations" | "statistics" | "achievements" | "mouse" | "key_binds" | "login";
 
 export const TokenCookieName = "__explorio__private__token__";
 export const UsernameCookieName = "__explorio__private__username__";
@@ -82,7 +82,8 @@ export const Menus: Record<OptionPages, Menu> = {
         new OptionGroup([
             new ButtonOption("Resource Packs...", "resource_packs"),
             new ButtonOption("Accessibility Settings...", "accessibility")
-        ])
+        ]),
+        new ButtonOption("Credits & Attributions", "credits")
     ]),
     client: new NormalMenu("Game Options", null, [
         /*new OptionGroup([
@@ -403,6 +404,19 @@ export const Menus: Record<OptionPages, Menu> = {
             new ToggleOption("pauseOnBlur", "Pause on Blur")
         ])
     ]),
+    credits: new JSXMenu("Credits & Attributions", "index", "Done", () => {
+        return <>
+            <h2>Explorio</h2>
+            <p>Version: {VersionString}</p>
+            <p>
+                Source Code: <a href="https://github.com/OguzhanUmutlu/explorio" target="_blank" rel="noreferrer"></a>
+            </p>
+            <h3>Attributions</h3>
+            <p>
+                <strong>ZenFS</strong> - MIT License<br/>
+            </p>
+        </>;
+    }),
     animations: new NormalMenu("Animation Settings", "video_settings", [
         new OptionGroup([
             new ToggleOption("water_animated", "Water Animated"),
