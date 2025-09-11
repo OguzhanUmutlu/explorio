@@ -409,7 +409,7 @@ export const Menus: Record<OptionPages, Menu> = {
             <p>Explorio Version: {VersionString}</p>
             <h3>Attributions</h3>
             <p>
-                <strong>ZenFS</strong> - MIT License<br/>
+                <a href="http://github.com/zen-fs" target="_blank"><strong>ZenFS</strong></a> - MIT License<br/>
             </p>
         </span>;
     }),
