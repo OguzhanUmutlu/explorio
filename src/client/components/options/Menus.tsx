@@ -404,7 +404,7 @@ export const Menus: Record<OptionPages, Menu> = {
             new ToggleOption("pauseOnBlur", "Pause on Blur")
         ])
     ]),
-    credits: new JSXMenu("Credits & Attributions", "index", "Done", () => {
+    credits: new JSXMenu("Credits & Attributions", "main", "Done", () => {
         return <span style={{textAlign: "center"}}>
             <p>Explorio Version: {VersionString}</p>
             <h3>Attributions</h3>
