@@ -225,7 +225,7 @@ input {
     max-width: calc(100vw - 50px);
 }
 
-h3 {
+h2, h3 {
     text-align: center;
 }
 
