@@ -405,12 +405,8 @@ export const Menus: Record<OptionPages, Menu> = {
         ])
     ]),
     credits: new JSXMenu("Credits & Attributions", "index", "Done", () => {
-        return <span style={{textAlign:"center"}}>
-            <h2>Explorio</h2>
-            <p>Version: {VersionString}</p>
-            <p>
-                Source Code: <a href="https://github.com/OguzhanUmutlu/explorio" target="_blank" rel="noreferrer"></a>
-            </p>
+        return <span style={{textAlign: "center"}}>
+            <p>Explorio Version: {VersionString}</p>
             <h3>Attributions</h3>
             <p>
                 <strong>ZenFS</strong> - MIT License<br/>
