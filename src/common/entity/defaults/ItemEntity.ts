@@ -2,7 +2,7 @@ import {BoundingBox} from "@/entity/BoundingBox";
 import {EntityIds} from "@/meta/Entities";
 import {Item} from "@/item/Item";
 import {Player} from "@/entity/defaults/Player";
-import {ItemStruct} from "@/structs/ItemStructs";
+import {PublicItemStruct} from "@/structs/ItemStructs";
 import X, {def} from "stramp";
 import {Entity} from "@/entity/Entity";
 
@@ -13,7 +13,7 @@ export class ItemEntity extends Entity {
     typeName = "item";
     name = "Item";
 
-    @def(ItemStruct) item: Item;
+    @def(PublicItemStruct) item: Item;
     @def(X.f32) delay = 0;
     @def(X.f32) despawnTimer = 5 * 60;
 
@@ -24,9 +24,9 @@ export class ItemEntity extends Entity {
         return "";
     };
 
-    getSpawnData() {
+    get spawnData() {
         return {
-            ...super.getSpawnData(),
+            ...super.spawnData,
             vx: this.vx,
             vy: this.vy,
             itemFullId: this.item.fullId
@@ -74,7 +74,7 @@ export class ItemEntity extends Entity {
 
         if (this.onGround) {
             if (!this.wasOnGround) {
-                this.broadcastMovement();
+                this.broadcastUpdate();
             }
             this.wasOnGround = true;
         }

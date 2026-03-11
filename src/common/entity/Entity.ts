@@ -12,7 +12,7 @@ import {randInt} from "@/utils/Utils";
 import {Damage} from "@/entity/Damage";
 import {Player} from "@/entity/defaults/Player";
 import {AnimationIds} from "@/meta/Animations";
-import X, {def} from "stramp";
+import X, {Bin, def} from "stramp";
 import {EntityAnimationStruct} from "@/structs/EntityAnimationStruct";
 
 export const DefaultWalkSpeed = 5;
@@ -338,7 +338,7 @@ export abstract class Entity extends EntityTileBase {
     serverUpdate(dt: number): void {
         if (this.calcCacheState() !== this.cacheState) {
             this.updateCacheState();
-            this.broadcastMovement();
+            this.broadcastUpdate();
         }
 
         this.update(dt);
@@ -394,43 +394,34 @@ export abstract class Entity extends EntityTileBase {
         this.groundBB.width = this.bb.width;
     };
 
-    getMovementData() {
+    get spawnData() {
         return {
             x: this.x,
             y: this.y
         };
     };
 
-    getSpawnData() {
-        return this.getMovementData();
-    };
-
     get spawnPacket() {
-        return new Packets.SEntitiesUpdate([this.spawnPkData]);
-    };
-
-    get spawnPkData() {
-        return {
+        return new Packets.SEntitiesUpdate([{
             entityId: this.id,
             typeId: this.typeId,
-            props: this.getSpawnData()
+            props: this.spawnData
+        }]);
+    };
+
+    get updateData() {
+        return {
+            x: this.x,
+            y: this.y
         };
     };
 
-    get movementPacket() {
-        return new Packets.SEntitiesUpdate([this.movementPkData]);
-    };
-
-    get movementPkData() {
-        return {
+    broadcastUpdate() {
+        this.broadcastPacketHere(new Packets.SEntitiesUpdate([{
             entityId: this.id,
             typeId: this.typeId,
-            props: this.getMovementData()
-        };
-    };
-
-    broadcastMovement() {
-        this.broadcastPacketHere(this.movementPacket, [this]);
+            props: this.updateData
+        }]), [this]);
     };
 
     broadcastSpawn() {

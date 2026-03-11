@@ -22,15 +22,12 @@ export class XPOrbEntity extends Entity {
         return `${this.amount}`;
     };
 
-    getSpawnData() {
+    get spawnData() {
         return {
-            ...super.getMovementData(),
+            x: this.x,
+            y: this.y,
             amount: this.amount
         };
-    };
-
-    getMovementData() {
-        return this.getSpawnData();
     };
 
     serverUpdate(dt: number) {
@@ -76,7 +73,7 @@ export class XPOrbEntity extends Entity {
         if (this.onGround) {
             this.vx = 0;
             if (!this.wasOnGround) {
-                this.broadcastMovement();
+                this.broadcastUpdate();
             }
 
             this.wasOnGround = true;

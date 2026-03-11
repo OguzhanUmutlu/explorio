@@ -5,7 +5,7 @@ import {PacketIds} from "@/meta/PacketIds";
 import X, {Bin, BufferIndex} from "stramp";
 import {ChunkBlocksBin} from "@/structs/ChunkBlocksBin";
 import {GameModeStruct} from "@/command/arguments/GameModeArgument";
-import {InventoryContentStruct, InventoryNameBin, ItemStruct} from "@/structs/ItemStructs";
+import {InventoryNameBin, ProtectedItemStruct} from "@/structs/ItemStructs";
 import {EntityAnimationStruct} from "@/structs/EntityAnimationStruct";
 import {ContainerIDBin} from "@/meta/Inventories";
 
@@ -157,13 +157,13 @@ export const PacketStructs = {
     }),
     [PacketIds.SSetInventory]: X.object.struct({
         name: InventoryNameBin,
-        items: InventoryContentStruct.array()
+        items: ProtectedItemStruct.nullable().array()
     }),
     [PacketIds.SUpdateInventory]: X.object.struct({
         name: InventoryNameBin,
         indices: X.object.struct({
             index: X.u8,
-            item: InventoryContentStruct
+            item: ProtectedItemStruct.nullable()
         }).array()
     }),
     [PacketIds.SSetContainer]: X.object.struct({
@@ -226,7 +226,7 @@ export const PacketStructs = {
     [PacketIds.CSetItem]: X.object.struct({ // only when infiniteResource is on (for now it's just for creative game mode)
         inventory: InventoryNameBin,
         index: X.u8,
-        item: ItemStruct
+        item: ProtectedItemStruct
     }),
     [PacketIds.CRespawn]: X.null
 } as const;

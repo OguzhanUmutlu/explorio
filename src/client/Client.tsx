@@ -343,6 +343,15 @@ function render() {
 }
 
 function update(dt: number) {
+    if (singlePlayerServer && singlePlayerServer.closed) {
+        if (singlePlayerServer.closeReason) {
+            alert("The world was closed: " + singlePlayerServer.closeReason);
+        }
+        location.hash = "";
+        terminateClient();
+        return;
+    }
+
     if (singlePlayerServer && singlePlayerServer.pausedUpdates) return;
     const world = clientPlayer.world;
 
@@ -915,14 +924,6 @@ export function Client(O: {
             if (IS_LOCALHOST) throw e;
             console.error(e);
             alert("Couldn't load the world. " + e.message);
-            location.hash = "";
-            terminateClient();
-            return;
-        }
-        if (singlePlayerServer && singlePlayerServer.closed) {
-            if (singlePlayerServer.closeReason) {
-                alert("The world was closed: " + singlePlayerServer.closeReason);
-            }
             location.hash = "";
             terminateClient();
             return;

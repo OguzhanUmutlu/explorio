@@ -25,9 +25,9 @@ export class FallingBlockEntity extends Entity {
         return ""; // don't update for client
     };
 
-    getSpawnData() {
+    get spawnData() {
         return {
-            ...super.getSpawnData(),
+            ...super.spawnData,
             vx: this.vx,
             vy: this.vy,
             blockFullId: this.blockFullId

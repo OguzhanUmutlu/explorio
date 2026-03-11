@@ -17,7 +17,7 @@ import {Entity} from "@/entity/Entity";
 import {FallDamage} from "@/entity/damage/FallDamage";
 import {Block} from "@/block/Block";
 import {Server} from "@/Server";
-import {InventoryStruct} from "@/structs/ItemStructs";
+import {InventoryStruct, ItemPublicity} from "@/structs/ItemStructs";
 import {World} from "@/world/World";
 
 const ContainerInventoryNames: Record<Containers, InventoryName[]> = {
@@ -36,8 +36,12 @@ const nonShiftables: InventoryName[] = ["cursor", "player", "offhand", "hotbar",
 
 const temporaryInventories: InventoryName[] = ["cursor", "craftingSmall", "craftingBig"];
 
-const InventoriesStruct = X.object.struct(["hotbar", "offhand", "player", "armor", "cursor"]
-    .reduce((a, b) => ({...a, [b]: InventoryStruct(InventorySizes[b], b)}), {}));
+function getInventoriesStruct(publicity: ItemPublicity) {
+    return X.object.struct(["hotbar", "offhand", "player", "armor", "cursor"]
+        .reduce((a, b) => ({...a, [b]: InventoryStruct(publicity, InventorySizes[b], b)}), {}));
+}
+
+const PublicInventoriesStruct = getInventoriesStruct(ItemPublicity.PUBLIC);
 
 X.object.struct({worldFolder: X.s16})
     .withConstructor(({worldFolder}) => Server.instance.worlds[worldFolder])
@@ -50,7 +54,7 @@ export class Player extends Entity implements CommandSender {
     @def(X.s16.set()) permissions = new Set<string>;
     @def(X.u8) handIndex = 0;
     @def(GameModeStruct) gameMode = GameMode.Survival;
-    @def(InventoriesStruct) inventories = <Record<InventoryName, Inventory>>{};
+    @def(PublicInventoriesStruct) inventories = <Record<InventoryName, Inventory>>{};
 
     name = "";
     skin = null;
@@ -127,18 +131,19 @@ export class Player extends Entity implements CommandSender {
         return this.getShiftableInventoryNames().map(name => this.inventories[name]);
     };
 
-    getSpawnData() {
+    get spawnData() {
         const item = this.handItem;
         return {
-            ...super.getSpawnData(),
+            ...super.spawnData,
             handItemId: item?.id || 0,
             handItemMeta: item?.meta || 0
         };
     };
 
-    getMovementData() {
+    get updateData() {
         return {
-            ...super.getMovementData(),
+            x: this.x,
+            y: this.y,
             rotation: this.rotation
         };
     };

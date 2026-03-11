@@ -698,7 +698,10 @@ export class World {
         const chunksFolder = this.path.to("chunks");
         await chunksFolder.mkdir();
         const buffer = this.createChunkGroupBuffer(chunkGroupX);
-        await chunksFolder.to(chunkGroupX + ".dat").write(buffer);
+        const tmp = chunksFolder.to(chunkGroupX + ".tmp.dat");
+        await tmp.write(buffer);
+        await tmp.renameTo(chunksFolder.to(chunkGroupX + ".dat"), true);
+        await tmp.delete();
     };
 
     async deleteChunkGroup(chunkGroupX: number) {

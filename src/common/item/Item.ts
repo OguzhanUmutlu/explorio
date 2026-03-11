@@ -1,21 +1,27 @@
 import {im2f} from "@/meta/ItemInformation";
-import {ItemComponents, ItemStruct} from "@/structs/ItemStructs";
+import type {ItemComponents} from "@/structs/ItemStructs";
 import {f2data} from "@/item/ItemFactory";
 
 export const DefaultItemComponents: ItemComponents = {
-    damage: 0
+    damage: 0,
+    enchantments: [],
+    displayName: null,
+    description: null,
+    customData: null
 };
 
 export class Item {
-    maxStack: number;
+    count: number;
     components: ItemComponents;
+    maxStack: number;
 
     constructor(
         public id: number,
         public meta: number = 0,
-        public count: number = 1,
+        count: number = 1,
         components: Partial<ItemComponents> = {}
     ) {
+        this.count = count;
         this.components = {...DefaultItemComponents, ...components}
         this.maxStack = this.toMetadata().maxStack;
     };
@@ -38,14 +44,6 @@ export class Item {
 
     render(ctx: CanvasRenderingContext2D, x = 0, y = 0, w = ctx.canvas.width, h = w, waitToLoad = true) {
         return this.toMetadata().renderItem(ctx, x, y, w, h, waitToLoad);
-    };
-
-    toBuffer() {
-        return ItemStruct.serialize(this);
-    };
-
-    static fromBuffer(buffer: Buffer) {
-        return ItemStruct.parse(buffer);
     };
 
     equals(item: Item, count = true, components = true) {

@@ -573,7 +573,11 @@ export class PlayerNetwork {
 
     sendEntities(entities: Entity[], immediate = false) {
         if (entities.length < 0) return;
-        const data = entities.filter(e => !e.despawned).map(e => e.spawnPkData);
+        const data = entities.filter(e => !e.despawned).map(e => ({
+            entityId: e.id,
+            typeId: e.typeId,
+            props: e.spawnData
+        }));
         if (data.length === 0) return;
         this.sendPacket(new Packets.SEntitiesUpdate(data), immediate);
     };

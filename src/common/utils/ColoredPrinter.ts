@@ -4,6 +4,7 @@ export function getColoredPrinter() {
     const printer = Printer.brackets.create();
 
     printer.options.allowSubstitutions = true;
+    printer.options.allowTextSubstitutions = true;
     printer.removeAllSubstitutions();
     const colors = {
         0: "000000",
@@ -34,8 +35,6 @@ export function getColoredPrinter() {
     printer.addStyle("§k", "font-style: oblique");
     printer.addStyle("§r", "color: white; background-color: none; font-weight: normal; font-style: normal");
     printer.addStyle("&t", p => "color: " + p.options.currentTag.textColor);
-
-    printer.info("test§ctest")
 
     return printer;
 }

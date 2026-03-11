@@ -1,6 +1,6 @@
 import {TileIds} from "@/meta/Tiles";
 import {ContainerTile} from "@/tile/defaults/ContainerTile";
-import {InventoryContentStruct} from "@/structs/ItemStructs";
+import {ProtectedItemStruct} from "@/structs/ItemStructs";
 import X, {def} from "stramp";
 import {InventorySizes} from "@/meta/Inventories";
 import {Item} from "@/item/Item";
@@ -10,7 +10,7 @@ export class FurnaceTile extends ContainerTile {
     typeName = "furnace";
     name = "Furnace";
 
-    @def(InventoryContentStruct.array(InventorySizes.furnace)) items: (Item | null)[];
+    @def(ProtectedItemStruct.nullable().array(InventorySizes.furnace)) items: (Item | null)[];
     @def(X.u32) xp = 0;
     @def(X.f32) time = 0;
 

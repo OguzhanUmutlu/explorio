@@ -16,8 +16,9 @@ export const Versions = [
     "0.0.1-alpha.15", // world version 6
     "0.0.1-alpha.16", // world version 6
     "0.0.1-alpha.17", // world version 6
+    "0.0.1-alpha.18", // world version 7
 ];
 
-export const WorldGenerationVersion = 6;
+export const WorldGenerationVersion = 7;
 export const Version = Versions.length - 1;
 export const VersionString = Versions[Version];
