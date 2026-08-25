@@ -10,7 +10,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "electron": "^38.0.0",
+    "electron": "^43.4.1",
     "electron-packager": "^17.1.2",
     "fs-extra": "^11.2.0"
   }
