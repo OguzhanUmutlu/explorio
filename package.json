@@ -69,7 +69,7 @@
     "eslint": "^10.10.0",
     "tsx": "^4.20.3",
     "typedoc": "^0.28.7",
-    "typescript": "^5.8.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.35.1",
     "vite": "^7.1.11",
     "vite-plugin-copy": "^0.1.6",
