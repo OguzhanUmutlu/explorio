@@ -71,7 +71,7 @@
     "typedoc": "^0.28.7",
     "typescript": "^7.0.2",
     "typescript-eslint": "^8.35.1",
-    "vite": "^7.1.11",
+    "vite": "^8.2.2",
     "vite-plugin-copy": "^0.1.6",
     "vite-tsconfig-paths": "^6.0.3"
   }
